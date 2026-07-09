@@ -141,6 +141,7 @@ Route::middleware('auth')->group(function () {
     */
     
     // --- CONSOLIDATED REGISTRAR & ADMISSION WORKSPACE ---
+    Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/dashboard', function () {
         $user       = Auth::user();
         $clearances = Clearance::has('user')->with('user')->get();
@@ -191,10 +192,12 @@ Route::middleware('auth')->group(function () {
         $applicant->delete();
         return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $name . ' has been declined and removed.');
     })->name('registrar.decline-applicant');
+    }); // end role:registrar,admission
 
 
     // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
-    Route::get('/approver/dashboard', function () { 
+    Route::middleware('role:chair')->group(function () {
+    Route::get('/approver/dashboard', function () {
         $clearances = Clearance::has('user')->with('user')->get(); 
         return view('approver.dashboard', compact('clearances')); 
     })->name('approver.dashboard');
@@ -208,15 +211,19 @@ Route::middleware('auth')->group(function () {
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
     })->name('approver.sign');
+    }); // end role:chair
 
 
     // --- CASHIER HUB ENDPOINTS ---
+    Route::middleware('role:cashier')->group(function () {
     Route::get('/cashier/dashboard', [AuthController::class, 'showCashierDashboard'])->name('cashier.dashboard');
     Route::post('/cashier/approve', [AuthController::class, 'approveClearance'])->name('cashier.approve');
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
+    }); // end role:cashier
 
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
+    Route::middleware('role:admin')->group(function () {
     Route::get('/admin/dashboard', function () {
         $verifiedApplicants = User::where('role', 'verified_applicant')->orderByDesc('created_at')->get();
         return view('admin.dashboard', compact('verifiedApplicants'));
@@ -326,8 +333,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/curriculum', function () {
         return view('admin.curriculum');
     })->name('admin.curriculum');
+    }); // end role:admin
 
     // Student Records — list all students + link to grade editor (Registrar)
+    Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/students', function () {
         $students = User::where('role', 'student')->orderBy('name')->get();
         return view('registrar.students', compact('students'));
@@ -368,4 +377,5 @@ Route::middleware('auth')->group(function () {
         $pendingApplicants = User::where('role', 'applicant')->count();
         return view('registrar.reports', compact('clearances', 'pendingApplicants'));
     })->name('registrar.reports');
+    }); // end role:registrar,admission
 });
