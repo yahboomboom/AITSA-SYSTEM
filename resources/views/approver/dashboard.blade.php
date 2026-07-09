@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITSA Staff | Department Chair Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brandNavy: '#0B3C5D',
+                        brandGreen: '#1D7A46',
+                        brandGold: '#E2A700',
+                        darkBg: '#121212',
+                        lightBg: '#EFF3F7',
+                        panelDark: '#1E1E1E',
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        function updateThemeIcon() {
+            var icon = document.getElementById('theme-icon');
+            if (icon) icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
+        }
+        function initializeTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+        }
+        document.addEventListener('DOMContentLoaded', updateThemeIcon);
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            updateThemeIcon(); localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+        initializeTheme();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
+
+    <div class="flex h-screen overflow-hidden">
+
+        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
+            <div class="h-16 flex items-center px-6 border-b border-brandNavy/10 dark:border-slate-800">
+                <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-7 h-7 rounded object-cover mr-3">
+                <h1 class="text-base font-black tracking-tight text-brandNavy dark:text-white">AITSA</h1>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
+                <p class="px-3 text-[10px] font-bold text-brandNavy/40 dark:text-slate-500 uppercase tracking-widest mb-3">Dean / Chair Controls</p>
+
+                <a href="{{ route('approver.dashboard') }}" class="flex items-center px-3 py-2.5 border-l-2 border-brandGreen text-brandGreen dark:text-emerald-400 font-bold text-sm transition-colors">
+                    <span>Academic Approvals</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+
+            <header class="h-16 bg-white dark:bg-panelDark border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-8 z-10 transition-colors duration-300">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">College Desk System</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
+                        <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+                    @include('partials.profile-menu', [
+                        'roleLabel'     => 'CCS Academic Approver',
+                        'roleClass'     => 'font-bold uppercase tracking-wider text-brandGreen dark:text-emerald-400',
+                        'avatarInitial' => strtoupper(substr(Auth::user()->name ?? 'C', 0, 1)),
+                    ])
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
+
+                @if(session('success'))
+                    <div class="p-3.5 rounded-lg bg-brandGreen/8 border border-brandGreen/20 text-brandGreen font-bold text-xs">
+                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
+                    </div>
+                @endif
+
+                <div class="space-y-1">
+                    <h1 class="text-xl font-extrabold tracking-tight text-brandNavy dark:text-white">Department Chair Enrollment Approval</h1>
+                    <p class="text-xs text-brandNavy/50 dark:text-slate-400">Verify structural student clearance flags and sign off on active program updates.</p>
+                </div>
+
+                <div class="bg-white dark:bg-panelDark/40 border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-brandNavy/8 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 text-[10px] font-bold text-brandNavy/40 dark:text-slate-500 uppercase tracking-widest">
+                                    <th class="py-3.5 px-5">Student Info</th>
+                                    <th class="py-3.5 px-5">Student ID</th>
+                                    <th class="py-3.5 px-5">Program</th>
+                                    <th class="py-3.5 px-5 text-center">Status</th>
+                                    <th class="py-3.5 px-5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
+                                @foreach($clearances as $row)
+                                <tr class="hover:bg-lightBg dark:hover:bg-slate-800/20 transition-colors">
+                                    <td class="py-4 px-5 font-bold text-brandNavy dark:text-white">
+                                        {{ $row->user->name ?? '—' }}
+                                    </td>
+
+                                    <td class="py-4 px-5 font-mono text-brandNavy/50 dark:text-slate-400">
+                                        {{ $row->user->login_id ?? '—' }}
+                                    </td>
+
+                                    <td class="py-4 px-5 text-brandNavy/70 dark:text-slate-300">
+                                        {{ $row->user->major ?? '—' }}
+                                    </td>
+
+                                    <td class="py-4 px-5 text-center">
+                                        @if(($row->registrar_status ?? 'Pending') !== 'Approved')
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">
+                                                Awaiting Registrar
+                                            </span>
+                                        @elseif(($row->chair_status ?? 'Pending') === 'Approved')
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">
+                                                Fully Approved
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+                                                Ready for Chair
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    <td class="py-4 px-5 text-right">
+                                        @if(($row->registrar_status ?? 'Pending') !== 'Approved')
+                                            <button disabled class="px-3.5 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-600 text-[11px] font-bold rounded cursor-not-allowed border border-brandNavy/8 dark:border-slate-700" title="Registrar must sign off first">
+                                                <i class="fa-solid fa-lock mr-1.5"></i>Locked
+                                            </button>
+                                        @elseif(($row->chair_status ?? 'Pending') === 'Approved')
+                                            <button disabled class="px-3.5 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-500 text-[11px] font-bold rounded cursor-not-allowed border border-brandNavy/8 dark:border-slate-700">
+                                                <i class="fa-solid fa-check-double mr-1.5"></i>Approved
+                                            </button>
+                                        @else
+                                            <form action="{{ route('registrar.sign', isset($row->id) ? $row->id : 1) }}" method="POST" class="inline-block">
+                                                @csrf
+                                                <button type="submit" class="px-3.5 py-1.5 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors">
+                                                    Approve Enrollment
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITSA Portal | Ledger & Payments</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { 
+                extend: { 
+                    colors: { 
+                        brandBlue: '#0A2540', 
+                        brandGreen: '#10B981', 
+                        darkBg: '#121212', 
+                        panelDark: '#1E1E1E' 
+                    } 
+                } 
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-200 font-sans antialiased">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-slate-200 dark:border-slate-800">
+            <div class="h-20 flex items-center px-8 border-b border-slate-200 dark:border-slate-800">
+                <h1 class="text-xl font-black text-slate-900 dark:text-white">AITSA</h1>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+                <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
+                
+                <a href="{{ route('dashboard') }}" 
+                   class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-all
+                   {{ request()->routeIs('dashboard') ? 'bg-brandGreen/10 text-brandGreen font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50' }}">
+                    <i class="fa-solid fa-house w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="{{ route('clearance') }}" 
+                   class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-all
+                   {{ request()->routeIs('clearance') ? 'bg-brandGreen/10 text-brandGreen font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50' }}">
+                    <i class="fa-solid fa-file-invoice w-5"></i>
+                    <span>e-Clearance</span>
+                </a>
+                
+                <a href="{{ route('enrollment') }}" 
+                   class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-all
+                   {{ request()->routeIs('enrollment') ? 'bg-brandGreen/10 text-brandGreen font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50' }}">
+                    <i class="fa-solid fa-award w-5"></i>
+                    <span>Enrollment</span>
+                </a>
+                
+                <a href="{{ route('ledger') }}" 
+                   class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-all
+                   {{ request()->routeIs('ledger*') ? 'bg-brandGreen/10 text-brandGreen font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50' }}">
+                    <i class="fa-solid fa-wallet w-5"></i>
+                    <span>Ledger & Payments</span>
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                
+                @if(session('success'))
+                    <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
+                    </div>
+                @endif
+
+                <div class="text-center py-2">
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Ledger Overview</h1>
+                </div>
+
+                <div class="bg-white dark:bg-panelDark border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div class="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-2 text-center md:text-left">
+                            @if($clearance->cashier_status === 'Approved')
+                                <h3 class="text-3xl font-black text-emerald-500">₱ 0.00</h3>
+                                <p class="text-xs text-slate-400">Your cashier profile accounts are settled completely.</p>
+                            @else
+                                <h3 class="text-3xl font-black text-amber-500">₱ 3,500.00</h3>
+                                <p class="text-xs text-slate-400">Pending balance settlement requirements checklist parameters.</p>
+                            @endif
+                        </div>
+                        <div>
+                            @if($clearance->cash_status === 'Approved' || $clearance->cashier_status === 'Approved')
+                                <button disabled class="px-6 py-3 bg-slate-800 text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed">
+                                    <i class="fa-solid fa-circle-check mr-2"></i>Account Settled
+                                </button>
+                            @else
+                                <button onclick="openPaymentGatewayModal()" class="px-6 py-3 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md">
+                                    <i class="fa-solid fa-credit-card mr-2"></i>Proceed to Payment API Gateway
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="gatewayModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-slate-950 p-5 border-b border-slate-800/80 flex items-center justify-between">
+                <span class="text-xs font-mono font-black text-slate-400">AITSA Gateway Hub (Sandbox)</span>
+                <button onclick="closePaymentGatewayModal()" class="text-slate-500 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800 text-xs">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-slate-500">Reference:</span>
+                        <span class="text-slate-400 font-mono">TXN-99837-WIT</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm font-bold mt-2 pt-2 border-t border-slate-800">
+                        <span class="text-slate-300">Amount Due:</span>
+                        <span class="text-emerald-400 text-base">₱ 3,500.00</span>
+                    </div>
+                </div>
+                <form id="gatewayForm" action="{{ route('ledger.mockPay') }}" method="POST" class="grid grid-cols-2 gap-4">
+                    @csrf
+                    <input type="hidden" id="paymentStatusField" name="payment_status" value="">
+                    <button type="button" onclick="submitMockPayment('success')" class="p-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl font-bold text-xs">
+                        <i class="fa-solid fa-circle-check block text-lg mb-1"></i>Authorize Payment
+                    </button>
+                    <button type="button" onclick="submitMockPayment('fail')" class="p-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs">
+                        <i class="fa-solid fa-circle-xmark block text-lg mb-1"></i>Cancel
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPaymentGatewayModal() { 
+            document.getElementById('gatewayModal').classList.remove('hidden'); 
+            document.getElementById('gatewayModal').classList.add('flex'); 
+        }
+        function closePaymentGatewayModal() { 
+            document.getElementById('gatewayModal').classList.add('hidden'); 
+            document.getElementById('gatewayModal').classList.remove('flex'); 
+        }
+        function submitMockPayment(outcome) {
+            document.getElementById('paymentStatusField').value = outcome;
+            document.getElementById('gatewayForm').innerHTML = `
+                <div class="col-span-2 text-center py-4 text-xs font-mono text-slate-500">
+                    <i class="fa-solid fa-spinner animate-spin text-xl text-brandGreen block mb-2"></i>
+                    Processing validation handshakes...
+                </div>`;
+            setTimeout(() => { 
+                document.getElementById('gatewayForm').submit(); 
+            }, 1200);
+        }
+        window.addEventListener('DOMContentLoaded', () => { 
+            if (new URLSearchParams(window.location.search).get('triggerPay') === 'true') { 
+                openPaymentGatewayModal(); 
+            } 
+        });
+    </script>
+</body>
+</html>

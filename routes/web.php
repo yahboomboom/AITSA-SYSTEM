@@ -1,0 +1,371 @@
+﻿<?php
+
+use App\Http\Controllers\AuthController;
+use App\Models\AuditLog;
+use App\Models\Clearance;
+use App\Models\StudentGrade;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
+/*
+|--------------------------------------------------------------------------
+| Public Guest Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/login', [AuthController::class, 'showLogin']);
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Open Student Application Sequence Endpoints
+Route::get('/apply', [AuthController::class, 'showApplicationForm'])->name('apply');
+Route::post('/apply', [AuthController::class, 'processApplication'])->name('apply.store');
+
+
+/*
+|--------------------------------------------------------------------------
+| Protected Authenticated Systems
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    
+    // 1. Student Dashboard Module
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Session validation failure.');
+        }
+
+        $clearance = Clearance::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'admission_status'   => 'Pending',
+                'chair_status'       => 'Pending',
+                'cashier_status'     => 'Pending',
+                'registrar_status'   => 'Pending',
+                'library_status'     => 'Approved',
+                'clinic_status'      => 'Approved',
+            ]
+        );
+
+        return view('dashboard', compact('clearance'));
+    })->name('dashboard');
+
+    // 2. Student e-Clearance Routing Module
+    Route::get('/clearance', function () {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $clearance = Clearance::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'admission_status'   => 'Pending',
+                'chair_status'       => 'Pending',
+                'cashier_status'     => 'Pending',
+                'registrar_status'   => 'Pending',
+                'library_status'     => 'Approved',
+                'clinic_status'      => 'Approved',
+            ]
+        );
+
+        $submission = null;
+        return view('clearance', compact('clearance', 'submission'));
+    })->name('clearance');
+
+    Route::post('/clearance/submit-requirement', function (Request $request) {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $request->validate([
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'document_type' => ['required', 'string'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        // If you want to persist uploads later, add storage logic here.
+        return redirect()->route('clearance')->with('success', 'Your document has been submitted to the Registrar for review.');
+    })->name('clearance.submitRequirement');
+
+    // 3. Enrollment Hub Module
+    Route::get('/enrollment', function () {
+        $user = Auth::user();
+        $clearance = Clearance::where('user_id', $user?->id)->first();
+
+        $grades      = StudentGrade::where('user_id', $user->id)->get();
+        $passedCodes = $grades->where('status', 'Passed')->pluck('subject_code')->values()->toArray();
+        $failedCodes = $grades->where('status', 'Failed')->pluck('subject_code')->values()->toArray();
+        $isIrregular = count($failedCodes) > 0;
+
+        $yearMap = ['1st Year' => 1, '2nd Year' => 2, '3rd Year' => 3, '4th Year' => 4];
+        $yearNum = $yearMap[$user->year_level] ?? 1;
+
+        return view('enrollment', compact('clearance', 'passedCodes', 'failedCodes', 'isIrregular', 'yearNum'));
+    })->name('enrollment');
+
+    // 5. Ledger Workspace Module (view renamed to `payment`)
+    Route::get('/ledger', function () { 
+        $user = Auth::user();
+        $clearance = Clearance::where('user_id', $user?->id)->first();
+        return view('payment', compact('clearance')); 
+    })->name('ledger');
+
+    Route::post('/ledger/mock-pay', function (Request $request) {
+        $user = Auth::user();
+        $clearance = Clearance::where('user_id', $user?->id)->first();
+        
+        if ($clearance && $request->input('payment_status') === 'success') {
+            $clearance->update(['cashier_status' => 'Approved']);
+            return redirect()->route('ledger')->with('success', 'Payment authorized successfully via Sandbox Gateway!');
+        }
+        
+        return redirect()->route('ledger')->with('error', 'Transaction declined or canceled.');
+    })->name('ledger.mockPay');
+
+    // 5. Certificate of Registration (COR) View
+    Route::get('/cor', [AuthController::class, 'showCor'])->name('cor');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Staff & Faculty Administration Core Layer
+    |--------------------------------------------------------------------------
+    | Note: These groups can be further isolated by custom middleware roles if needed
+    */
+    
+    // --- CONSOLIDATED REGISTRAR & ADMISSION WORKSPACE ---
+    Route::get('/registrar/dashboard', function () {
+        $user       = Auth::user();
+        $clearances = Clearance::has('user')->with('user')->get();
+        $applicants = User::where('role', 'applicant')->orderByDesc('created_at')->get();
+
+        return view('registrar.dashboard', compact('clearances', 'applicants'));
+    })->name('registrar.dashboard');
+
+    Route::get('/admission/dashboard', function () {
+        return redirect()->route('registrar.dashboard');
+    })->name('admission.dashboard');
+
+    // Action Handlers for Data Handshakes
+    Route::post('/admission/approve/{id}', function ($id) {
+        $clearance = Clearance::find($id);
+        if ($clearance) {
+            $clearance->update([
+                'admission_status' => 'Approved',
+                'registrar_status' => 'Pending',
+            ]);
+            AuditLog::record('Admission Approved', 'Admission approved for student ID ' . ($clearance->user->login_id ?? $clearance->user_id) . ' (' . ($clearance->user->name ?? 'Unknown') . '). Forwarded to Registrar.', 'Clearance', $clearance->id);
+            return redirect()->route('registrar.dashboard')->with('success', 'Student credentials approved. Profile forwarded to Registrar.');
+        }
+        return redirect()->route('registrar.dashboard')->with('error', 'Clearance profile row lookup failed.');
+    })->name('admission.approve');
+
+    Route::post('/registrar/sign/{id}', function ($id) {
+        $clearance = Clearance::find($id);
+        if ($clearance) {
+            $clearance->update(['registrar_status' => 'Approved']);
+            AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
+        }
+        return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
+    })->name('registrar.sign');
+
+    // Registrar verifies a new applicant → forwards to Admin for account creation
+    Route::post('/registrar/verify-applicant/{id}', function ($id) {
+        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+        $applicant->update(['role' => 'verified_applicant']);
+        AuditLog::record('Applicant Verified', 'Registrar verified application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '. Forwarded to Admin for account creation.', 'User', $applicant->id);
+        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $applicant->name . ' verified and forwarded to Admin.');
+    })->name('registrar.verify-applicant');
+
+    Route::post('/registrar/decline-applicant/{id}', function ($id) {
+        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+        AuditLog::record('Applicant Declined', 'Registrar declined and removed application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '.', 'User', $applicant->id);
+        $name = $applicant->name;
+        $applicant->delete();
+        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $name . ' has been declined and removed.');
+    })->name('registrar.decline-applicant');
+
+
+    // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
+    Route::get('/approver/dashboard', function () { 
+        $clearances = Clearance::has('user')->with('user')->get(); 
+        return view('approver.dashboard', compact('clearances')); 
+    })->name('approver.dashboard');
+
+    Route::post('/approver/sign/{id}', function ($id) {
+        $clearance = Clearance::find($id);
+        if ($clearance) {
+            $clearance->update(['chair_status' => 'Approved']);
+            AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
+            return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
+        }
+        return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
+    })->name('approver.sign');
+
+
+    // --- CASHIER HUB ENDPOINTS ---
+    Route::get('/cashier/dashboard', [AuthController::class, 'showCashierDashboard'])->name('cashier.dashboard');
+    Route::post('/cashier/approve', [AuthController::class, 'approveClearance'])->name('cashier.approve');
+    Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
+    Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
+
+    // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
+    Route::get('/admin/dashboard', function () {
+        $verifiedApplicants = User::where('role', 'verified_applicant')->orderByDesc('created_at')->get();
+        return view('admin.dashboard', compact('verifiedApplicants'));
+    })->name('admin.dashboard');
+
+    // Single create-student page — handles both walk-in and admission queue (pass ?from={id} for pre-fill)
+    Route::get('/admin/students/create', function (Request $request) {
+        $applicant = null;
+        if ($request->query('from')) {
+            $applicant = User::where('id', $request->query('from'))
+                ->where('role', 'verified_applicant')->first();
+        }
+        return view('admin.create-student', compact('applicant'));
+    })->name('admin.students.create');
+
+    Route::post('/admin/students/create', function (Request $request) {
+        $applicantId = $request->input('applicant_id');
+
+        // If no explicit applicant_id but the email matches an existing applicant, auto-resolve it
+        // so the walk-in form can still convert applicants without requiring the ?from= flow
+        if (!$applicantId && $request->filled('email')) {
+            $existing = User::where('email', $request->input('email'))
+                ->whereIn('role', ['applicant', 'verified_applicant'])->first();
+            if ($existing) {
+                $applicantId = $existing->id;
+            }
+        }
+
+        // Email/login_id uniqueness: if converting an existing applicant, exclude their own record
+        $emailRule    = ['required', 'string', 'email', 'max:255', 'unique:users,email' . ($applicantId ? ',' . $applicantId : '')];
+        $loginIdRule  = ['required', 'string', 'max:50',           'unique:users,login_id'];
+
+        $request->validate([
+            'name'           => ['required', 'string', 'max:255'],
+            'email'          => $emailRule,
+            'login_id'       => $loginIdRule,
+            'password'       => ['required', 'string', 'min:8', 'confirmed'],
+            'major'          => ['required', 'string'],
+            'year_level'     => ['required', 'string'],
+            'section'        => ['nullable', 'string', 'max:50'],
+            'sex'            => ['nullable', 'string'],
+            'contact_number' => ['nullable', 'string', 'max:20'],
+            'date_of_birth'  => ['nullable', 'date'],
+            'address'        => ['nullable', 'string', 'max:500'],
+            'applicant_type' => ['nullable', 'string'],
+        ], [
+            'email.unique'       => 'This email is already registered.',
+            'login_id.unique'    => 'This Student ID is already taken.',
+            'password.confirmed' => 'Password and confirmation do not match.',
+        ]);
+
+        $fields = [
+            'login_id'       => $request->input('login_id'),
+            'password'       => $request->input('password'),
+            'role'           => 'student',
+            'major'          => $request->input('major'),
+            'year_level'     => $request->input('year_level'),
+            'section'        => $request->input('section'),
+            'sex'            => $request->input('sex'),
+            'contact_number' => $request->input('contact_number'),
+            'date_of_birth'  => $request->input('date_of_birth'),
+            'address'        => $request->input('address'),
+            'applicant_type' => $request->input('applicant_type'),
+            'program_level'  => $request->input('program_level'),
+        ];
+
+        if ($applicantId) {
+            // Converting a verified applicant — update in place
+            $student = User::where('id', $applicantId)->where('role', 'verified_applicant')->firstOrFail();
+            $student->update($fields);
+        } else {
+            // Walk-in / manual registration — create fresh
+            $fields['name']  = $request->input('name');
+            $fields['email'] = $request->input('email');
+            $student = User::create($fields);
+        }
+
+        Clearance::firstOrCreate(
+            ['user_id' => $student->id],
+            ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
+             'registrar_status' => 'Pending', 'library_status' => 'Approved', 'clinic_status' => 'Approved']
+        );
+
+        AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
+
+        return redirect()->route('admin.students.create')
+            ->with('success', 'Account created for ' . $student->name . '. Login ID: ' . $student->login_id . '.');
+    })->name('admin.students.store');
+
+    Route::get('/admin/audit', function () {
+        $logs = AuditLog::orderByDesc('created_at')->paginate(50);
+        return view('admin.audit', compact('logs'));
+    })->name('admin.audit');
+
+    Route::get('/admin/reports', function () {
+        $clearances         = Clearance::has('user')->with('user')->get();
+        $pendingApplicants  = User::where('role', 'applicant')->count();
+        $verifiedApplicants = User::where('role', 'verified_applicant')->count();
+        $totalStudents      = User::where('role', 'student')->count();
+        $programBreakdown   = User::where('role', 'student')
+            ->whereNotNull('major')->where('major', '!=', '')
+            ->selectRaw('major, count(*) as count')
+            ->groupBy('major')->orderByDesc('count')->get();
+        return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown'));
+    })->name('admin.reports');
+
+    Route::get('/admin/curriculum', function () {
+        return view('admin.curriculum');
+    })->name('admin.curriculum');
+
+    // Student Records — list all students + link to grade editor (Registrar)
+    Route::get('/registrar/students', function () {
+        $students = User::where('role', 'student')->orderBy('name')->get();
+        return view('registrar.students', compact('students'));
+    })->name('registrar.students');
+
+    // Grade editor — GET: show, POST: save (Registrar)
+    Route::get('/registrar/students/{id}/grades', function ($id) {
+        $student = User::where('id', $id)->where('role', 'student')->firstOrFail();
+        $grades  = StudentGrade::where('user_id', $id)->get()->keyBy('subject_code');
+        return view('registrar.student-grades', compact('student', 'grades'));
+    })->name('registrar.students.grades');
+
+    Route::post('/registrar/students/{id}/grades', function (Request $request, $id) {
+        $student = User::where('id', $id)->where('role', 'student')->firstOrFail();
+
+        foreach ($request->input('grades', []) as $code => $rawGrade) {
+            $grade = is_numeric($rawGrade) ? (int) $rawGrade : null;
+
+            if ($grade === null || $grade === 0) {
+                StudentGrade::where('user_id', $id)->where('subject_code', $code)->delete();
+            } else {
+                StudentGrade::updateOrCreate(
+                    ['user_id' => $id, 'subject_code' => $code],
+                    [
+                        'status'      => $grade >= 75 ? 'Passed' : 'Failed',
+                        'final_grade' => (string) $grade,
+                    ]
+                );
+            }
+        }
+
+        AuditLog::record('Grades Updated', 'Registrar updated grade records for ' . $student->name . ' (' . $student->login_id . ').', 'User', $student->id);
+        return redirect()->route('registrar.students.grades', $id)->with('success', 'Grades saved.');
+    })->name('registrar.students.grades.store');
+
+    Route::get('/registrar/reports', function () {
+        $clearances        = Clearance::has('user')->with('user')->get();
+        $pendingApplicants = User::where('role', 'applicant')->count();
+        return view('registrar.reports', compact('clearances', 'pendingApplicants'));
+    })->name('registrar.reports');
+});

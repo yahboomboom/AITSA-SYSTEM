@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITSA Portal | Enrollment Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { brandBlue: '#0A2540', brandGreen: '#10B981', darkBg: '#121212', panelDark: '#1E1E1E' } } }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-200 font-sans antialiased">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-slate-200 dark:border-slate-800">
+            <div class="h-20 flex items-center px-8 border-b border-slate-200 dark:border-slate-800">
+                <h1 class="text-xl font-black text-slate-900 dark:text-white">AITSA</h1>
+            </div>
+            <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 px-4 py-3 text-slate-500 rounded-xl text-sm"><i class="fa-solid fa-house w-5"></i><span>Dashboard</span></a>
+                <a href="{{ route('clearance') }}" class="flex items-center space-x-3 px-4 py-3 text-slate-500 rounded-xl text-sm"><i class="fa-solid fa-file-invoice w-5"></i><span>Clearance Routing</span></a>
+                <a href="{{ route('enrollment') }}" class="flex items-center space-x-3 px-4 py-3 bg-brandGreen/10 text-brandGreen rounded-xl text-sm font-bold"><i class="fa-solid fa-award w-5"></i><span>Enrollment</span></a>
+                <a href="{{ route('ledger') }}" class="flex items-center space-x-3 px-4 py-3 text-slate-500 rounded-xl text-sm"><i class="fa-solid fa-wallet w-5"></i><span>Ledger & Payments</span></a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                
+                <div class="text-center py-2"><h1 class="text-2xl font-bold text-slate-900 dark:text-white">Enrollment Hub</h1></div>
+
+                @php
+                    $isCleared = ($clearance->cashier_status === 'Approved' && $clearance->registrar_status === 'Approved' && $pendingEvaluations->isEmpty());
+                @endphp
+
+                @if(!$isCleared)
+                    <div class="border border-red-500/20 bg-red-500/5 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center"><i class="fa-solid fa-lock"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-200">Enrollment Phase Locked</h3>
+                                <p class="text-xs text-slate-400">Clear all pending items before accessing subject configuration adjustments.</p>
+                            </div>
+                        </div>
+                        <div>
+                            @if($clearance->cashier_status !== 'Approved')
+                                <a href="{{ route('ledger', ['triggerPay' => 'true']) }}" class="inline-block text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl font-bold uppercase tracking-wider">
+                                    Settle Cashier Balance First
+                                </a>
+                            @else
+                                <a href="{{ route('clearance') }}" class="inline-block text-xs bg-red-500/20 text-red-300 px-4 py-2 rounded-xl font-bold uppercase tracking-wider">
+                                    View Hold Items
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+            </div>
+        </main>
+    </div>
+</body>
+</html>
