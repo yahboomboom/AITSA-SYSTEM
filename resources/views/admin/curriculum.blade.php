@@ -42,8 +42,8 @@
 <div class="flex h-screen overflow-hidden">
 
     {{-- SIDEBAR --}}
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-slate-200 dark:border-slate-800">
-        <div class="h-20 flex items-center px-8 border-b border-slate-200 dark:border-slate-800">
+    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800">
+        <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover mr-3">
             <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">AITSA HQ</h1>
         </div>
@@ -67,12 +67,13 @@
     {{-- MAIN --}}
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
-        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 z-10 flex-shrink-0 transition-colors duration-300">
+        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-8 z-10 flex-shrink-0 transition-colors duration-300">
             <div>
                 <h2 class="text-sm font-bold text-brandNavy dark:text-slate-200 tracking-wide">Curriculum Management</h2>
                 <p class="text-[10px] text-brandNavy/50 dark:text-slate-500">Manage subject offerings per program and semester — A.Y. 2025–2026</p>
             </div>
             <div class="flex items-center gap-3">
+                @include('partials.notif-bell')
                 <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>

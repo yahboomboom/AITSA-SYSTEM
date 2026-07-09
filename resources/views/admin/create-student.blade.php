@@ -75,6 +75,7 @@
                 <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Create Student Account</h2>
             </div>
             <div class="flex items-center gap-4">
+                @include('partials.notif-bell')
                 <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>

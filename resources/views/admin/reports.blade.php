@@ -35,8 +35,8 @@
 <div class="flex h-screen overflow-hidden">
 
     {{-- SIDEBAR --}}
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-slate-200 dark:border-slate-800 no-print">
-        <div class="h-20 flex items-center px-8 border-b border-slate-200 dark:border-slate-800">
+    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 no-print">
+        <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover mr-3">
             <h1 class="text-xl font-black tracking-tight text-slate-900 dark:text-white">AITSA HQ</h1>
         </div>
@@ -60,7 +60,7 @@
     {{-- MAIN --}}
     <main class="flex-1 flex flex-col overflow-hidden">
 
-        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 no-print">
+        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 no-print">
             <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">System Reports</h2>
             <div class="flex items-center gap-3">
                 <button onclick="exportCSV()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-brandGreen hover:bg-brandNavy text-white transition-all shadow-sm hover:-translate-y-0.5 active:translate-y-0">
@@ -69,7 +69,8 @@
                 <button onclick="window.print()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-brandNavy hover:bg-brandGreen text-white transition-all shadow-sm hover:-translate-y-0.5 active:translate-y-0">
                     <i class="fa-solid fa-print"></i>Print Report
                 </button>
-                <div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3">
+                <div class="flex items-center gap-3 border-l border-brandNavy/10 dark:border-slate-700 pl-3">
+                    @include('partials.notif-bell')
                     <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                         <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                     </button>
@@ -322,5 +323,6 @@ function exportCSV() {
     URL.revokeObjectURL(url);
 }
 </script>
+@include('partials.notif-script')
 </body>
 </html>

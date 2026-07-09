@@ -88,7 +88,7 @@ $passCount = $grades->where('status', 'Passed')->count();
 
 <div class="flex h-screen overflow-hidden">
 
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800">
+    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
         <div class="h-16 flex items-center px-6 border-b border-brandNavy/10 dark:border-slate-800">
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-7 h-7 rounded object-cover mr-3">
             <h1 class="text-base font-black tracking-tight text-brandNavy dark:text-white">AITSA Staff</h1>
@@ -103,7 +103,7 @@ $passCount = $grades->where('status', 'Passed')->count();
 
     <main class="flex-1 flex flex-col overflow-hidden">
 
-        <header class="h-16 bg-white dark:bg-panelDark border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-8 z-10">
+        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
             <div class="flex items-center gap-3">
                 <a href="{{ route('registrar.students') }}" class="text-brandNavy/50 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white transition-colors text-sm">
                     <i class="fa-solid fa-chevron-left mr-1"></i>Student Records
@@ -112,6 +112,7 @@ $passCount = $grades->where('status', 'Passed')->count();
                 <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100 truncate max-w-xs">{{ $student->name }}</h2>
             </div>
             <div class="flex items-center gap-3">
+                @include('partials.notif-bell')
                 <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>

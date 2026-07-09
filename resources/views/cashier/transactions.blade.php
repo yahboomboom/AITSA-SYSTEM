@@ -41,7 +41,7 @@
 
     <div class="flex h-screen overflow-hidden">
 
-        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800">
+        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
             <div class="h-16 flex items-center px-6 border-b border-brandNavy/10 dark:border-slate-800">
                 <h1 class="text-base font-black text-brandNavy dark:text-white">AITSA <span class="text-xs text-brandGreen font-mono px-1.5 py-0.5 bg-brandGreen/10 rounded ml-1">Staff</span></h1>
             </div>
@@ -67,9 +67,10 @@
         </aside>
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
-            <header class="h-16 bg-white dark:bg-panelDark border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 flex-shrink-0 z-10 transition-colors duration-300">
+            <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 flex-shrink-0 z-10 transition-colors duration-300">
                 <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
                 <div class="flex items-center gap-3">
+                    @include('partials.notif-bell')
                     <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
                         <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                     </button>
@@ -170,5 +171,6 @@
             });
         });
     </script>
+@include('partials.notif-script')
 </body>
 </html>

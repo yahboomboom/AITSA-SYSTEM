@@ -54,7 +54,7 @@
 
     <main class="flex-1 flex flex-col overflow-hidden">
 
-        <header class="h-16 bg-white dark:bg-panelDark border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-8 z-10 no-print">
+        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300 no-print">
             <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Clearance Routing Report</h2>
             <div class="flex items-center gap-3">
                 <button onclick="exportCSV()" class="hidden md:flex items-center gap-2 px-4 py-2 rounded text-xs font-bold bg-brandGreen hover:bg-brandNavy text-white transition-colors">
@@ -64,6 +64,7 @@
                     <i class="fa-solid fa-print"></i>Print Report
                 </button>
                 <div class="flex items-center gap-3 border-l border-brandNavy/10 dark:border-slate-700 pl-3">
+                    @include('partials.notif-bell')
                     <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
                         <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                     </button>
