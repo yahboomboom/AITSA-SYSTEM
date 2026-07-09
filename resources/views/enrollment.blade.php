@@ -68,7 +68,7 @@
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
+        <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-5">
 
             @php
                 $isCleared = isset($clearance) && (
