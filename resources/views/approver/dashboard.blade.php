@@ -160,6 +160,57 @@
                     </div>
                 </div>
 
+                {{-- Irregular Enrollment Approval Queue --}}
+                <div class="bg-white dark:bg-panelDark/40 border border-brandNavy/8 dark:border-slate-800 rounded-lg p-6 mt-8">
+                    <h2 class="text-lg font-bold text-brandNavy dark:text-slate-100 mb-4">
+                        <i class="fa-solid fa-user-graduate mr-2 text-brandGreen"></i>Pending Irregular Enrollments
+                    </h2>
+
+                    @if (session('error'))
+                        <div class="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-4 py-3 text-sm">{{ session('error') }}</div>
+                    @endif
+
+                    @forelse (($pendingEnrollments ?? []) as $pending)
+                        <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-4">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <p class="font-semibold text-brandNavy dark:text-slate-100">{{ $pending->user->name }} ({{ $pending->user->login_id }})</p>
+                                    <p class="text-xs text-slate-500">{{ $pending->user->major }} — {{ $pending->user->year_level }} — submitted {{ $pending->updated_at->diffForHumans() }}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <form method="POST" action="{{ route('approver.enrollments.approve', $pending) }}">
+                                        @csrf
+                                        <button class="px-4 py-2 rounded-lg bg-brandGreen text-white text-sm font-semibold hover:opacity-90">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('approver.enrollments.reject', $pending) }}" class="flex gap-2">
+                                        @csrf
+                                        <input name="remarks" required maxlength="500" placeholder="Reason for rejection"
+                                               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm" />
+                                        <button class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:opacity-90">Reject</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <table class="w-full mt-3 text-sm">
+                                <thead class="text-left text-xs uppercase text-slate-400">
+                                    <tr><th class="py-1">Code</th><th>Title</th><th>Schedule</th><th>Room</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($pending->sections as $section)
+                                        <tr class="border-t border-slate-100 dark:border-slate-800">
+                                            <td class="py-1 font-mono">{{ $section->subject->code }}</td>
+                                            <td>{{ $section->subject->title }}</td>
+                                            <td>{{ implode('/', $section->days) }} {{ $section->start_time }}–{{ $section->end_time }}</td>
+                                            <td>{{ $section->room }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-400">No enrollments awaiting approval.</p>
+                    @endforelse
+                </div>
+
             </div>
         </main>
     </div>

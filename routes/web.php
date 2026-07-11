@@ -3,9 +3,12 @@
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
+use App\Models\Enrollment;
+use App\Models\Section;
 use App\Models\StudentGrade;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -198,9 +201,64 @@ Route::middleware('auth')->group(function () {
     // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
     Route::middleware('role:chair')->group(function () {
     Route::get('/approver/dashboard', function () {
-        $clearances = Clearance::has('user')->with('user')->get(); 
-        return view('approver.dashboard', compact('clearances')); 
+        $clearances = Clearance::has('user')->with('user')->get();
+        $pendingEnrollments = Enrollment::with(['user', 'sections.subject'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+        return view('approver.dashboard', compact('clearances', 'pendingEnrollments'));
     })->name('approver.dashboard');
+
+    Route::post('/approver/enrollments/{enrollment}/approve', function (Enrollment $enrollment) {
+        if ($enrollment->status !== 'pending') {
+            return back()->with('error', 'This enrollment is no longer pending.');
+        }
+
+        try {
+            DB::transaction(function () use ($enrollment) {
+                $locked = Section::whereIn('id', $enrollment->sections()->pluck('sections.id'))->lockForUpdate()->get();
+                foreach ($locked as $section) {
+                    // The pending enrollment's own rows already count in enrolledCount()
+                    // (they are non-rejected), so the section is oversubscribed only when
+                    // the count exceeds capacity.
+                    if ($section->enrolledCount() > $section->capacity) {
+                        throw new \App\Exceptions\EnrollmentException('No seats left in ' . $section->subject->code . '.');
+                    }
+                }
+                $enrollment->update(['status' => 'enrolled', 'remarks' => null]);
+            });
+        } catch (\App\Exceptions\EnrollmentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        AuditLog::record(
+            'Enrollment Approved',
+            'Department Chair approved irregular enrollment for ' . ($enrollment->user->name ?? 'ID ' . $enrollment->user_id) . ' (' . ($enrollment->user->login_id ?? 'N/A') . ').',
+            'Enrollment',
+            $enrollment->id
+        );
+
+        return back()->with('success', 'Enrollment approved.');
+    })->name('approver.enrollments.approve');
+
+    Route::post('/approver/enrollments/{enrollment}/reject', function (Request $request, Enrollment $enrollment) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+
+        if ($enrollment->status !== 'pending') {
+            return back()->with('error', 'This enrollment is no longer pending.');
+        }
+
+        $enrollment->update(['status' => 'rejected', 'remarks' => $data['remarks']]);
+
+        AuditLog::record(
+            'Enrollment Rejected',
+            'Department Chair rejected enrollment for ' . ($enrollment->user->name ?? 'ID ' . $enrollment->user_id) . ': ' . $data['remarks'],
+            'Enrollment',
+            $enrollment->id
+        );
+
+        return back()->with('success', 'Enrollment returned to the student with remarks.');
+    })->name('approver.enrollments.reject');
 
     Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
