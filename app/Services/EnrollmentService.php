@@ -8,6 +8,7 @@ use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\Section;
 use App\Models\Setting;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -113,6 +114,119 @@ class EnrollmentService
             AuditLog::record(
                 'Enrollment Committed',
                 sprintf('Regular enrollment committed for %s (%s), block %s, %s sem %d.', $user->name, $user->login_id, $block['label'], $term['school_year'], $term['semester']),
+                'Enrollment',
+                $enrollment->id
+            );
+
+            return $enrollment->load('sections.subject');
+        });
+    }
+
+    public function catalogueFor(User $user): \Illuminate\Support\Collection
+    {
+        $term = $this->currentTerm();
+        $program = $user->program();
+        if (! $program) {
+            return collect();
+        }
+
+        $passed = $user->passedSubjectCodes();
+
+        return Subject::where('program_id', $program->id)
+            ->where('semester', $term['semester'])
+            ->with(['prerequisites', 'sections' => fn ($q) => $q->where('school_year', $term['school_year'])])
+            ->orderBy('year_level')->orderBy('code')
+            ->get()
+            ->map(function (Subject $subject) use ($passed) {
+                $missing = $subject->prerequisites->pluck('code')->diff($passed);
+                [$eligible, $reason] = match (true) {
+                    in_array($subject->code, $passed, true) => [false, 'Already passed'],
+                    $missing->isNotEmpty() => [false, 'Missing prerequisite: ' . $missing->implode(', ')],
+                    default => [true, null],
+                };
+
+                return [
+                    'id' => $subject->id,
+                    'code' => $subject->code,
+                    'title' => $subject->title,
+                    'units' => $subject->units,
+                    'year_level' => $subject->year_level,
+                    'semester' => $subject->semester,
+                    'mode' => $subject->mode,
+                    'eligible' => $eligible,
+                    'reason' => $reason,
+                    'sections' => $subject->sections->map(fn (Section $s) => [
+                        'id' => $s->id,
+                        'block_label' => $s->block_label,
+                        'days' => $s->days,
+                        'start_time' => $s->start_time,
+                        'end_time' => $s->end_time,
+                        'room' => $s->room,
+                        'professor' => $s->professor,
+                        'seats_left' => $s->seatsLeft(),
+                    ])->values()->all(),
+                ];
+            })
+            ->values();
+    }
+
+    /** @param int[] $sectionIds */
+    public function enrollIrregular(User $user, array $sectionIds): Enrollment
+    {
+        $this->assertCanEnroll($user);
+        $term = $this->currentTerm();
+
+        if (empty($sectionIds)) {
+            throw new EnrollmentException('Select at least one subject to enroll.', 422);
+        }
+
+        return DB::transaction(function () use ($user, $term, $sectionIds) {
+            $sections = Section::whereIn('id', $sectionIds)->lockForUpdate()->with('subject.prerequisites')->get();
+
+            if ($sections->count() !== count(array_unique($sectionIds))) {
+                throw new EnrollmentException('One or more selected sections no longer exist.', 422);
+            }
+
+            $program = $user->program();
+            $passed = $user->passedSubjectCodes();
+
+            if ($sections->pluck('subject_id')->duplicates()->isNotEmpty()) {
+                throw new EnrollmentException('You selected more than one section of the same subject.', 422);
+            }
+
+            foreach ($sections as $section) {
+                $subject = $section->subject;
+                if ($subject->program_id !== $program->id || $subject->semester !== $term['semester'] || $section->school_year !== $term['school_year']) {
+                    throw new EnrollmentException("Section for {$subject->code} is not offered to your program this term.", 422);
+                }
+                if (in_array($subject->code, $passed, true)) {
+                    throw new EnrollmentException("You have already passed {$subject->code}.");
+                }
+                $missing = $subject->prerequisites->pluck('code')->diff($passed);
+                if ($missing->isNotEmpty()) {
+                    throw new EnrollmentException("{$subject->code} requires: " . $missing->implode(', ') . '.');
+                }
+                if (! $section->hasSeats()) {
+                    throw new EnrollmentException("The {$subject->code} section you picked just filled up. Choose another section.");
+                }
+            }
+
+            foreach ($sections as $i => $a) {
+                foreach ($sections->slice($i + 1) as $b) {
+                    if ($a->overlaps($b)) {
+                        throw new EnrollmentException("Schedule conflict: {$a->subject->code} overlaps with {$b->subject->code}.");
+                    }
+                }
+            }
+
+            $enrollment = $this->upsertEnrollment($user, $term, [
+                'type' => 'irregular', 'status' => 'pending', 'block_label' => null, 'remarks' => null,
+            ]);
+            $enrollment->sections()->sync($sections->pluck('id'));
+
+            AuditLog::record(
+                'Enrollment Submitted',
+                sprintf('Irregular enrollment submitted for %s (%s) with %d subject(s); awaiting Department Chair approval.', $user->name, $user->login_id, $sections->count()),
                 'Enrollment',
                 $enrollment->id
             );
