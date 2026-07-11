@@ -20,6 +20,11 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(ShsStrandsSeeder::class);
 
+        $this->call([
+            ProgramSeeder::class,
+            CurriculumSeeder::class,
+        ]);
+
         // 1. Structural Student Account
         User::updateOrCreate(
             ['email' => 'student@aitsa.edu.ph'],
