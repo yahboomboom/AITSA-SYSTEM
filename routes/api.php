@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\EnrollmentController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->get('/ping', function (Request $request) {
-    return response()->json(['user' => $request->user()->name]);
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+    Route::get('/enrollment/context', [EnrollmentController::class, 'context']);
+    Route::post('/enrollment', [EnrollmentController::class, 'store']);
 });
