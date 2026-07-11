@@ -180,19 +180,15 @@
                                 <select name="major" required onchange="updateSection()" id="programSelect"
                                     class="w-full border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-slate-900/60 rounded-xl px-4 py-2.5 text-sm text-brandNavy dark:text-slate-200 focus:outline-none focus:border-brandGreen transition-colors">
                                     <option value="" disabled {{ $selMajor ? '' : 'selected' }}>Select program</option>
-                                    <optgroup label="TESDA">
-                                        <option value="Bookkeeping NC III"       {{ $selMajor == 'Bookkeeping NC III' ? 'selected' : '' }}>Bookkeeping NC III</option>
-                                        <option value="Events Management NC III" {{ $selMajor == 'Events Management NC III' ? 'selected' : '' }}>Events Management NC III</option>
-                                        <option value="Food &amp; Beverages NC III" {{ $selMajor == 'Food & Beverages NC III' ? 'selected' : '' }}>Food &amp; Beverages NC III</option>
-                                    </optgroup>
-                                    <optgroup label="Associate">
-                                        <option value="Business Office Management" {{ $selMajor == 'Business Office Management' ? 'selected' : '' }}>Business Office Management</option>
-                                        <option value="Food Service Management"   {{ $selMajor == 'Food Service Management' ? 'selected' : '' }}>Food Service Management</option>
-                                    </optgroup>
-                                    <optgroup label="Bachelor">
-                                        <option value="Bachelor in Science Office Administration"          {{ $selMajor == 'Bachelor in Science Office Administration' ? 'selected' : '' }}>Bachelor in Science Office Administration (BSOA)</option>
-                                        <option value="Bachelor in Technical Vocational Teacher Education" {{ $selMajor == 'Bachelor in Technical Vocational Teacher Education' ? 'selected' : '' }}>Bachelor in Technical Vocational Teacher Education (BTVTED)</option>
-                                    </optgroup>
+                                    @foreach ($programs->groupBy('level') as $level => $levelPrograms)
+                                        <optgroup label="{{ ucfirst($level) }}">
+                                            @foreach ($levelPrograms as $program)
+                                                <option value="{{ $program->code }}" {{ $selMajor == $program->code ? 'selected' : '' }}>
+                                                    {{ $program->code }} — {{ $program->name }}{{ $program->is_enrollable ? '' : ' (manual enrollment)' }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
                                 </select>
                                 <input type="hidden" name="program_level" id="programLevelInput" value="{{ old('program_level', $applicant->program_level ?? '') }}">
                             </div>
@@ -288,15 +284,7 @@
 </div>
 
 <script>
-const PROGRAM_LEVELS = {
-    'Bookkeeping NC III': 'TESDA',
-    'Events Management NC III': 'TESDA',
-    'Food & Beverages NC III': 'TESDA',
-    'Business Office Management': 'ASSOCIATE',
-    'Food Service Management': 'ASSOCIATE',
-    'Bachelor in Science Office Administration': 'BACHELOR',
-    'Bachelor in Technical Vocational Teacher Education': 'BACHELOR',
-};
+const PROGRAM_LEVELS = @json($programs->pluck('level', 'code')->map(fn ($level) => strtoupper($level)));
 
 function updateSection() {
     const prog = document.getElementById('programSelect').value;

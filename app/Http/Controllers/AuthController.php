@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\Student;
 use App\Models\ShsStrand;
 use App\Models\Clearance;
+use App\Models\Enrollment;
 use App\Models\TransactionLedger;
 
 class AuthController extends Controller
@@ -261,17 +262,26 @@ class AuthController extends Controller
         $user = Auth::user();
         $student = Student::where('user_id', $user->id)->first();
 
-        $subjects = [
-            ['code' => 'CC 313',   'desc' => 'Advanced Database Systems',           'units' => 3, 'days' => 'MWF',    'time' => '8:00–9:00 AM',   'room' => 'Rm 302',  'type' => 'F2F',    'color' => 'bg-blue-600'],
-            ['code' => 'CC 314',   'desc' => 'Web Systems & Technologies',          'units' => 3, 'days' => 'TTh',    'time' => '8:00–9:30 AM',   'room' => 'Lab 201', 'type' => 'F2F',    'color' => 'bg-emerald-600'],
-            ['code' => 'CC 315',   'desc' => 'Software Engineering',                'units' => 3, 'days' => 'MWF',    'time' => '9:00–10:00 AM',  'room' => 'Rm 305',  'type' => 'F2F',    'color' => 'bg-violet-600'],
-            ['code' => 'CC 316',   'desc' => 'Human-Computer Interaction',          'units' => 3, 'days' => 'TTh',    'time' => '10:30–12:00 PM', 'room' => 'Rm 301',  'type' => 'Hybrid', 'color' => 'bg-orange-500'],
-            ['code' => 'CC 317',   'desc' => 'Network Administration',              'units' => 3, 'days' => 'MWF',    'time' => '1:00–2:00 PM',   'room' => 'Lab 202', 'type' => 'F2F',    'color' => 'bg-cyan-600'],
-            ['code' => 'CC 318',   'desc' => 'Integrative Programming & Tech',      'units' => 3, 'days' => 'SatSun', 'time' => '1:00–2:30 PM',   'room' => 'Lab 201', 'type' => 'Online', 'color' => 'bg-teal-600'],
-            ['code' => 'GEC 7',    'desc' => 'Science, Technology & Society',       'units' => 3, 'days' => 'SatSun', 'time' => '3:00–4:30 PM',   'room' => 'Online',  'type' => 'Online', 'color' => 'bg-rose-500'],
-            ['code' => 'PATH FIT', 'desc' => 'Physical Activity — Team Sports',     'units' => 2, 'days' => 'F',      'time' => '3:00–5:00 PM',   'room' => 'Gym',     'type' => 'F2F',    'color' => 'bg-amber-500'],
-            ['code' => 'CC CAP',   'desc' => 'Capstone Project 1',                  'units' => 3, 'days' => 'SatSun', 'time' => '8:00–11:00 AM',  'room' => 'Lab 203', 'type' => 'F2F',    'color' => 'bg-brandGreen'],
-        ];
+        $palette = ['bg-blue-600', 'bg-emerald-600', 'bg-violet-600', 'bg-orange-500', 'bg-cyan-600', 'bg-teal-600', 'bg-rose-500', 'bg-amber-500', 'bg-brandGreen'];
+
+        $enrollment = Enrollment::with('sections.subject')
+            ->where('user_id', $user->id)
+            ->where('status', 'enrolled')
+            ->latest()
+            ->first();
+
+        $subjects = $enrollment
+            ? $enrollment->sections->values()->map(fn ($section, $i) => [
+                'code' => $section->subject->code,
+                'desc' => $section->subject->title,
+                'units' => $section->subject->units,
+                'days' => implode('/', $section->days),
+                'time' => $section->start_time . '–' . $section->end_time,
+                'room' => $section->room,
+                'type' => $section->subject->mode,
+                'color' => $palette[$i % count($palette)],
+            ])->all()
+            : [];
 
         return view('schedule', compact('user', 'student', 'subjects'));
     }

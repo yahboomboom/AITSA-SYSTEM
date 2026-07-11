@@ -127,7 +127,13 @@
                     </span>
                 </div>
                 <div class="p-4 lg:p-6 overflow-x-auto">
-                    <div id="timetable" class="min-w-[520px]"></div>
+                    @if (count($subjects ?? []) === 0)
+                        <p class="text-sm text-brandNavy/50 dark:text-slate-400 py-6 text-center">
+                            No enrolled subjects yet — complete your enrollment first.
+                        </p>
+                    @else
+                        <div id="timetable" class="min-w-[520px]"></div>
+                    @endif
                 </div>
             </div>
 
@@ -208,10 +214,11 @@ function parseDays(dayStr) {
 
 // -- Time parser --------------------------------------------------------------
 function parseTimePart(t) {
-    const m = t.trim().match(/(\d+):(\d+)\s*(AM|PM)/i);
+    // Accepts "8:00 AM" (12-hour) or "08:00" (24-hour, as stored on sections)
+    const m = t.trim().match(/(\d+):(\d+)\s*(AM|PM)?/i);
     if (!m) return null;
     let h = parseInt(m[1]), min = parseInt(m[2]);
-    const ap = m[3].toUpperCase();
+    const ap = m[3] ? m[3].toUpperCase() : null;
     if (ap === 'PM' && h !== 12) h += 12;
     if (ap === 'AM' && h === 12) h = 0;
     return h * 60 + min;

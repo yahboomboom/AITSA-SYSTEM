@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\Enrollment;
+use App\Models\Program;
 use App\Models\Section;
 use App\Models\StudentGrade;
 use App\Models\User;
@@ -294,7 +295,8 @@ Route::middleware('auth')->group(function () {
             $applicant = User::where('id', $request->query('from'))
                 ->where('role', 'verified_applicant')->first();
         }
-        return view('admin.create-student', compact('applicant'));
+        $programs = Program::orderBy('level')->orderBy('code')->get();
+        return view('admin.create-student', compact('applicant', 'programs'));
     })->name('admin.students.create');
 
     Route::post('/admin/students/create', function (Request $request) {

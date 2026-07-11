@@ -39,6 +39,17 @@
             if ($allCleared) {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Enrollment Unlocked!',        'desc' => 'All clearances approved. You may now enroll for A.Y. 2025–2026.', 'time' => 'System'];
             }
+
+            $latestEnrollment = \App\Models\Enrollment::where('user_id', $authId)->latest()->first();
+            if ($latestEnrollment) {
+                if ($latestEnrollment->status === 'pending') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Enrollment Under Review', 'desc' => 'Your subject picks are with the Department Chair for approval.', 'time' => 'Enrollment update'];
+                } elseif ($latestEnrollment->status === 'enrolled') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Officially Enrolled', 'desc' => 'Your enrollment is confirmed. View your schedule and COR anytime.', 'time' => 'Enrollment update'];
+                } elseif ($latestEnrollment->status === 'rejected') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Enrollment Returned', 'desc' => 'The Chair returned your enrollment: ' . \Illuminate\Support\Str::limit($latestEnrollment->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                }
+            }
         } else {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#E2A700', 'title' => 'Clearance Not Started',    'desc' => 'Your clearance record has not been initialized yet. Contact the Registrar.',  'time' => 'System'];
         }
@@ -116,6 +127,11 @@
         }
         $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap',     'color' => '#0B3C5D', 'title' => 'Approvals This Period',
                      'desc' => $signedCount . ' student clearance(s) approved by your department.',                             'time' => 'Summary'];
+
+        $pendingCount = \App\Models\Enrollment::where('status', 'pending')->count();
+        if ($pendingCount > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-user-graduate', 'color' => '#E2A700', 'title' => 'Enrollments Awaiting Approval', 'desc' => $pendingCount . ' irregular enrollment(s) need your review.', 'time' => 'Action needed'];
+        }
     }
 @endphp
 
