@@ -94,5 +94,32 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
+
+        // 7. Demo students for the enrollment walkthrough (regular + irregular)
+        $regular = User::firstOrCreate(
+            ['login_id' => '2300410'],
+            ['name' => 'Demo Regular Student', 'email' => 'regular.demo@aitsa.test', 'password' => Hash::make('password'),
+             'role' => 'student', 'major' => 'BSOA', 'year_level' => '1st Year']
+        );
+        Clearance::firstOrCreate(
+            ['user_id' => $regular->id],
+            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+             'library_status' => 'Approved', 'clinic_status' => 'Approved']
+        );
+
+        $irregular = User::firstOrCreate(
+            ['login_id' => '2300411'],
+            ['name' => 'Demo Irregular Student', 'email' => 'irregular.demo@aitsa.test', 'password' => Hash::make('password'),
+             'role' => 'student', 'major' => 'BSOA', 'year_level' => '2nd Year']
+        );
+        Clearance::firstOrCreate(
+            ['user_id' => $irregular->id],
+            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+             'library_status' => 'Approved', 'clinic_status' => 'Approved']
+        );
+        \App\Models\StudentGrade::firstOrCreate(
+            ['user_id' => $irregular->id, 'subject_code' => 'BSOA111'],
+            ['status' => 'Failed', 'final_grade' => '5.00']
+        );
     }
 }
