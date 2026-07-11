@@ -35,7 +35,7 @@ New migrations:
 - **`subjects`** — `program_id`, `code`, `title`, `units`, `year_level`, `semester` (1|2), `mode` (F2F|online).
 - **`subject_prerequisites`** — pivot `subject_id` → `prerequisite_id`. Checked against existing `student_grades`.
 - **`sections`** — `subject_id`, `block_label`, `days`, `start_time`, `end_time`, `room`, `professor`, `capacity`, `school_year`. A "block schedule" = all sections sharing program + year + semester + `block_label`; no separate blocks table.
-- **`enrollments`** — `user_id`, `school_year`, `semester`, `type` (regular|irregular), `status` (`pending` → `enrolled`|`rejected`), `block_label` (regular only), `remarks` (chair rejection reason), timestamps. Unique index: one active enrollment per student per term.
+- **`enrollments`** — `user_id`, `school_year`, `semester`, `type` (regular|irregular), `status` (`pending` → `enrolled`|`rejected`), `block_label` (regular only), `remarks` (chair rejection reason), timestamps. Unique index on (`user_id`, `school_year`, `semester`): one enrollment row per student per term. A rejected enrollment is not deleted — when the student resubmits, the same row is updated back to `pending` with new section picks (keeps the unique index simple on MySQL, preserves the rejection remarks trail in `audit_logs`).
 - **`enrollment_subjects`** — `enrollment_id` → `section_id`. Seat usage per section = count of these rows on non-rejected enrollments (no counter column).
 - **`settings`** — key-value store; registrar controls current `school_year` and `semester` (the paper's "academic term configuration").
 
