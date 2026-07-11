@@ -95,7 +95,12 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 7. Demo students for the enrollment walkthrough (regular + irregular)
+        // 7. Demo students for the enrollment walkthrough (regular + irregular).
+        // Weak passwords by design — never seed these outside local/dev environments.
+        if (app()->environment('production')) {
+            return;
+        }
+
         $regular = User::firstOrCreate(
             ['login_id' => '2300410'],
             ['name' => 'Demo Regular Student', 'email' => 'regular.demo@aitsa.test', 'password' => Hash::make('password'),
