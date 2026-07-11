@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Exceptions\EnrollmentException;
+use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class EnrollmentService
 {
@@ -83,5 +85,48 @@ class EnrollmentService
         }
 
         return null;
+    }
+
+    public function enrollRegular(User $user): Enrollment
+    {
+        $this->assertCanEnroll($user);
+        $term = $this->currentTerm();
+
+        return DB::transaction(function () use ($user, $term) {
+            $block = $this->blockFor($user);
+            if (! $block) {
+                throw new EnrollmentException('No block schedule with open seats is available for your program and year level. Please contact the Registrar.');
+            }
+
+            $locked = Section::whereIn('id', $block['sections']->pluck('id'))->lockForUpdate()->get();
+            foreach ($locked as $section) {
+                if (! $section->hasSeats()) {
+                    throw new EnrollmentException('A section in your block just filled up. Please try again.');
+                }
+            }
+
+            $enrollment = $this->upsertEnrollment($user, $term, [
+                'type' => 'regular', 'status' => 'enrolled', 'block_label' => $block['label'], 'remarks' => null,
+            ]);
+            $enrollment->sections()->sync($locked->pluck('id'));
+
+            AuditLog::record(
+                'Enrollment Committed',
+                sprintf('Regular enrollment committed for %s (%s), block %s, %s sem %d.', $user->name, $user->login_id, $block['label'], $term['school_year'], $term['semester']),
+                'Enrollment',
+                $enrollment->id
+            );
+
+            return $enrollment->load('sections.subject');
+        });
+    }
+
+    /** @param array{school_year: string, semester: int} $term */
+    private function upsertEnrollment(User $user, array $term, array $attributes): Enrollment
+    {
+        return Enrollment::updateOrCreate(
+            ['user_id' => $user->id, 'school_year' => $term['school_year'], 'semester' => $term['semester']],
+            $attributes
+        );
     }
 }
