@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -74,5 +75,36 @@ class User extends Authenticatable
     public function studentProfile(): HasOne
     {
         return $this->hasOne(Student::class, 'user_id');
+    }
+
+    public function grades(): HasMany
+    {
+        return $this->hasMany(StudentGrade::class);
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    public function isIrregularStudent(): bool
+    {
+        return $this->grades()->where('status', 'Failed')->exists();
+    }
+
+    public function yearNumber(): int
+    {
+        return ['1st Year' => 1, '2nd Year' => 2, '3rd Year' => 3, '4th Year' => 4][$this->year_level] ?? 1;
+    }
+
+    public function program(): ?Program
+    {
+        return Program::where('code', $this->major)->first();
+    }
+
+    /** @return string[] */
+    public function passedSubjectCodes(): array
+    {
+        return $this->grades()->where('status', 'Passed')->pluck('subject_code')->all();
     }
 }
