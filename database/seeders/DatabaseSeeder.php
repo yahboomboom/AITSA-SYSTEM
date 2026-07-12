@@ -126,5 +126,45 @@ class DatabaseSeeder extends Seeder
             ['user_id' => $irregular->id, 'subject_code' => 'BSOA111'],
             ['status' => 'Failed', 'final_grade' => '5.00']
         );
+
+        // 8. Faculty & room loading demo data (still inside the non-production guard above).
+        $facultyOne = User::firstOrCreate(
+            ['login_id' => 'faculty01'],
+            ['name' => 'Prof. Liza Ramos', 'email' => 'faculty01@faculty.aitsa.test',
+             'password' => Hash::make('password123'), 'role' => 'faculty']
+        );
+        $facultyTwo = User::firstOrCreate(
+            ['login_id' => 'faculty02'],
+            ['name' => 'Prof. Marco Dizon', 'email' => 'faculty02@faculty.aitsa.test',
+             'password' => Hash::make('password123'), 'role' => 'faculty']
+        );
+
+        foreach (\App\Models\Section::query()->distinct()->pluck('room') as $roomName) {
+            \App\Models\Room::firstOrCreate(['name' => $roomName], ['type' => 'physical']);
+        }
+        \App\Models\Room::firstOrCreate(['name' => 'Google Meet A'], ['type' => 'virtual']);
+
+        // Link every section to its room entity; spread faculty greedily without double-booking.
+        $roomsByName = \App\Models\Room::pluck('id', 'name');
+        $assigned = [$facultyOne->id => [], $facultyTwo->id => []];
+
+        foreach (\App\Models\Section::orderBy('id')->get() as $section) {
+            $section->room_id = $roomsByName[$section->room] ?? null;
+
+            if ($section->faculty_id === null) {
+                foreach ([$facultyOne->id, $facultyTwo->id] as $facultyId) {
+                    $clash = collect($assigned[$facultyId])->contains(
+                        fn ($s) => $s->school_year === $section->school_year && $s->overlaps($section)
+                    );
+                    if (! $clash) {
+                        $section->faculty_id = $facultyId;
+                        $assigned[$facultyId][] = $section;
+                        break;
+                    }
+                }
+            }
+
+            $section->save();
+        }
     }
 }
