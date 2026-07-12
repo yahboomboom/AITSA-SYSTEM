@@ -24,7 +24,7 @@ class ProgramController extends Controller
     public function subjects(Program $program): JsonResponse
     {
         return response()->json([
-            'subjects' => $program->subjects()->with(['prerequisites', 'sections'])
+            'subjects' => $program->subjects()->with(['prerequisites', 'sections.faculty', 'sections.roomEntity'])
                 ->orderBy('year_level')->orderBy('semester')->orderBy('code')->get()
                 ->map(fn ($s) => [
                     'id' => $s->id, 'code' => $s->code, 'title' => $s->title, 'units' => $s->units,
@@ -35,6 +35,8 @@ class ProgramController extends Controller
                         'start_time' => $sec->start_time, 'end_time' => $sec->end_time, 'room' => $sec->room,
                         'professor' => $sec->professor, 'capacity' => $sec->capacity,
                         'school_year' => $sec->school_year, 'enrolled_count' => $sec->enrolledCount(),
+                        'faculty_id' => $sec->faculty_id, 'room_id' => $sec->room_id,
+                        'faculty_name' => $sec->facultyName(), 'room_label' => $sec->roomLabel(),
                     ]),
                 ]),
         ]);
