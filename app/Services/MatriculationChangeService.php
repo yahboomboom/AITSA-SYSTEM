@@ -71,6 +71,60 @@ class MatriculationChangeService
         });
     }
 
+    public function approve(MatriculationChange $change): void
+    {
+        if ($change->status !== 'pending') {
+            throw new EnrollmentException('This change request is no longer pending.');
+        }
+
+        DB::transaction(function () use ($change) {
+            $items = $change->items()->get()->map(fn ($i) => [
+                'action' => $i->action,
+                'section_id' => $i->section_id,
+                'replaced_section_id' => $i->replaced_section_id,
+            ])->all();
+
+            // Hold the target section rows so seat counts cannot drift mid-approval.
+            $targetIds = collect($items)->whereIn('action', ['add', 'swap'])->pluck('section_id');
+            Section::whereIn('id', $targetIds)->lockForUpdate()->get();
+
+            $enrollment = $change->enrollment;
+            [$attach, $detach] = $this->validate($change->user, $enrollment, $items);
+
+            if ($detach->isNotEmpty()) {
+                $enrollment->sections()->detach($detach->all());
+            }
+            if ($attach->isNotEmpty()) {
+                $enrollment->sections()->attach($attach->all());
+            }
+
+            $change->update(['status' => 'approved']);
+        });
+
+        AuditLog::record(
+            'Matriculation Change Approved',
+            'Department Chair approved change of matriculation for ' . ($change->user->name ?? 'ID ' . $change->user_id) . ' (' . ($change->user->login_id ?? 'N/A') . ').',
+            'MatriculationChange',
+            $change->id
+        );
+    }
+
+    public function reject(MatriculationChange $change, string $remarks): void
+    {
+        if ($change->status !== 'pending') {
+            throw new EnrollmentException('This change request is no longer pending.');
+        }
+
+        $change->update(['status' => 'rejected', 'remarks' => $remarks]);
+
+        AuditLog::record(
+            'Matriculation Change Rejected',
+            'Department Chair rejected change of matriculation for ' . ($change->user->name ?? 'ID ' . $change->user_id) . ': ' . $remarks,
+            'MatriculationChange',
+            $change->id
+        );
+    }
+
     /**
      * Validate items against the enrollment's resulting schedule.
      * Returns [$attach, $detach] section-id collections for approval to apply.
