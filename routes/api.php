@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\FacultyController;
 use App\Http\Controllers\Api\Admin\ProgramController;
+use App\Http\Controllers\Api\Admin\RoomController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\SectionController;
 use App\Http\Controllers\Api\Admin\SubjectController;
@@ -25,4 +27,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/sections', [SectionController::class, 'store']);
     Route::put('/sections/{section}', [SectionController::class, 'update']);
     Route::delete('/sections/{section}', [SectionController::class, 'destroy']);
+    Route::get('/faculty', [FacultyController::class, 'index']);
+    Route::post('/faculty', [FacultyController::class, 'store']);
+    Route::get('/faculty/{user}/schedule', [FacultyController::class, 'schedule']);
+    Route::get('/rooms', [RoomController::class, 'index']);
+    Route::post('/rooms', [RoomController::class, 'store']);
 });
