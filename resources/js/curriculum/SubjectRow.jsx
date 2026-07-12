@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../lib/api';
 import SectionEditor from './SectionEditor';
 
-export default function SubjectRow({ subject, allSubjects, schoolYear, onChanged }) {
+export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, rooms, onChanged, onListsChanged }) {
     const [open, setOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(null);
@@ -81,7 +81,8 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, onChanged
                     </>
                 )}
             </div>
-            {open && <SectionEditor subject={subject} schoolYear={schoolYear} onChanged={onChanged} />}
+            {open && <SectionEditor subject={subject} schoolYear={schoolYear} faculty={faculty} rooms={rooms}
+                onChanged={onChanged} onListsChanged={onListsChanged} />}
         </div>
     );
 }

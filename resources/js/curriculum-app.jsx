@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import api from './lib/api';
 import SubjectRow from './curriculum/SubjectRow';
+import FacultyLoading from './curriculum/FacultyLoading';
 
 const SCHOOL_YEAR = '2026-2027'; // matches Setting school_year; sections are created for this term
 
@@ -15,6 +16,9 @@ function CurriculumApp() {
     const [yearFilter, setYearFilter] = useState(1);
     const [semFilter, setSemFilter] = useState(1);
     const [windowOpen, setWindowOpen] = useState(false);
+    const [faculty, setFaculty] = useState([]);
+    const [rooms, setRooms] = useState([]);
+    const [view, setView] = useState('curriculum'); // 'curriculum' | 'loading'
 
     useEffect(() => {
         api.get('/admin/programs').then((res) => {
@@ -31,6 +35,14 @@ function CurriculumApp() {
     }, [active]);
 
     useEffect(loadSubjects, [loadSubjects]);
+
+    const loadLists = useCallback(() => {
+        api.get('/admin/faculty').then((res) => setFaculty(res.data.faculty));
+        api.get('/admin/rooms').then((res) => setRooms(res.data.rooms));
+    }, []);
+
+    useEffect(loadLists, [loadLists]);
+    useEffect(() => { if (view === 'loading') loadLists(); }, [view, loadLists]);
 
     const createSubject = () => {
         setError(null);
@@ -60,6 +72,18 @@ function CurriculumApp() {
                         </button>
                     ))}
                 </div>
+                <div className="flex gap-2">
+                    <button onClick={() => setView('curriculum')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
+                            ${view === 'curriculum' ? 'bg-brandNavy text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                        Curriculum
+                    </button>
+                    <button onClick={() => setView('loading')}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
+                            ${view === 'loading' ? 'bg-brandNavy text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                        Faculty Loading
+                    </button>
+                </div>
                 <button onClick={toggleWindow}
                     className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
                         ${windowOpen ? 'bg-brandGreen text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
@@ -67,7 +91,9 @@ function CurriculumApp() {
                 </button>
             </div>
 
-            {active && (
+            {view === 'loading' && <FacultyLoading faculty={faculty} />}
+
+            {view === 'curriculum' && active && (
                 <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
                     <h2 className="text-lg font-bold text-brandNavy dark:text-slate-100 mb-1">{active.name}</h2>
                     <div className="flex flex-wrap gap-2 my-3 text-xs">
@@ -87,7 +113,8 @@ function CurriculumApp() {
 
                     {visible.map((subject) => (
                         <SubjectRow key={subject.id} subject={subject} allSubjects={subjects}
-                            schoolYear={SCHOOL_YEAR} onChanged={loadSubjects} />
+                            schoolYear={SCHOOL_YEAR} faculty={faculty} rooms={rooms}
+                            onChanged={loadSubjects} onListsChanged={loadLists} />
                     ))}
 
                     {adding ? (
