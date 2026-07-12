@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Program;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 
 class ProgramController extends Controller
@@ -11,6 +12,7 @@ class ProgramController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
+            'change_matriculation_open' => Setting::get('change_matriculation_open', '0') === '1',
             'programs' => Program::withCount('subjects')->orderBy('level')->orderBy('code')->get()
                 ->map(fn (Program $p) => [
                     'id' => $p->id, 'code' => $p->code, 'name' => $p->name, 'level' => $p->level,

@@ -14,11 +14,13 @@ function CurriculumApp() {
     const [error, setError] = useState(null);
     const [yearFilter, setYearFilter] = useState(1);
     const [semFilter, setSemFilter] = useState(1);
+    const [windowOpen, setWindowOpen] = useState(false);
 
     useEffect(() => {
         api.get('/admin/programs').then((res) => {
             const enrollable = res.data.programs.filter((p) => p.is_enrollable);
             setPrograms(enrollable);
+            setWindowOpen(Boolean(res.data.change_matriculation_open));
             if (enrollable.length > 0) setActive(enrollable[0]);
         });
     }, []);
@@ -41,16 +43,28 @@ function CurriculumApp() {
 
     const visible = subjects.filter((s) => s.year_level === yearFilter && s.semester === semFilter);
 
+    const toggleWindow = () => {
+        api.post('/admin/settings/change-matriculation', { open: !windowOpen })
+            .then((res) => setWindowOpen(res.data.change_matriculation_open));
+    };
+
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-                {programs.map((p) => (
-                    <button key={p.id} onClick={() => setActive(p)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold
-                            ${active?.id === p.id ? 'bg-brandNavy text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
-                        {p.code}
-                    </button>
-                ))}
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+                <div className="flex flex-wrap gap-2">
+                    {programs.map((p) => (
+                        <button key={p.id} onClick={() => setActive(p)}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold
+                                ${active?.id === p.id ? 'bg-brandNavy text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                            {p.code}
+                        </button>
+                    ))}
+                </div>
+                <button onClick={toggleWindow}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
+                        ${windowOpen ? 'bg-brandGreen text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                    Change of Matriculation: {windowOpen ? 'OPEN' : 'CLOSED'}
+                </button>
             </div>
 
             {active && (

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\ProgramController;
+use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\SectionController;
 use App\Http\Controllers\Api\Admin\SubjectController;
 use App\Http\Controllers\Api\EnrollmentController;
@@ -17,6 +18,7 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/programs', [ProgramController::class, 'index']);
     Route::get('/programs/{program}/subjects', [ProgramController::class, 'subjects']);
+    Route::post('/settings/change-matriculation', [SettingController::class, 'changeMatriculation']);
     Route::post('/subjects', [SubjectController::class, 'store']);
     Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
     Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
