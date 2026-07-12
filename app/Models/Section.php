@@ -13,7 +13,7 @@ class Section extends Model
 
     protected $fillable = [
         'subject_id', 'block_label', 'days', 'start_time', 'end_time',
-        'room', 'professor', 'capacity', 'school_year',
+        'room', 'professor', 'capacity', 'school_year', 'faculty_id', 'room_id',
     ];
 
     protected $casts = ['days' => 'array'];
@@ -21,6 +21,26 @@ class Section extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function faculty(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'faculty_id');
+    }
+
+    public function roomEntity(): BelongsTo
+    {
+        return $this->belongsTo(Room::class, 'room_id');
+    }
+
+    public function facultyName(): string
+    {
+        return $this->faculty?->name ?? $this->professor;
+    }
+
+    public function roomLabel(): string
+    {
+        return $this->roomEntity?->name ?? $this->room;
     }
 
     public function enrollments(): BelongsToMany

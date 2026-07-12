@@ -87,6 +87,11 @@ class User extends Authenticatable
         return $this->hasMany(Enrollment::class);
     }
 
+    public function taughtSections(): HasMany
+    {
+        return $this->hasMany(Section::class, 'faculty_id');
+    }
+
     public function isIrregularStudent(): bool
     {
         return $this->grades()->where('status', 'Failed')->exists();
