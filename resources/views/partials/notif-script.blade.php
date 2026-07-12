@@ -167,6 +167,12 @@ function markAllRead() {
     renderNotifs();
 }
 
+function escNotif(value) {
+    return String(value).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+    }[c]));
+}
+
 function renderNotifs() {
     const readIds  = getReadIds();
     const unread   = NOTIFS.filter(n => !readIds.includes(n.id));
@@ -193,11 +199,11 @@ function renderNotifs() {
                 : 'border-brandGreen bg-brandGreen/[0.03] hover:bg-brandGreen/[0.06] dark:bg-brandGreen/5 dark:hover:bg-brandGreen/10'}"
             onclick="readNotif(${n.id})">
             <div class="flex items-center justify-between gap-2">
-                <p class="text-[11px] font-bold text-brandNavy dark:text-slate-200 leading-tight">${n.title}</p>
+                <p class="text-[11px] font-bold text-brandNavy dark:text-slate-200 leading-tight">${escNotif(n.title)}</p>
                 ${!isRead ? '<div class="w-1.5 h-1.5 rounded-full bg-brandGreen flex-shrink-0"></div>' : ''}
             </div>
-            <p class="text-[10px] text-brandNavy/60 dark:text-slate-400 mt-0.5 leading-snug">${n.desc}</p>
-            <p class="text-[9px] text-brandNavy/35 dark:text-slate-500 mt-1">${n.time}</p>
+            <p class="text-[10px] text-brandNavy/60 dark:text-slate-400 mt-0.5 leading-snug">${escNotif(n.desc)}</p>
+            <p class="text-[9px] text-brandNavy/35 dark:text-slate-500 mt-1">${escNotif(n.time)}</p>
         </div>`;
     }).join('');
 }
