@@ -6,7 +6,7 @@ const STYLES = {
     rejected: { icon: 'fa-circle-xmark',   tone: 'text-red-600',    label: 'Returned with Remarks' },
 };
 
-export default function StatusCard({ enrollment, onResubmit }) {
+export default function StatusCard({ enrollment, onResubmit, action = null }) {
     const style = STYLES[enrollment.status];
 
     return (
@@ -14,6 +14,7 @@ export default function StatusCard({ enrollment, onResubmit }) {
             <p className={`text-lg font-bold ${style.tone}`}>
                 <i className={`fa-solid ${style.icon} mr-2`} />{style.label}
             </p>
+            {action}
             {enrollment.status === 'rejected' && (
                 <div className="mt-3">
                     <p className="text-sm text-slate-600 dark:text-slate-300">

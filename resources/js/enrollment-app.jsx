@@ -4,6 +4,8 @@ import api from './lib/api';
 import StatusCard from './enrollment/StatusCard';
 import RegularView from './enrollment/RegularView';
 import IrregularPicker from './enrollment/IrregularPicker';
+import ChangeBuilder from './matriculation/ChangeBuilder';
+import RequestCard from './matriculation/RequestCard';
 
 function EnrollmentApp() {
     const [ctx, setCtx] = useState(null);
@@ -11,11 +13,21 @@ function EnrollmentApp() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [resubmitting, setResubmitting] = useState(false);
+    const [mtx, setMtx] = useState(null);           // matriculation context
+    const [building, setBuilding] = useState(false);
+    const [mtxSubmitting, setMtxSubmitting] = useState(false);
+    const [mtxError, setMtxError] = useState(null);
 
     const load = useCallback(() => {
         setLoading(true);
         api.get('/enrollment/context')
-            .then((res) => setCtx(res.data))
+            .then((res) => {
+                setCtx(res.data);
+                if (res.data.enrollment?.status === 'enrolled') {
+                    return api.get('/matriculation/context').then((m) => setMtx(m.data));
+                }
+                setMtx(null);
+            })
             .catch(() => setError('Could not load enrollment data. Please refresh the page.'))
             .finally(() => setLoading(false));
     }, []);
@@ -30,6 +42,15 @@ function EnrollmentApp() {
             .then(() => { setResubmitting(false); load(); })
             .catch((err) => setError(err.response?.data?.message ?? 'Something went wrong. Please try again.'))
             .finally(() => setSubmitting(false));
+    };
+
+    const submitChange = (items) => {
+        setMtxSubmitting(true);
+        setMtxError(null);
+        api.post('/matriculation', { items })
+            .then(() => { setBuilding(false); load(); })
+            .catch((err) => setMtxError(err.response?.data?.message ?? 'Something went wrong. Please try again.'))
+            .finally(() => setMtxSubmitting(false));
     };
 
     if (loading) return <p className="text-sm text-slate-500">Loading your enrollment…</p>;
@@ -64,7 +85,33 @@ function EnrollmentApp() {
             )}
 
             {clearance_complete && enrollment && !(enrollment.status === 'rejected' && resubmitting) && (
-                <StatusCard enrollment={enrollment} onResubmit={() => setResubmitting(true)} />
+                <>
+                    <StatusCard
+                        enrollment={enrollment}
+                        onResubmit={() => setResubmitting(true)}
+                        action={enrollment.status === 'enrolled' && mtx?.window_open && !building
+                            && (!mtx.request || mtx.request.status === 'approved') ? (
+                            <button onClick={() => setBuilding(true)}
+                                className="mt-2 px-4 py-2 rounded-lg bg-brandGold text-brandNavy text-sm font-semibold hover:opacity-90">
+                                <i className="fa-solid fa-arrows-rotate mr-2" />Request Change of Matriculation
+                            </button>
+                        ) : null}
+                    />
+                    {mtx?.request && !building && mtx.request.status !== 'approved' && (
+                        <RequestCard request={mtx.request} windowOpen={mtx.window_open}
+                            onNewRequest={() => setBuilding(true)} />
+                    )}
+                    {building && mtx && (
+                        <ChangeBuilder
+                            current={mtx.enrollment.sections}
+                            catalogue={mtx.catalogue ?? []}
+                            submitting={mtxSubmitting}
+                            error={mtxError}
+                            onSubmit={submitChange}
+                            onCancel={() => { setBuilding(false); setMtxError(null); }}
+                        />
+                    )}
+                </>
             )}
 
             {clearance_complete && (!enrollment || (enrollment.status === 'rejected' && resubmitting)) && (
