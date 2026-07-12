@@ -211,6 +211,59 @@
                     @endforelse
                 </div>
 
+                {{-- Change of Matriculation Queue --}}
+                <div class="bg-white dark:bg-panelDark/40 border border-brandNavy/8 dark:border-slate-800 rounded-lg p-6 mt-8">
+                    <h2 class="text-lg font-bold text-brandNavy dark:text-slate-100 mb-4">
+                        <i class="fa-solid fa-arrows-rotate mr-2 text-brandGold"></i>Change of Matriculation Requests
+                    </h2>
+
+                    @forelse (($pendingChanges ?? []) as $change)
+                        <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-4">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div>
+                                    <p class="font-semibold text-brandNavy dark:text-slate-100">{{ $change->user->name }} ({{ $change->user->login_id }})</p>
+                                    <p class="text-xs text-slate-500">{{ $change->user->major }} — {{ $change->user->year_level }} — filed {{ $change->created_at->diffForHumans() }}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <form method="POST" action="{{ route('approver.matriculation.approve', $change) }}">
+                                        @csrf
+                                        <button class="px-4 py-2 rounded-lg bg-brandGreen text-white text-sm font-semibold hover:opacity-90">Approve</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('approver.matriculation.reject', $change) }}" class="flex gap-2">
+                                        @csrf
+                                        <input name="remarks" required maxlength="500" placeholder="Reason for rejection"
+                                               class="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm" />
+                                        <button class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:opacity-90">Reject</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <ul class="mt-3 space-y-1 text-sm">
+                                @foreach ($change->items as $item)
+                                    <li class="border-t border-slate-100 dark:border-slate-800 pt-1">
+                                        @if ($item->action === 'add')
+                                            <span class="font-bold text-brandGreen uppercase text-xs mr-2">Add</span>
+                                            <span class="font-mono">{{ $item->section->subject->code }}</span>
+                                            (Block {{ $item->section->block_label }}, {{ implode('/', $item->section->days) }} {{ $item->section->start_time }}–{{ $item->section->end_time }}, {{ $item->section->room }})
+                                        @elseif ($item->action === 'drop')
+                                            <span class="font-bold text-red-600 uppercase text-xs mr-2">Drop</span>
+                                            <span class="font-mono">{{ $item->section->subject->code }}</span>
+                                            (Block {{ $item->section->block_label }}, {{ implode('/', $item->section->days) }} {{ $item->section->start_time }}–{{ $item->section->end_time }})
+                                        @else
+                                            <span class="font-bold text-brandGold uppercase text-xs mr-2">Swap</span>
+                                            <span class="font-mono">{{ $item->replacedSection->subject->code }}</span>
+                                            Block {{ $item->replacedSection->block_label }} →
+                                            Block {{ $item->section->block_label }}
+                                            ({{ implode('/', $item->section->days) }} {{ $item->section->start_time }}–{{ $item->section->end_time }}, {{ $item->section->room }})
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-400">No change requests awaiting approval.</p>
+                    @endforelse
+                </div>
+
             </div>
         </main>
     </div>

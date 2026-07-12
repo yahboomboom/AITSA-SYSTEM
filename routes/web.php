@@ -4,10 +4,12 @@ use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\Enrollment;
+use App\Models\MatriculationChange;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\StudentGrade;
 use App\Models\User;
+use App\Services\MatriculationChangeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -207,7 +209,11 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending')
             ->latest()
             ->get();
-        return view('approver.dashboard', compact('clearances', 'pendingEnrollments'));
+        $pendingChanges = MatriculationChange::with(['user', 'items.section.subject', 'items.replacedSection.subject'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+        return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges'));
     })->name('approver.dashboard');
 
     Route::post('/approver/enrollments/{enrollment}/approve', function (Enrollment $enrollment) {
@@ -260,6 +266,25 @@ Route::middleware('auth')->group(function () {
 
         return back()->with('success', 'Enrollment returned to the student with remarks.');
     })->name('approver.enrollments.reject');
+
+    Route::post('/approver/matriculation/{change}/approve', function (MatriculationChange $change) {
+        try {
+            app(MatriculationChangeService::class)->approve($change);
+        } catch (\App\Exceptions\EnrollmentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        return back()->with('success', 'Change of matriculation approved.');
+    })->name('approver.matriculation.approve');
+
+    Route::post('/approver/matriculation/{change}/reject', function (Request $request, MatriculationChange $change) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        try {
+            app(MatriculationChangeService::class)->reject($change, $data['remarks']);
+        } catch (\App\Exceptions\EnrollmentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        return back()->with('success', 'Change request returned to the student with remarks.');
+    })->name('approver.matriculation.reject');
 
     Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
