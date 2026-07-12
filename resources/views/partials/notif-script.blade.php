@@ -50,6 +50,17 @@
                     $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Enrollment Returned', 'desc' => 'The Chair returned your enrollment: ' . \Illuminate\Support\Str::limit($latestEnrollment->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
                 }
             }
+
+            $latestMatriculationChange = \App\Models\MatriculationChange::where('user_id', $authId)->latest('id')->first();
+            if ($latestMatriculationChange) {
+                if ($latestMatriculationChange->status === 'pending') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#E2A700', 'title' => 'Change Request Under Review', 'desc' => 'Your change of matriculation is with the Department Chair for approval.', 'time' => 'Matriculation update'];
+                } elseif ($latestMatriculationChange->status === 'approved') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#1D7A46', 'title' => 'Change of Matriculation Approved', 'desc' => 'Your schedule has been updated. View your COR anytime.', 'time' => 'Matriculation update'];
+                } elseif ($latestMatriculationChange->status === 'rejected') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Change Request Returned', 'desc' => 'The Chair returned your change request: ' . \Illuminate\Support\Str::limit($latestMatriculationChange->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                }
+            }
         } else {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#E2A700', 'title' => 'Clearance Not Started',    'desc' => 'Your clearance record has not been initialized yet. Contact the Registrar.',  'time' => 'System'];
         }
@@ -131,6 +142,11 @@
         $pendingCount = \App\Models\Enrollment::where('status', 'pending')->count();
         if ($pendingCount > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-user-graduate', 'color' => '#E2A700', 'title' => 'Enrollments Awaiting Approval', 'desc' => $pendingCount . ' irregular enrollment(s) need your review.', 'time' => 'Action needed'];
+        }
+
+        $pendingChangeCount = \App\Models\MatriculationChange::where('status', 'pending')->count();
+        if ($pendingChangeCount > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#E2A700', 'title' => 'Change Requests Awaiting Approval', 'desc' => $pendingChangeCount . ' change of matriculation request(s) need your review.', 'time' => 'Action needed'];
         }
     }
 @endphp
