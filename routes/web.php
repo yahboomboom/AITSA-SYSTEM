@@ -297,6 +297,18 @@ Route::middleware('auth')->group(function () {
     })->name('approver.sign');
     }); // end role:chair
 
+    Route::middleware('role:faculty')->group(function () {
+        Route::get('/faculty/schedule', function () {
+            $sections = auth()->user()->taughtSections()
+                ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+                ->with(['subject', 'roomEntity'])
+                ->orderBy('start_time')
+                ->get();
+
+            return view('faculty.schedule', ['sections' => $sections]);
+        })->name('faculty.schedule');
+    }); // end role:faculty
+
 
     // --- CASHIER HUB ENDPOINTS ---
     Route::middleware('role:cashier')->group(function () {

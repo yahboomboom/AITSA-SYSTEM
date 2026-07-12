@@ -148,6 +148,17 @@
         if ($pendingChangeCount > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#E2A700', 'title' => 'Change Requests Awaiting Approval', 'desc' => $pendingChangeCount . ' change of matriculation request(s) need your review.', 'time' => 'Action needed'];
         }
+
+    // ── FACULTY ───────────────────────────────────────────────────────────────
+    } elseif ($authRole === 'faculty') {
+        $loadCount = \App\Models\Section::where('faculty_id', $authId)
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))->count();
+
+        if ($loadCount > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-chalkboard-user', 'color' => '#0B3C5D', 'title' => 'Teaching Load', 'desc' => 'You are loaded with ' . $loadCount . ' section(s) this A.Y.', 'time' => 'Summary'];
+        } else {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-chalkboard-user', 'color' => '#E2A700', 'title' => 'No Teaching Load', 'desc' => 'No teaching load assigned yet.', 'time' => 'System'];
+        }
     }
 @endphp
 

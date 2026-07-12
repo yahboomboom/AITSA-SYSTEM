@@ -192,6 +192,9 @@ class AuthController extends Controller
             case 'chair':
                 $targetRoute = 'approver.dashboard';
                 break;
+            case 'faculty':
+                $targetRoute = 'faculty.schedule';
+                break;
             case 'admin':
                 $targetRoute = 'admin.dashboard';
                 break;
