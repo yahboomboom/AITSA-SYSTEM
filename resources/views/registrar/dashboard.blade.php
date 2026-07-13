@@ -271,6 +271,93 @@
                     </div>
                 </div>
 
+                {{-- STUDENT DOCUMENT SUBMISSIONS --}}
+                <div class="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/20 flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-brandNavy dark:text-white tracking-wide">Student Document Submissions</h3>
+                        @php $pendingDocCount = isset($documentSubmissions) ? $documentSubmissions->where('status', 'pending')->count() : 0; @endphp
+                        @if($pendingDocCount > 0)
+                            <span class="px-2 py-0.5 text-[9px] font-black bg-brandGold text-white rounded-full">{{ $pendingDocCount }} pending</span>
+                        @endif
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">
+                                    <th class="py-4 px-6">Student</th>
+                                    <th class="py-4 px-6">Document</th>
+                                    <th class="py-4 px-6">Submitted</th>
+                                    <th class="py-4 px-6 text-center">Status</th>
+                                    <th class="py-4 px-6 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
+                                @forelse($documentSubmissions ?? [] as $doc)
+                                <tr class="hover:bg-lightBg dark:hover:bg-slate-800/20 transition-colors align-top">
+                                    <td class="py-5 px-6">
+                                        <span class="font-bold text-brandNavy dark:text-white block">{{ $doc->user->name ?? '—' }}</span>
+                                        <span class="font-mono text-brandNavy/60 dark:text-slate-400">{{ $doc->user->login_id ?? '—' }}</span>
+                                    </td>
+                                    <td class="py-5 px-6">
+                                        <span class="font-semibold text-brandNavy dark:text-slate-200 block">{{ $doc->typeLabel() }}</span>
+                                        <a href="{{ route('documents.show', $doc) }}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-[11px]">
+                                            <i class="fa-solid fa-paperclip mr-1"></i>{{ $doc->original_name }} ({{ number_format($doc->size / 1024, 0) }} KB)
+                                        </a>
+                                        @if($doc->notes)
+                                            <p class="text-[11px] text-brandNavy/50 dark:text-slate-500 mt-1 italic">"{{ $doc->notes }}"</p>
+                                        @endif
+                                    </td>
+                                    <td class="py-5 px-6 text-brandNavy/60 dark:text-slate-400">{{ $doc->created_at->format('M d, Y g:i A') }}</td>
+                                    <td class="py-5 px-6 text-center">
+                                        @if($doc->status === 'pending')
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">Pending</span>
+                                        @elseif($doc->status === 'accepted')
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">Accepted</span>
+                                        @else
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-red-600/10 text-red-600 border border-red-600/20 uppercase tracking-wider">Rejected</span>
+                                            @if($doc->remarks)
+                                                <p class="text-[10px] text-red-500/80 mt-1 max-w-40 mx-auto">{{ $doc->remarks }}</p>
+                                            @endif
+                                        @endif
+                                    </td>
+                                    <td class="py-5 px-6 text-right">
+                                        @if($doc->status === 'pending')
+                                            <div class="flex flex-col items-end gap-2">
+                                                <form action="{{ route('registrar.documents.accept', $doc) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="px-4 py-2 bg-brandGreen hover:bg-emerald-600 text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                        <i class="fa-solid fa-check mr-1"></i>Accept
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('registrar.documents.reject', $doc) }}" method="POST" class="flex items-center gap-2">
+                                                    @csrf
+                                                    <input type="text" name="remarks" required maxlength="500" placeholder="Reason for rejection"
+                                                        class="w-44 bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-[11px] text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 px-3 py-2 rounded focus:outline-none focus:border-red-400">
+                                                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                        Reject
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @else
+                                            <span class="text-[10px] text-brandNavy/40 dark:text-slate-500 uppercase tracking-wider">Reviewed</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="py-12 text-center text-brandNavy/40 dark:text-slate-500 font-medium">
+                                        <div class="flex flex-col items-center justify-center space-y-2">
+                                            <i class="fa-solid fa-folder-open text-2xl text-brandNavy/20 dark:text-slate-600"></i>
+                                            <span>No document submissions yet.</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>

@@ -169,7 +169,8 @@ Route::middleware('auth')->group(function () {
         $clearances = Clearance::has('user')->with('user')->get();
         $applicants = User::where('role', 'applicant')->orderByDesc('created_at')->get();
 
-        return view('registrar.dashboard', compact('clearances', 'applicants'));
+        $documentSubmissions = DocumentSubmission::with('user')->latest()->get();
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentSubmissions'));
     })->name('registrar.dashboard');
 
     Route::get('/admission/dashboard', function () {
@@ -214,6 +215,31 @@ Route::middleware('auth')->group(function () {
         $applicant->delete();
         return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $name . ' has been declined and removed.');
     })->name('registrar.decline-applicant');
+
+    // Document submission review
+    Route::post('/registrar/documents/{submission}/accept', function (DocumentSubmission $submission) {
+        if ($submission->status !== 'pending') {
+            return redirect()->route('registrar.dashboard')->with('error', 'This document has already been reviewed.');
+        }
+
+        $submission->update(['status' => 'accepted', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
+        AuditLog::record('Document Reviewed', 'Registrar accepted ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
+
+        return redirect()->route('registrar.dashboard')->with('success', 'Document accepted.');
+    })->name('registrar.documents.accept');
+
+    Route::post('/registrar/documents/{submission}/reject', function (Request $request, DocumentSubmission $submission) {
+        $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+
+        if ($submission->status !== 'pending') {
+            return redirect()->route('registrar.dashboard')->with('error', 'This document has already been reviewed.');
+        }
+
+        $submission->update(['status' => 'rejected', 'remarks' => $request->input('remarks'), 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
+        AuditLog::record('Document Reviewed', 'Registrar rejected ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
+
+        return redirect()->route('registrar.dashboard')->with('success', 'Document rejected and returned to the student.');
+    })->name('registrar.documents.reject');
     }); // end role:registrar,admission
 
 
