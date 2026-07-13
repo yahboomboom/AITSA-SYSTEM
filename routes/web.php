@@ -325,6 +325,16 @@ Route::middleware('auth')->group(function () {
         })->name('faculty.schedule');
     }); // end role:faculty
 
+    // Secure document view/download: owner or registrar/admission only.
+    Route::get('/documents/{submission}', function (DocumentSubmission $submission) {
+        $user = Auth::user();
+        $allowed = $user->id === $submission->user_id || in_array($user->role, ['registrar', 'admission']);
+        abort_unless($allowed, 403);
+        abort_unless(Storage::disk('local')->exists($submission->file_path), 404);
+
+        return Storage::disk('local')->response($submission->file_path, $submission->original_name);
+    })->middleware('auth')->name('documents.show');
+
 
     // --- CASHIER HUB ENDPOINTS ---
     Route::middleware('role:cashier')->group(function () {
