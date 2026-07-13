@@ -4,6 +4,7 @@ use App\Exceptions\PaymentGatewayException;
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
+use App\Models\DiscountType;
 use App\Models\DocumentSubmission;
 use App\Models\Enrollment;
 use App\Models\MatriculationChange;
@@ -407,6 +408,59 @@ Route::middleware('auth')->group(function () {
     Route::post('/cashier/approve', [AuthController::class, 'approveClearance'])->name('cashier.approve');
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
+
+    // Billing configuration: fee rates, discount types, student assignment
+    Route::get('/cashier/billing', function () {
+        return view('cashier.billing', [
+            'tuitionPerUnit' => (int) \App\Models\Setting::get('tuition_per_unit', '300'),
+            'miscFee' => (int) \App\Models\Setting::get('misc_fee', '1500'),
+            'discountTypes' => DiscountType::withCount('students')->orderBy('name')->get(),
+            'students' => User::where('role', 'student')->with('discountType')->orderBy('name')->get(),
+        ]);
+    })->name('cashier.billing');
+
+    Route::post('/cashier/billing/fees', function (Request $request) {
+        $request->validate([
+            'tuition_per_unit' => ['required', 'integer', 'min:0'],
+            'misc_fee' => ['required', 'integer', 'min:0'],
+        ]);
+
+        \App\Models\Setting::put('tuition_per_unit', (string) $request->integer('tuition_per_unit'));
+        \App\Models\Setting::put('misc_fee', (string) $request->integer('misc_fee'));
+        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit and misc fee to ₱' . $request->integer('misc_fee') . '.', 'Setting', null);
+
+        return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
+    })->name('cashier.billing.fees');
+
+    Route::post('/cashier/billing/discounts', function (Request $request) {
+        $request->validate([
+            'name' => ['required', 'string', 'max:100', 'unique:discount_types,name'],
+            'percent' => ['required', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $type = DiscountType::create($request->only('name', 'percent'));
+        AuditLog::record('Discount Type Created', 'Cashier created discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
+
+        return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
+    })->name('cashier.billing.discounts');
+
+    Route::post('/cashier/billing/discounts/{type}/delete', function (DiscountType $type) {
+        AuditLog::record('Discount Type Deleted', 'Cashier deleted discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
+        $type->delete();
+
+        return redirect()->route('cashier.billing')->with('success', 'Discount type removed.');
+    })->name('cashier.billing.discounts.delete');
+
+    Route::post('/cashier/billing/students/{user}/discount', function (Request $request, User $user) {
+        abort_unless($user->role === 'student', 404);
+        $request->validate(['discount_type_id' => ['nullable', 'exists:discount_types,id']]);
+
+        $user->update(['discount_type_id' => $request->input('discount_type_id') ?: null]);
+        $label = $user->discountType->name ?? 'none';
+        AuditLog::record('Discount Assigned', 'Cashier set discount for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') to ' . $label . '.', 'User', $user->id);
+
+        return redirect()->route('cashier.billing')->with('success', 'Student discount updated.');
+    })->name('cashier.billing.assign');
     }); // end role:cashier
 
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---

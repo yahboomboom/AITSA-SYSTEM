@@ -63,6 +63,11 @@
                    class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors {{ Route::is('cashier.accounts') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }}">
                     <span>Student Accounts</span>
                 </a>
+
+                <a href="{{ route('cashier.billing') }}"
+                   class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors {{ Route::is('cashier.billing') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }}">
+                    <span>Billing Setup</span>
+                </a>
             </nav>
         </aside>
 
