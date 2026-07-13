@@ -20,9 +20,14 @@ class TransactionLedger extends Model
         'reference_no',
         'amount',
         'status',
+        'gateway',
+        'checkout_session_id',
+        'paid_at',
         'processed_by',
         'remarks'
     ];
+
+    protected $casts = ['paid_at' => 'datetime'];
 
     /**
      * Connect back to the student user.

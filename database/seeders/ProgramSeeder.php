@@ -26,5 +26,7 @@ class ProgramSeeder extends Seeder
 
         Setting::put('school_year', '2026-2027');
         Setting::put('semester', '1');
+        Setting::put('tuition_per_unit', '300');
+        Setting::put('misc_fee', '1500');
     }
 }

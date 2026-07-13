@@ -166,5 +166,8 @@ class DatabaseSeeder extends Seeder
 
             $section->save();
         }
+
+        // Demo discount type for the cashier billing page
+        \App\Models\DiscountType::firstOrCreate(['name' => 'Academic Scholar'], ['percent' => 50]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -25,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'discount_type_id',
         'major',
         'year_level',
         'section',
@@ -95,6 +97,11 @@ class User extends Authenticatable
     public function documentSubmissions(): HasMany
     {
         return $this->hasMany(DocumentSubmission::class);
+    }
+
+    public function discountType(): BelongsTo
+    {
+        return $this->belongsTo(DiscountType::class);
     }
 
     public function isIrregularStudent(): bool
