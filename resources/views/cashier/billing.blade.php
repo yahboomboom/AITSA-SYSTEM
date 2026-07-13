@@ -156,7 +156,7 @@
                                             <span class="text-brandNavy/40 dark:text-slate-500 ml-2">{{ $type->students_count }} student(s)</span>
                                         </div>
                                         <form action="{{ route('cashier.billing.discounts.delete', $type) }}" method="POST"
-                                              onsubmit="return confirm('Remove {{ $type->name }}? Students with this discount will lose it.');">
+                                              onsubmit="return confirm({{ Illuminate\Support\Js::from('Remove '.$type->name.'? Students with this discount will lose it.') }});">
                                             @csrf
                                             <button type="submit" class="w-7 h-7 rounded bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
                                                 <i class="fa-solid fa-trash-can text-[10px]"></i>

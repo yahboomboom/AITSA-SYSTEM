@@ -150,7 +150,7 @@
                                 <button disabled class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-lightBg text-brandNavy/40 dark:bg-slate-800 dark:text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed border border-brandNavy/10 dark:border-slate-700">
                                     <i class="fa-solid fa-circle-check"></i>Account Settled
                                 </button>
-                            @else
+                            @elseif(! $hasPendingGateway)
                                 <form action="{{ route('ledger.checkout') }}" method="POST">
                                     @csrf
                                     <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0">

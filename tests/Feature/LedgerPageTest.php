@@ -39,6 +39,7 @@ class LedgerPageTest extends TestCase
 
         $this->actingAs($student)->get('/ledger')
             ->assertOk()
-            ->assertSee('Verify Payment');
+            ->assertSee('Verify Payment')
+            ->assertDontSee('via PayMongo'); // Pay is hidden until the pending payment is verified or cancelled
     }
 }
