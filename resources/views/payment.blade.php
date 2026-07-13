@@ -122,7 +122,7 @@
                             <div class="mt-4 bg-lightBg dark:bg-slate-900/40 border border-brandNavy/5 dark:border-slate-800 rounded-xl p-4 text-xs space-y-1.5 w-full md:w-80">
                                 <p class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Assessment Breakdown</p>
                                 <div class="flex justify-between">
-                                    <span class="text-brandNavy/60 dark:text-slate-400">Tuition ({{ $breakdown['units'] }} units × ₱{{ number_format($breakdown['rate']) }})</span>
+                                    <span class="text-brandNavy/60 dark:text-slate-400">Tuition ({{ $breakdown['units'] }} units × ₱{{ number_format($breakdown['rate'], 2) }})</span>
                                     <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['tuition'], 2) }}</span>
                                 </div>
                                 @if($breakdown['discount_amount'] > 0)
