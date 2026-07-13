@@ -128,6 +128,12 @@
                 </div>
             @endif
 
+            @if ($errors->any())
+                <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
+                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first() }}
+                </div>
+            @endif
+
             {{-- PAGE TITLE + ENROLLMENT SHORTCUT --}}
             <div class="text-center py-2 relative">
                 <h1 class="text-2xl font-bold tracking-tight text-brandNavy dark:text-white">Enrollment Clearance</h1>
@@ -150,7 +156,7 @@
                 $cashierCleared    = isset($clearance) && $clearance->cashier_status === 'Approved';
                 $chairCleared      = isset($clearance) && $clearance->chair_status === 'Approved';
                 $hasSubmission     = isset($submission) && $submission !== null;
-                $submissionPending = $hasSubmission && ($submission->status ?? 'Pending') === 'Pending';
+                $submissionPending = $hasSubmission && ($submission->status ?? '') === 'pending';
             @endphp
 
             {{-- MASTER STATUS BADGE --}}
@@ -308,9 +314,9 @@
                                                 Submitted on {{ isset($submission->created_at) ? $submission->created_at->format('M d, Y g:i A') : 'recently' }}.
                                                 The Registrar's Office will review your documents within 1–3 business days.
                                             </p>
-                                            @if(isset($submission->file_name))
+                                            @if(isset($submission->original_name))
                                                 <div class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-600/5 px-2 py-1 rounded-lg">
-                                                    <i class="fa-solid fa-file-pdf"></i>{{ $submission->file_name }}
+                                                    <i class="fa-solid fa-file-pdf"></i>{{ $submission->original_name }}
                                                 </div>
                                             @endif
                                         </div>
@@ -337,6 +343,41 @@
                 </div>
 
             </div>
+
+            {{-- MY SUBMITTED DOCUMENTS --}}
+            @if(isset($submissions) && $submissions->isNotEmpty())
+                <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div class="bg-lightBg dark:bg-slate-800/60 px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center text-xs">
+                        <span class="font-bold text-brandNavy dark:text-slate-300"><i class="fa-solid fa-folder-open mr-2"></i>My Submitted Documents</span>
+                        <span class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">Registrar Review</span>
+                    </div>
+                    <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @foreach($submissions as $doc)
+                            <div class="px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="min-w-0">
+                                    <span class="font-bold text-brandNavy dark:text-slate-200 block">{{ $doc->typeLabel() }}</span>
+                                    <a href="{{ route('documents.show', $doc) }}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-[11px]">
+                                        <i class="fa-solid fa-paperclip mr-1"></i>{{ $doc->original_name }}
+                                    </a>
+                                    <span class="text-brandNavy/50 dark:text-slate-500 ml-2">{{ $doc->created_at->format('M d, Y g:i A') }}</span>
+                                    @if($doc->status === 'rejected' && $doc->remarks)
+                                        <p class="text-[11px] text-red-500 mt-1"><i class="fa-solid fa-comment-dots mr-1"></i>Registrar: {{ $doc->remarks }}</p>
+                                    @endif
+                                </div>
+                                <div class="flex-shrink-0">
+                                    @if($doc->status === 'pending')
+                                        <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">Pending</span>
+                                    @elseif($doc->status === 'accepted')
+                                        <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">Accepted</span>
+                                    @else
+                                        <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-red-600/10 text-red-600 border border-red-600/20 uppercase tracking-wider">Rejected</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
     </main>
 </div>
@@ -456,20 +497,6 @@
             </div>
         </form>
 
-        {{-- Success state (hidden initially) --}}
-        <div id="successState" class="hidden p-8 text-center space-y-4">
-            <div class="w-16 h-16 rounded-full bg-brandGreen/10 text-brandGreen flex items-center justify-center mx-auto text-3xl">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
-            <div>
-                <h3 class="text-base font-bold text-brandNavy dark:text-white">Documents Submitted</h3>
-                <p class="text-xs text-brandNavy/60 dark:text-slate-400 mt-1.5 max-w-xs mx-auto">Your proof of resolution has been forwarded to the Registrar's Office. We'll notify you once it's reviewed.</p>
-            </div>
-            <button onclick="closeSubmitModal()" class="inline-flex items-center gap-2 px-6 py-2.5 bg-brandGreen text-white text-xs font-bold rounded-xl hover:bg-emerald-600 transition-colors shadow-md">
-                <i class="fa-solid fa-check"></i>Done
-            </button>
-        </div>
-
     </div>
 </div>
 
@@ -479,11 +506,9 @@
         const modal = document.getElementById('submitModal');
         const box   = document.getElementById('submitModalBox');
         const form  = document.getElementById('submissionForm');
-        const success = document.getElementById('successState');
 
         // reset
         form.classList.remove('hidden');
-        success.classList.add('hidden');
         if (isResubmit) clearFile();
 
         modal.classList.remove('hidden');
@@ -575,12 +600,7 @@
         btn.disabled  = true;
         btnText.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-1.5"></i>Uploading...';
 
-        // Simulate upload (replace with actual form.submit() in production)
-        setTimeout(() => {
-            document.getElementById('submissionForm').classList.add('hidden');
-            document.getElementById('successState').classList.remove('hidden');
-            // In production, uncomment: document.getElementById('submissionForm').submit();
-        }, 1800);
+        document.getElementById('submissionForm').submit();
     }
 </script>
 
