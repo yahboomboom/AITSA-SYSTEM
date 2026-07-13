@@ -60,6 +60,17 @@ class PayMongoServiceTest extends TestCase
         app(PayMongoService::class)->createCheckoutSession($user, 300000, 'AITSA Tuition');
     }
 
+    public function test_connection_failure_throws_gateway_exception(): void
+    {
+        Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException('cURL error 6: Could not resolve host: api.paymongo.com');
+        });
+        $user = User::factory()->create(['role' => 'student']);
+
+        $this->expectException(PaymentGatewayException::class);
+        app(PayMongoService::class)->createCheckoutSession($user, 300000, 'AITSA Tuition');
+    }
+
     public function test_missing_key_throws_gateway_exception(): void
     {
         config(['services.paymongo.secret' => null]);
