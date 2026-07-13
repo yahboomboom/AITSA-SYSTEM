@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\PaymentGatewayException;
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
@@ -9,8 +10,11 @@ use App\Models\MatriculationChange;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\StudentGrade;
+use App\Models\TransactionLedger;
 use App\Models\User;
+use App\Services\FeeAssessmentService;
 use App\Services\MatriculationChangeService;
+use App\Services\PaymentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -134,23 +138,58 @@ Route::middleware('auth')->group(function () {
     })->name('enrollment');
 
     // 5. Ledger Workspace Module (view renamed to `payment`)
-    Route::get('/ledger', function () { 
+    Route::get('/ledger', function (FeeAssessmentService $fees) {
         $user = Auth::user();
         $clearance = Clearance::where('user_id', $user?->id)->first();
-        return view('payment', compact('clearance')); 
+        $breakdown = $fees->breakdownFor($user);
+        $history = TransactionLedger::where('user_id', $user->id)->latest()->get();
+        $hasPendingGateway = $history->contains(fn ($row) => $row->gateway === 'paymongo' && $row->status === 'Pending');
+
+        return view('payment', compact('clearance', 'breakdown', 'history', 'hasPendingGateway'));
     })->name('ledger');
 
-    Route::post('/ledger/mock-pay', function (Request $request) {
+    Route::post('/ledger/checkout', function (FeeAssessmentService $fees, PaymentService $payments) {
         $user = Auth::user();
-        $clearance = Clearance::where('user_id', $user?->id)->first();
-        
-        if ($clearance && $request->input('payment_status') === 'success') {
-            $clearance->update(['cashier_status' => 'Approved']);
-            return redirect()->route('ledger')->with('success', 'Payment authorized successfully via Sandbox Gateway!');
+        $breakdown = $fees->breakdownFor($user);
+
+        if ($breakdown['balance'] <= 0) {
+            return redirect()->route('ledger')->with('error', 'You have no outstanding balance to pay.');
         }
-        
-        return redirect()->route('ledger')->with('error', 'Transaction declined or canceled.');
-    })->name('ledger.mockPay');
+
+        try {
+            $url = $payments->startCheckout($user, (float) $breakdown['balance']);
+        } catch (PaymentGatewayException $e) {
+            return redirect()->route('ledger')->with('error', $e->getMessage());
+        }
+
+        return redirect()->away($url);
+    })->name('ledger.checkout');
+
+    Route::get('/ledger/payment/return', function (PaymentService $payments) {
+        try {
+            $result = $payments->verifyLatestPending(Auth::user());
+        } catch (PaymentGatewayException $e) {
+            return redirect()->route('ledger')->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('ledger')->with($result['ok'] ? 'success' : 'error', $result['message']);
+    })->name('ledger.payment.return');
+
+    Route::get('/ledger/payment/cancel', function (PaymentService $payments) {
+        $payments->cancelLatestPending(Auth::user());
+
+        return redirect()->route('ledger')->with('error', 'Payment cancelled. Your balance is unchanged.');
+    })->name('ledger.payment.cancel');
+
+    Route::post('/ledger/verify', function (PaymentService $payments) {
+        try {
+            $result = $payments->verifyLatestPending(Auth::user());
+        } catch (PaymentGatewayException $e) {
+            return redirect()->route('ledger')->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('ledger')->with($result['ok'] ? 'success' : 'error', $result['message']);
+    })->name('ledger.verify');
 
     // 5. Certificate of Registration (COR) View
     Route::get('/cor', [AuthController::class, 'showCor'])->name('cor');

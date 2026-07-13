@@ -183,7 +183,7 @@
                         <span class="text-brandGreen text-base font-black">₱ 3,500.00</span>
                     </div>
                 </div>
-                <form id="gatewayForm" action="{{ route('ledger.mockPay') }}" method="POST" class="grid grid-cols-2 gap-4">
+                <form id="gatewayForm" action="{{ route('ledger.checkout') }}" method="POST" class="grid grid-cols-2 gap-4">
                     @csrf
                     <input type="hidden" id="paymentStatusField" name="payment_status" value="">
                     <button type="button" onclick="submitMockPayment('success')" 
