@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
+use App\Models\DocumentSubmission;
 use App\Models\Enrollment;
 use App\Models\MatriculationChange;
 use App\Models\Program;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
 /*
@@ -81,8 +83,9 @@ Route::middleware('auth')->group(function () {
             ]
         );
 
-        $submission = null;
-        return view('clearance', compact('clearance', 'submission'));
+        $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
+        $submission = $submissions->first();
+        return view('clearance', compact('clearance', 'submission', 'submissions'));
     })->name('clearance');
 
     Route::post('/clearance/submit-requirement', function (Request $request) {
@@ -92,12 +95,25 @@ Route::middleware('auth')->group(function () {
         }
 
         $request->validate([
-            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
-            'document_type' => ['required', 'string'],
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'document_type' => ['required', 'in:form137,form138,birth_cert,good_moral,other'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // If you want to persist uploads later, add storage logic here.
+        $file = $request->file('document');
+
+        $submission = DocumentSubmission::create([
+            'user_id' => $user->id,
+            'document_type' => $request->input('document_type'),
+            'notes' => $request->input('notes'),
+            'file_path' => $file->store('documents', 'local'),
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+        ]);
+
+        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . '.', 'DocumentSubmission', $submission->id);
+
         return redirect()->route('clearance')->with('success', 'Your document has been submitted to the Registrar for review.');
     })->name('clearance.submitRequirement');
 
