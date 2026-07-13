@@ -61,6 +61,16 @@
                     $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Change Request Returned', 'desc' => 'The Chair returned your change request: ' . \Illuminate\Support\Str::limit($latestMatriculationChange->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
                 }
             }
+            $latestDocument = \App\Models\DocumentSubmission::where('user_id', $authId)->latest()->first();
+            if ($latestDocument) {
+                if ($latestDocument->status === 'pending') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-folder-open', 'color' => '#E2A700', 'title' => 'Document Under Review', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' is with the Registrar for review.', 'time' => 'Document update'];
+                } elseif ($latestDocument->status === 'accepted') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-check', 'color' => '#1D7A46', 'title' => 'Document Accepted', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was accepted by the Registrar.', 'time' => 'Document update'];
+                } elseif ($latestDocument->status === 'rejected') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-xmark', 'color' => '#DC2626', 'title' => 'Document Rejected', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was rejected: ' . \Illuminate\Support\Str::limit($latestDocument->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                }
+            }
         } else {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#E2A700', 'title' => 'Clearance Not Started',    'desc' => 'Your clearance record has not been initialized yet. Contact the Registrar.',  'time' => 'System'];
         }
@@ -82,6 +92,11 @@
         if ($pendingClearances > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-signature',  'color' => '#0B3C5D', 'title' => 'Clearances Need Signature',
                          'desc' => $pendingClearances . ' student clearance(s) are waiting for your sign-off.',     'time' => 'Action needed'];
+        }
+        $pendingDocuments = \App\Models\DocumentSubmission::where('status', 'pending')->count();
+        if ($pendingDocuments > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-folder-open', 'color' => '#E2A700', 'title' => 'Documents Awaiting Review',
+                         'desc' => $pendingDocuments . ' document submission(s) awaiting your review.', 'time' => 'Action needed'];
         }
         if ($pendingApplicants === 0 && $pendingClearances === 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-check',   'color' => '#1D7A46', 'title' => 'Queue All Clear',
