@@ -71,6 +71,14 @@
                     $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-xmark', 'color' => '#DC2626', 'title' => 'Document Rejected', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was rejected: ' . \Illuminate\Support\Str::limit($latestDocument->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
                 }
             }
+            $latestPayment = \App\Models\TransactionLedger::where('user_id', $authId)->where('gateway', 'paymongo')->latest()->first();
+            if ($latestPayment) {
+                if ($latestPayment->status === 'Settled') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-money-check-dollar', 'color' => '#1D7A46', 'title' => 'Payment Received', 'desc' => '₱' . number_format((float) $latestPayment->amount, 2) . ' settled via PayMongo. Ref ' . $latestPayment->reference_no . '.', 'time' => 'Finance update'];
+                } elseif ($latestPayment->status === 'Pending') {
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Payment Awaiting Verification', 'desc' => 'Use Verify Payment on your Ledger page to confirm your online payment.', 'time' => 'Action needed'];
+                }
+            }
         } else {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#E2A700', 'title' => 'Clearance Not Started',    'desc' => 'Your clearance record has not been initialized yet. Contact the Registrar.',  'time' => 'System'];
         }
@@ -128,6 +136,11 @@
     } elseif ($authRole === 'cashier') {
         $pendingPayments = Clearance::where('cashier_status', 'Pending')->count();
         $settledPayments = Clearance::where('cashier_status', 'Approved')->count();
+        $onlineToday = \App\Models\TransactionLedger::where('gateway', 'paymongo')->where('status', 'Settled')->whereDate('paid_at', today())->count();
+        if ($onlineToday > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-money-bill-wave', 'color' => '#1D7A46', 'title' => 'Online Payments Received',
+                         'desc' => $onlineToday . ' online payment(s) settled via PayMongo today.', 'time' => 'Finance update'];
+        }
 
         if ($pendingPayments > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-cash-register',  'color' => '#F97316', 'title' => 'Payments Awaiting Verification',

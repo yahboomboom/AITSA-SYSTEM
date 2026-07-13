@@ -91,7 +91,14 @@
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
+                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
+                    </div>
+                @endif
+
                 {{-- BALANCE OVERVIEW CARD --}}
+                @php $settled = ($breakdown['balance'] ?? 0) <= 0; @endphp
                 <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                     <div class="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center">
                         <span class="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
@@ -99,31 +106,103 @@
                         </span>
                         <span class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">Accounting Office</span>
                     </div>
-                    <div class="p-6 lg:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="p-6 lg:p-8 flex flex-col md:flex-row items-start justify-between gap-6">
                         <div class="space-y-2 text-center md:text-left">
-                            @if(isset($clearance) && $clearance->cashier_status === 'Approved')
+                            @if($settled)
                                 <p class="text-[10px] font-bold text-brandGreen uppercase tracking-widest">Outstanding Balance</p>
                                 <h3 class="text-4xl font-black text-brandGreen">₱ 0.00</h3>
                                 <p class="text-xs text-brandNavy/60 dark:text-slate-400">Your account has been fully settled with the Accounting Office.</p>
                             @else
                                 <p class="text-[10px] font-bold text-brandGold uppercase tracking-widest">Outstanding Balance</p>
-                                <h3 class="text-4xl font-black text-brandGold dark:text-amber-400">₱ 3,500.00</h3>
-                                <p class="text-xs text-brandNavy/60 dark:text-slate-400">You have a pending tuition balance. Please settle before proceeding to enrollment.</p>
+                                <h3 class="text-4xl font-black text-brandGold dark:text-amber-400">₱ {{ number_format($breakdown['balance'], 2) }}</h3>
+                                <p class="text-xs text-brandNavy/60 dark:text-slate-400">Settle your balance to clear the cashier hold before enrollment.</p>
                             @endif
+
+                            {{-- ASSESSMENT BREAKDOWN --}}
+                            <div class="mt-4 bg-lightBg dark:bg-slate-900/40 border border-brandNavy/5 dark:border-slate-800 rounded-xl p-4 text-xs space-y-1.5 w-full md:w-80">
+                                <p class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Assessment Breakdown</p>
+                                <div class="flex justify-between">
+                                    <span class="text-brandNavy/60 dark:text-slate-400">Tuition ({{ $breakdown['units'] }} units × ₱{{ number_format($breakdown['rate']) }})</span>
+                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['tuition'], 2) }}</span>
+                                </div>
+                                @if($breakdown['discount_amount'] > 0)
+                                    <div class="flex justify-between text-brandGreen">
+                                        <span>{{ $breakdown['discount_name'] }} (−{{ $breakdown['discount_percent'] }}% tuition)</span>
+                                        <span class="font-bold">− ₱ {{ number_format($breakdown['discount_amount'], 2) }}</span>
+                                    </div>
+                                @endif
+                                <div class="flex justify-between">
+                                    <span class="text-brandNavy/60 dark:text-slate-400">Miscellaneous Fee</span>
+                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['misc'], 2) }}</span>
+                                </div>
+                                <div class="flex justify-between pt-1.5 border-t border-brandNavy/10 dark:border-slate-800">
+                                    <span class="text-brandNavy/60 dark:text-slate-400">Total Assessment</span>
+                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['assessment'], 2) }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-brandNavy/60 dark:text-slate-400">Payments Made</span>
+                                    <span class="font-bold text-brandGreen">− ₱ {{ number_format($breakdown['paid'], 2) }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            @if(isset($clearance) && ($clearance->cash_status === 'Approved' || $clearance->cashier_status === 'Approved'))
-                                <button disabled class="inline-flex items-center gap-2 px-6 py-3.5 bg-lightBg text-brandNavy/40 dark:bg-slate-800 dark:text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed border border-brandNavy/10 dark:border-slate-700">
+                        <div class="flex flex-col gap-3 w-full md:w-auto">
+                            @if($settled)
+                                <button disabled class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-lightBg text-brandNavy/40 dark:bg-slate-800 dark:text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed border border-brandNavy/10 dark:border-slate-700">
                                     <i class="fa-solid fa-circle-check"></i>Account Settled
                                 </button>
                             @else
-                                <button onclick="openPaymentGatewayModal()" class="inline-flex items-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0">
-                                    <i class="fa-solid fa-credit-card"></i>Proceed to Payment Gateway
-                                </button>
+                                <form action="{{ route('ledger.checkout') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0">
+                                        <i class="fa-solid fa-credit-card"></i>Pay ₱ {{ number_format($breakdown['balance'], 2) }} via PayMongo
+                                    </button>
+                                </form>
+                            @endif
+                            @if($hasPendingGateway)
+                                <form action="{{ route('ledger.verify') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-brandGold/10 hover:bg-brandGold text-brandGold hover:text-white border border-brandGold/30 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">
+                                        <i class="fa-solid fa-rotate"></i>Verify Payment
+                                    </button>
+                                </form>
+                                <p class="text-[10px] text-brandNavy/50 dark:text-slate-500 text-center max-w-48">Finished paying on the gateway but the balance did not update? Verify here.</p>
                             @endif
                         </div>
                     </div>
                 </div>
+
+                {{-- PAYMENT HISTORY --}}
+                @if(isset($history) && $history->isNotEmpty())
+                    <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                        <div class="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800">
+                            <span class="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
+                                <i class="fa-solid fa-clock-rotate-left mr-2"></i>Payment History
+                            </span>
+                        </div>
+                        <div class="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
+                            @foreach($history as $row)
+                                <div class="px-6 py-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                    <div>
+                                        <span class="font-mono font-bold text-brandNavy dark:text-slate-200 block">{{ $row->reference_no }}</span>
+                                        <span class="text-brandNavy/50 dark:text-slate-500">{{ $row->gateway === 'paymongo' ? 'PayMongo (online)' : 'Cashier window' }} · {{ $row->created_at->format('M d, Y g:i A') }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-black text-brandNavy dark:text-slate-200">₱ {{ number_format($row->amount, 2) }}</span>
+                                        @if($row->status === 'Settled')
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">Settled</span>
+                                        @elseif($row->status === 'Pending')
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">Pending</span>
+                                        @elseif($row->status === 'Failed')
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-red-600/10 text-red-600 border border-red-600/20 uppercase tracking-wider">Failed</span>
+                                        @else
+                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase tracking-wider">{{ $row->status }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 {{-- CLEARANCE STATUS SUMMARY --}}
                 <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
@@ -155,76 +234,6 @@
             </div>
         </main>
     </div>
-
-    {{-- PAYMENT GATEWAY MODAL --}}
-    <div id="gatewayModal" class="fixed inset-0 bg-brandNavy/60 dark:bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div class="bg-lightBg dark:bg-slate-950 p-5 border-b border-brandNavy/10 dark:border-slate-800/80 flex items-center justify-between">
-                <div>
-                    <span class="text-xs font-bold text-brandNavy dark:text-slate-200 tracking-wide">AITSA Payment Gateway</span>
-                    <p class="text-[10px] text-brandNavy/50 dark:text-slate-500 font-mono mt-0.5">Sandbox Environment</p>
-                </div>
-                <button onclick="closePaymentGatewayModal()" class="w-8 h-8 rounded-full bg-brandNavy/5 dark:bg-slate-800 text-brandNavy/50 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-xmark text-xs"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-6">
-                <div class="bg-lightBg dark:bg-slate-950/60 rounded-xl p-4 border border-brandNavy/5 dark:border-slate-800 text-xs space-y-2">
-                    <div class="flex justify-between">
-                        <span class="text-brandNavy/60 dark:text-slate-500">Reference No.:</span>
-                        <span class="text-brandNavy dark:text-slate-400 font-mono font-bold">TXN-99837-WIT</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-brandNavy/60 dark:text-slate-500">Payee:</span>
-                        <span class="text-brandNavy dark:text-slate-400 font-medium">{{ Auth::user()->name ?? 'Student' }}</span>
-                    </div>
-                    <div class="flex justify-between items-center text-sm font-bold pt-2 mt-1 border-t border-brandNavy/5 dark:border-slate-800">
-                        <span class="text-brandNavy dark:text-slate-300">Amount Due:</span>
-                        <span class="text-brandGreen text-base font-black">₱ 3,500.00</span>
-                    </div>
-                </div>
-                <form id="gatewayForm" action="{{ route('ledger.checkout') }}" method="POST" class="grid grid-cols-2 gap-4">
-                    @csrf
-                    <input type="hidden" id="paymentStatusField" name="payment_status" value="">
-                    <button type="button" onclick="submitMockPayment('success')" 
-                        class="p-4 bg-brandGreen/10 text-brandGreen border border-brandGreen/20 rounded-xl font-bold text-xs hover:bg-brandGreen hover:text-white transition-colors">
-                        <i class="fa-solid fa-circle-check block text-lg mb-1.5"></i>Authorize Payment
-                    </button>
-                    <button type="button" onclick="submitMockPayment('fail')" 
-                        class="p-4 bg-red-600/10 text-red-600 border border-red-600/20 rounded-xl font-bold text-xs hover:bg-red-600 hover:text-white transition-colors">
-                        <i class="fa-solid fa-circle-xmark block text-lg mb-1.5"></i>Cancel
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function openPaymentGatewayModal() { 
-            document.getElementById('gatewayModal').classList.remove('hidden'); 
-            document.getElementById('gatewayModal').classList.add('flex'); 
-        }
-        function closePaymentGatewayModal() { 
-            document.getElementById('gatewayModal').classList.add('hidden'); 
-            document.getElementById('gatewayModal').classList.remove('flex'); 
-        }
-        function submitMockPayment(outcome) {
-            document.getElementById('paymentStatusField').value = outcome;
-            document.getElementById('gatewayForm').innerHTML = `
-                <div class="col-span-2 text-center py-4 text-xs font-mono text-brandNavy/60 dark:text-slate-500">
-                    <i class="fa-solid fa-spinner animate-spin text-xl text-brandGreen block mb-2"></i>
-                    Processing validation handshakes...
-                </div>`;
-            setTimeout(() => { 
-                document.getElementById('gatewayForm').submit(); 
-            }, 1200);
-        }
-        window.addEventListener('DOMContentLoaded', () => { 
-            if (new URLSearchParams(window.location.search).get('triggerPay') === 'true') { 
-                openPaymentGatewayModal(); 
-            } 
-        });
-    </script>
 
 @include('partials.notif-script')
 </body>
