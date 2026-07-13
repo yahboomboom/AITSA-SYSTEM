@@ -18,7 +18,13 @@ cashier clearance. This closes the capstone paper's "payments via gateway" gap
 
 - **Real PayMongo sandbox** (test mode), not an in-app simulation — hosted **Checkout
   Session** integration style.
-- **Per-unit tuition + fixed misc fee**, admin-configurable via `settings`.
+- **Per-unit tuition + fixed misc fee**, cashier-configurable via `settings`.
+- **Named discount types assigned per student** (e.g. "Academic Scholar — 50%"),
+  managed by the cashier; the percent applies to **tuition only** — the misc fee is
+  always paid in full, so every student owes at least the misc fee.
+- All money configuration (fees, discount types, student assignment) lives on one new
+  **`/cashier/billing`** Blade page owned by the **cashier** role (the money office),
+  not the admin — no React changes.
 - Assessment is based on the **planned load for the term** (payment happens before
   enrollment, since the cashier signature gates enrollment).
 - **Full balance only** at checkout — no partial payments.
@@ -33,7 +39,7 @@ cashier clearance. This closes the capstone paper's "payments via gateway" gap
 
 Answers "what does this student owe?".
 
-**Rates** (in `settings`, seeded defaults, admin-editable):
+**Rates** (in `settings`, seeded defaults, cashier-editable):
 
 | key | default | meaning |
 |---|---|---|
@@ -52,13 +58,17 @@ Answers "what does this student owe?".
 
 **Amounts:**
 
-- `assessment = plannedUnits × tuition_per_unit + misc_fee`
+- `tuition = plannedUnits × tuition_per_unit`
+- `discount = round(tuition × percent / 100, 2)` where `percent` comes from the
+  student's assigned discount type (0 when none)
+- `assessment = tuition − discount + misc_fee`
 - `paid` = sum of the student's `Settled` rows in `transaction_ledgers`
 - `balance = max(assessment − paid, 0)`
 - `isFullyPaid()` = `balance === 0 && assessment > 0`
 
-The service returns a breakdown array (units, rate, misc, assessment, paid, balance)
-consumed by the ledger page and the checkout route.
+The service returns a breakdown array (units, rate, tuition, discount name/percent/
+amount, misc, assessment, paid, balance) consumed by the ledger page and the
+checkout route.
 
 ## PayMongo integration — `PayMongoService`
 
@@ -78,6 +88,18 @@ provides `sk_test_…` keys). Uses Laravel's `Http` client with basic auth
 - API errors throw a `PaymentGatewayException` (message safe to flash).
 
 ## Data model
+
+New table `discount_types` (+ `DiscountType` model and factory):
+
+| column | type | notes |
+|---|---|---|
+| `name` | string, unique | e.g. "Academic Scholar" |
+| `percent` | unsignedTinyInteger | 0–100, applied to tuition only |
+| timestamps | | |
+
+`users` gains nullable `discount_type_id` (FK → `discount_types`, `nullOnDelete` —
+deleting a type simply removes the discount from its students).
+`User::discountType(): BelongsTo`.
 
 One migration adding nullable columns to the existing `transaction_ledgers`:
 
@@ -112,18 +134,32 @@ rows.
   (for students who closed the tab mid-payment). Same logic, same idempotence.
 - `POST /ledger/mock-pay` and its Blade modal are **removed**.
 
-## Admin fees endpoint
+## Cashier billing page
 
-`POST /api/admin/settings/fees` (existing `auth:sanctum` + `role:admin` API group):
-validates `tuition_per_unit` and `misc_fee` as `required|integer|min:0`, writes both
-settings, audit-logs `Fees Updated`. The curriculum editor's settings area gains a
-small "Fees" card with the two inputs and a save button, next to the
-change-matriculation toggle.
+New Blade page `GET /cashier/billing` (`cashier.billing`, inside the existing
+`role:cashier` group, linked in the cashier hub nav), consolidating all money
+configuration. Three panels, styled like the existing cashier pages:
+
+- **Fees card** — inputs for tuition per unit and misc fee.
+  `POST /cashier/billing/fees` validates both as `required|integer|min:0`, writes the
+  settings, audit-logs `Fees Updated`.
+- **Discount types card** — table of existing types (name, percent, students count),
+  an add form, and a delete button per row.
+  `POST /cashier/billing/discounts` validates `name` `required|string|max:100|unique`,
+  `percent` `required|integer|min:1|max:100`, audit-logs `Discount Type Created`.
+  `POST /cashier/billing/discounts/{type}/delete` removes it (students' FK nulls out),
+  audit-logs `Discount Type Deleted`.
+- **Student assignment table** — students (name, login ID, program, year) each with a
+  discount dropdown (blank = none) and a save button.
+  `POST /cashier/billing/students/{user}/discount` validates the id
+  `nullable|exists:discount_types,id`, guards that the target user is a student,
+  updates `discount_type_id`, audit-logs `Discount Assigned` (or cleared).
 
 ## Student ledger page (`payment.blade.php`)
 
-- Balance card shows the real breakdown: planned units × rate, misc fee, total
-  assessment, payments made, outstanding balance; green ₱0.00 fully-settled state.
+- Balance card shows the real breakdown: planned units × rate, discount line when one
+  is assigned ("Academic Scholar −50% on tuition: −₱X"), misc fee, total assessment,
+  payments made, outstanding balance; green ₱0.00 fully-settled state.
 - Replace the mock modal with one **"Pay ₱X via PayMongo"** button (form POST to
   `ledger.checkout`); show a **"Verify payment"** button when a `Pending` gateway row
   exists.
@@ -156,14 +192,17 @@ PHPUnit, RefreshDatabase, `Http::fake()` for all PayMongo calls (dummy key via c
 in tests; no real network):
 
 - `FeeAssessmentService`: regular block load, irregular eligible load,
-  enrolled-load override, payments subtracted, zero floor, defaults when no program.
+  enrolled-load override, payments subtracted, zero floor, defaults when no program,
+  discount applied to tuition only (misc unaffected), no discount when unassigned.
 - Checkout: creates Pending row with correct centavo amount + redirects to faked
   checkout URL; ₱0 balance blocked; stale Pending rows cancelled; API failure marks
   row Failed with error flash; guest redirected.
 - Return/verify: paid session → Settled + `paid_at` + cashier Approved + both audit
   logs; unpaid session → stays Pending; cancel → Cancelled; repeat visit is a no-op.
-- Admin fees: admin updates rates (settings persisted + audit log), student gets 403,
-  validation rejects negatives.
+- Cashier billing: cashier updates rates (settings persisted + audit log); creates
+  and deletes discount types (delete nulls students' FK); assigns/clears a student's
+  discount; validation rejects negatives, >100%, duplicate names; students and other
+  roles get 403 on all billing routes.
 - Ledger page: shows breakdown and own history only.
 
 ## Demo setup (documented, one-time)
