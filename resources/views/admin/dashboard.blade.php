@@ -61,6 +61,10 @@
                     <span>Curriculum</span>
                 </a>
 
+                <a href="{{ route('admin.departments') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent {{ Route::is('admin.departments') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
+                    <span>Departments</span>
+                </a>
+
                 <a href="{{ route('admin.audit') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent {{ Route::is('admin.audit') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
                     <span>Audit Trail</span>
                 </a>

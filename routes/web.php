@@ -4,6 +4,8 @@ use App\Exceptions\PaymentGatewayException;
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
+use App\Models\ClearanceItem;
+use App\Models\Department;
 use App\Models\DiscountType;
 use App\Models\DocumentSubmission;
 use App\Models\Enrollment;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
 /*
@@ -564,6 +567,59 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/curriculum', function () {
         return view('admin.curriculum');
     })->name('admin.curriculum');
+
+    Route::get('/admin/departments', function () {
+        return view('admin.departments', [
+            'departments' => Department::withCount('officers')->orderBy('name')->get(),
+        ]);
+    })->name('admin.departments');
+
+    Route::post('/admin/departments', function (Request $request) {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100', 'unique:departments,name'],
+        ]);
+
+        $code = Str::slug($data['name']);
+        if (Department::where('code', $code)->exists()) {
+            $code .= '-' . strtolower(Str::random(4));
+        }
+
+        $department = Department::create(['name' => $data['name'], 'code' => $code, 'is_active' => true]);
+        AuditLog::record('Department Created', 'Admin created department "' . $department->name . '".', 'Department', $department->id);
+
+        return redirect()->route('admin.departments')->with('success', 'Department added.');
+    })->name('admin.departments.store');
+
+    Route::post('/admin/departments/{department}/toggle', function (Department $department) {
+        $department->update(['is_active' => ! $department->is_active]);
+        AuditLog::record('Department Updated', 'Admin set department "' . $department->name . '" to ' . ($department->is_active ? 'active' : 'inactive') . '.', 'Department', $department->id);
+
+        return redirect()->route('admin.departments')->with('success', 'Department updated.');
+    })->name('admin.departments.toggle');
+
+    Route::post('/admin/departments/{department}/officers', function (Request $request, Department $department) {
+        if (! $department->is_active) {
+            return redirect()->route('admin.departments')->with('error', 'Cannot assign an officer to an inactive department.');
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'login_id' => ['required', 'string', 'max:50', 'unique:users,login_id'],
+        ]);
+
+        $officer = User::create([
+            'name' => $data['name'],
+            'login_id' => $data['login_id'],
+            'email' => $data['login_id'] . '@staff.aitsa.test',
+            'password' => Hash::make('password123'),
+            'role' => 'department_officer',
+            'department_id' => $department->id,
+        ]);
+
+        AuditLog::record('Department Officer Created', 'Admin created officer account for ' . $officer->name . ' (' . $officer->login_id . '), department: ' . $department->name . '.', 'User', $officer->id);
+
+        return redirect()->route('admin.departments')->with('success', 'Officer account created for ' . $officer->name . '.');
+    })->name('admin.departments.officers.store');
     }); // end role:admin
 
     // Student Records — list all students + link to grade editor (Registrar)

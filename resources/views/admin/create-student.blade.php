@@ -54,6 +54,9 @@
             <a href="{{ route('admin.curriculum') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
                 <span>Curriculum</span>
             </a>
+            <a href="{{ route('admin.departments') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
+                <span>Departments</span>
+            </a>
             <a href="{{ route('admin.audit') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
                 <span>Audit Trail</span>
             </a>
