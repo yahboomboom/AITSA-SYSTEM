@@ -43,4 +43,20 @@ class Clearance extends Model
     {
         return $this->items->isEmpty() || $this->items->every(fn (ClearanceItem $item) => $item->status === 'Approved');
     }
+
+    public static function initializeFor(int $userId, array $attributes = []): self
+    {
+        $existing = static::where('user_id', $userId)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $clearance = static::create(array_merge(['user_id' => $userId], $attributes));
+
+        foreach (Department::where('is_active', true)->get() as $department) {
+            $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
+        }
+
+        return $clearance;
+    }
 }

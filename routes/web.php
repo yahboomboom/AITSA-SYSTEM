@@ -53,15 +53,12 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login')->with('error', 'Session validation failure.');
         }
 
-        $clearance = Clearance::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'admission_status'   => 'Pending',
-                'chair_status'       => 'Pending',
-                'cashier_status'     => 'Pending',
-                'registrar_status'   => 'Pending',
-            ]
-        );
+        $clearance = Clearance::initializeFor($user->id, [
+            'admission_status'   => 'Pending',
+            'chair_status'       => 'Pending',
+            'cashier_status'     => 'Pending',
+            'registrar_status'   => 'Pending',
+        ]);
 
         return view('dashboard', compact('clearance'));
     })->name('dashboard');
@@ -74,15 +71,12 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login');
         }
 
-        $clearance = Clearance::firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'admission_status'   => 'Pending',
-                'chair_status'       => 'Pending',
-                'cashier_status'     => 'Pending',
-                'registrar_status'   => 'Pending',
-            ]
-        );
+        $clearance = Clearance::initializeFor($user->id, [
+            'admission_status'   => 'Pending',
+            'chair_status'       => 'Pending',
+            'cashier_status'     => 'Pending',
+            'registrar_status'   => 'Pending',
+        ]);
 
         $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
         $submission = $submissions->first();
@@ -539,11 +533,10 @@ Route::middleware('auth')->group(function () {
             $student = User::create($fields);
         }
 
-        Clearance::firstOrCreate(
-            ['user_id' => $student->id],
-            ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
-             'registrar_status' => 'Pending']
-        );
+        Clearance::initializeFor($student->id, [
+            'admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
+            'registrar_status' => 'Pending',
+        ]);
 
         AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
 
