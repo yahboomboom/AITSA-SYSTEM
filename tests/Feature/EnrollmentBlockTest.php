@@ -24,7 +24,6 @@ class EnrollmentBlockTest extends TestCase
         Clearance::create([
             'user_id' => $user->id,
             'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
-            'library_status' => 'Approved', 'clinic_status' => 'Approved',
         ]);
 
         return $user;

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Clearance extends Model
 {
@@ -17,12 +18,11 @@ class Clearance extends Model
      */
     protected $fillable = [
         'user_id',
-        'admission_status', 
+        'admission_status',
         'chair_status',
         'cashier_status',
         'registrar_status',
-        'library_status',
-        'clinic_status'
+        'remarks',
     ];
 
     /**
@@ -32,5 +32,15 @@ class Clearance extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(ClearanceItem::class);
+    }
+
+    public function allItemsApproved(): bool
+    {
+        return $this->items->isEmpty() || $this->items->every(fn (ClearanceItem $item) => $item->status === 'Approved');
     }
 }

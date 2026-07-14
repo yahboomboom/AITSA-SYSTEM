@@ -89,8 +89,6 @@ class DatabaseSeeder extends Seeder
                     'chair_status' => 'Approved',
                     'cashier_status' => 'Pending',
                     'registrar_status' => 'Pending',
-                    'library_status' => 'Approved',
-                    'clinic_status' => 'Approved',
                 ]
             );
         }
@@ -108,8 +106,7 @@ class DatabaseSeeder extends Seeder
         );
         Clearance::firstOrCreate(
             ['user_id' => $regular->id],
-            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
-             'library_status' => 'Approved', 'clinic_status' => 'Approved']
+            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved']
         );
 
         $irregular = User::firstOrCreate(
@@ -119,8 +116,7 @@ class DatabaseSeeder extends Seeder
         );
         Clearance::firstOrCreate(
             ['user_id' => $irregular->id],
-            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
-             'library_status' => 'Approved', 'clinic_status' => 'Approved']
+            ['chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved']
         );
         \App\Models\StudentGrade::firstOrCreate(
             ['user_id' => $irregular->id, 'subject_code' => 'BSOA111'],

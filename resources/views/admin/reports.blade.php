@@ -209,8 +209,6 @@
                                 <th class="py-3 px-4 text-center">Chair</th>
                                 <th class="py-3 px-4 text-center">Cashier</th>
                                 <th class="py-3 px-4 text-center">Registrar</th>
-                                <th class="py-3 px-4 text-center">Library</th>
-                                <th class="py-3 px-4 text-center">Clinic</th>
                                 <th class="py-3 px-4 text-center">Overall</th>
                             </tr>
                         </thead>
@@ -234,8 +232,6 @@
                                 <td class="py-2.5 px-4 text-center">@include('partials.status-badge', ['status' => $c->chair_status])</td>
                                 <td class="py-2.5 px-4 text-center">@include('partials.status-badge', ['status' => $c->cashier_status])</td>
                                 <td class="py-2.5 px-4 text-center">@include('partials.status-badge', ['status' => $c->registrar_status])</td>
-                                <td class="py-2.5 px-4 text-center">@include('partials.status-badge', ['status' => $c->library_status])</td>
-                                <td class="py-2.5 px-4 text-center">@include('partials.status-badge', ['status' => $c->clinic_status])</td>
                                 <td class="py-2.5 px-4 text-center">
                                     @if($isCleared)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-black rounded-full bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">
@@ -250,7 +246,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="10" class="py-10 text-center text-sm text-brandNavy/40 dark:text-slate-500">No student records found.</td>
+                                <td colspan="8" class="py-10 text-center text-sm text-brandNavy/40 dark:text-slate-500">No student records found.</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -293,7 +289,7 @@ filterStatus.addEventListener('change', filterRows);
 
 // -- CSV Export ----------------------------------------------------------------
 function exportCSV() {
-    const headers = ['#', 'Student Name', 'Student No.', 'Email', 'Chair', 'Cashier', 'Registrar', 'Library', 'Clinic', 'Overall'];
+    const headers = ['#', 'Student Name', 'Student No.', 'Email', 'Chair', 'Cashier', 'Registrar', 'Overall'];
     const visibleRows = [...rows].filter(r => r.style.display !== 'none');
 
     const csvRows = [headers.join(',')];
@@ -304,12 +300,10 @@ function exportCSV() {
             '"' + (cells[1]?.querySelector('p')?.textContent.trim() ?? '') + '"',
             cells[2]?.textContent.trim() ?? '',
             '"' + (cells[1]?.querySelectorAll('p')[1]?.textContent.trim() ?? '') + '"',
-            cells[3]?.textContent.trim() ?? '',
             cells[4]?.textContent.trim() ?? '',
             cells[5]?.textContent.trim() ?? '',
             cells[6]?.textContent.trim() ?? '',
             cells[7]?.textContent.trim() ?? '',
-            cells[8]?.textContent.trim() ?? '',
         ];
         csvRows.push(rowData.join(','));
     });

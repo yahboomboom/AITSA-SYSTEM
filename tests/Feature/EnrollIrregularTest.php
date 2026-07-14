@@ -30,7 +30,6 @@ class EnrollIrregularTest extends TestCase
         Clearance::create([
             'user_id' => $this->user->id,
             'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
-            'library_status' => 'Approved', 'clinic_status' => 'Approved',
         ]);
         // A failed grade makes the student irregular.
         StudentGrade::create(['user_id' => $this->user->id, 'subject_code' => 'ZZ999', 'status' => 'Failed']);

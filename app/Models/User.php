@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'role',
         'discount_type_id',
+        'department_id',
         'major',
         'year_level',
         'section',
@@ -102,6 +103,11 @@ class User extends Authenticatable
     public function discountType(): BelongsTo
     {
         return $this->belongsTo(DiscountType::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function isIrregularStudent(): bool

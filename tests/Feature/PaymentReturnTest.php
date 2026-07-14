@@ -31,7 +31,6 @@ class PaymentReturnTest extends TestCase
             'user_id' => $this->student->id,
             'admission_status' => 'Approved', 'chair_status' => 'Pending',
             'cashier_status' => 'Pending', 'registrar_status' => 'Pending',
-            'library_status' => 'Approved', 'clinic_status' => 'Approved',
         ]);
         $this->row = TransactionLedger::factory()->create([
             'user_id' => $this->student->id, 'status' => 'Pending',

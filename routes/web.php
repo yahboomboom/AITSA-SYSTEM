@@ -60,8 +60,6 @@ Route::middleware('auth')->group(function () {
                 'chair_status'       => 'Pending',
                 'cashier_status'     => 'Pending',
                 'registrar_status'   => 'Pending',
-                'library_status'     => 'Approved',
-                'clinic_status'      => 'Approved',
             ]
         );
 
@@ -83,8 +81,6 @@ Route::middleware('auth')->group(function () {
                 'chair_status'       => 'Pending',
                 'cashier_status'     => 'Pending',
                 'registrar_status'   => 'Pending',
-                'library_status'     => 'Approved',
-                'clinic_status'      => 'Approved',
             ]
         );
 
@@ -546,7 +542,7 @@ Route::middleware('auth')->group(function () {
         Clearance::firstOrCreate(
             ['user_id' => $student->id],
             ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
-             'registrar_status' => 'Pending', 'library_status' => 'Approved', 'clinic_status' => 'Approved']
+             'registrar_status' => 'Pending']
         );
 
         AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
