@@ -187,6 +187,19 @@
         } else {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-chalkboard-user', 'color' => '#E2A700', 'title' => 'No Teaching Load', 'desc' => 'No teaching load assigned yet.', 'time' => 'System'];
         }
+
+    // ── DEPARTMENT OFFICER ───────────────────────────────────────────────────
+    } elseif ($authRole === 'department_officer') {
+        $pendingItems = \App\Models\ClearanceItem::where('department_id', $authUser->department_id ?? 0)
+            ->where('status', 'Pending')->count();
+
+        if ($pendingItems > 0) {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-clipboard-check', 'color' => '#E2A700', 'title' => 'Clearances Awaiting Review',
+                         'desc' => $pendingItems . ' student clearance item(s) need your review.', 'time' => 'Action needed'];
+        } else {
+            $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-check', 'color' => '#1D7A46', 'title' => 'Queue Clear',
+                         'desc' => 'No pending clearance items in your queue.', 'time' => 'System'];
+        }
     }
 @endphp
 

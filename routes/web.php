@@ -384,6 +384,37 @@ Route::middleware('auth')->group(function () {
         })->name('faculty.schedule');
     }); // end role:faculty
 
+    // --- DEPARTMENT OFFICER QUEUE ---
+    Route::middleware('role:department_officer')->group(function () {
+    Route::get('/department/dashboard', function () {
+        $officer = Auth::user();
+        $items = ClearanceItem::where('department_id', $officer->department_id)
+            ->with('clearance.user')
+            ->get();
+
+        return view('department.dashboard', compact('items'));
+    })->name('department.dashboard');
+
+    Route::post('/department/items/{item}/approve', function (ClearanceItem $item) {
+        abort_unless($item->department_id === Auth::user()->department_id, 403);
+
+        $item->update(['status' => 'Approved', 'remarks' => null, 'signed_by' => Auth::id(), 'signed_at' => now()]);
+        AuditLog::record('Clearance Signed', Auth::user()->name . ' approved ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . '.', 'ClearanceItem', $item->id);
+
+        return redirect()->route('department.dashboard')->with('success', 'Clearance item approved.');
+    })->name('department.items.approve');
+
+    Route::post('/department/items/{item}/hold', function (Request $request, ClearanceItem $item) {
+        abort_unless($item->department_id === Auth::user()->department_id, 403);
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+
+        $item->update(['status' => 'Hold', 'remarks' => $data['remarks'], 'signed_by' => Auth::id(), 'signed_at' => now()]);
+        AuditLog::record('Clearance Held', Auth::user()->name . ' held ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . ': ' . $data['remarks'], 'ClearanceItem', $item->id);
+
+        return redirect()->route('department.dashboard')->with('success', 'Clearance item held with remarks.');
+    })->name('department.items.hold');
+    }); // end role:department_officer
+
     // Secure document view/download: owner or registrar/admission only.
     Route::get('/documents/{submission}', function (DocumentSubmission $submission) {
         $user = Auth::user();

@@ -201,6 +201,9 @@ class AuthController extends Controller
             case 'cashier':
                 $targetRoute = 'cashier.dashboard';
                 break;
+            case 'department_officer':
+                $targetRoute = 'department.dashboard';
+                break;
             default:
                 $targetRoute = 'dashboard';
                 break;
