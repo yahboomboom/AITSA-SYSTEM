@@ -11,7 +11,7 @@
 
     // ── STUDENT ──────────────────────────────────────────────────────────────
     if ($authRole === 'student') {
-        $cl = $clearance ?? Clearance::where('user_id', $authId)->first();
+        $cl = ($clearance ?? Clearance::where('user_id', $authId)->first())?->loadMissing('items.department');
 
         if ($cl) {
             if ($cl->chair_status === 'Approved') {
@@ -32,9 +32,19 @@
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-credit-card',    'color' => '#F97316', 'title' => 'Payment Required',            'desc' => 'Please settle your balance to proceed with clearance.',            'time' => 'Action needed'];
             }
 
+            $cl->loadMissing('items.department');
+            foreach ($cl->items->where('status', 'Hold') as $heldItem) {
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => $heldItem->department->name . ' Clearance On Hold', 'desc' => $heldItem->remarks ?? 'Contact the office for details.', 'time' => 'Action needed'];
+            }
+            $pendingDepartmentItems = $cl->items->where('status', 'Pending');
+            if ($pendingDepartmentItems->isNotEmpty()) {
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Department Clearance Pending', 'desc' => $pendingDepartmentItems->pluck('department.name')->implode(', ') . ' clearance still pending.', 'time' => 'Action needed'];
+            }
+
             $allCleared = $cl->chair_status === 'Approved'
                        && $cl->registrar_status === 'Approved'
-                       && $cl->cashier_status === 'Approved';
+                       && $cl->cashier_status === 'Approved'
+                       && $cl->allItemsApproved();
 
             if ($allCleared) {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Enrollment Unlocked!',        'desc' => 'All clearances approved. You may now enroll for A.Y. 2025–2026.', 'time' => 'System'];

@@ -150,7 +150,8 @@
                     $clearance->cashier_status === 'Approved' &&
                     $clearance->registrar_status === 'Approved' &&
                     $clearance->admission_status === 'Approved' &&
-                    $clearance->chair_status === 'Approved'
+                    $clearance->chair_status === 'Approved' &&
+                    $clearance->allItemsApproved()
                 );
                 $registrarCleared  = isset($clearance) && $clearance->registrar_status === 'Approved';
                 $cashierCleared    = isset($clearance) && $clearance->cashier_status === 'Approved';
@@ -180,10 +181,6 @@
                         <p class="text-brandNavy/70 dark:text-slate-400">Accounting Office — Balance assessment verification.</p>
                     </div>
                     <div class="flex items-start space-x-2">
-                        <i class="fa-solid fa-circle-check text-brandGreen mt-0.5"></i>
-                        <p class="text-brandNavy/70 dark:text-slate-400">Library — No pending borrowed items on record.</p>
-                    </div>
-                    <div class="flex items-start space-x-2">
                         <i id="checkIconRegistrar" class="fa-solid @if($registrarCleared) fa-circle-check text-brandGreen @else fa-circle-xmark text-red-500 @endif mt-0.5"></i>
                         <p class="text-brandNavy/70 dark:text-slate-400">Registrar — On-hold administrative document verification.</p>
                     </div>
@@ -191,6 +188,18 @@
                         <i id="checkIconChair" class="fa-solid @if($chairCleared) fa-circle-check text-brandGreen @else fa-circle-xmark text-brandGold @endif mt-0.5"></i>
                         <p class="text-brandNavy/70 dark:text-slate-400">Department Head — Curriculum evaluation sign-off.</p>
                     </div>
+                    @foreach($clearance->items as $item)
+                        <div class="flex items-start space-x-2">
+                            <i class="fa-solid @if($item->status === 'Approved') fa-circle-check text-brandGreen @elseif($item->status === 'Hold') fa-circle-xmark text-red-500 @else fa-circle-xmark text-brandGold @endif mt-0.5"></i>
+                            <p class="text-brandNavy/70 dark:text-slate-400">
+                                {{ $item->department->name }} —
+                                @if($item->status === 'Approved') Cleared.
+                                @elseif($item->status === 'Hold') On hold: {{ $item->remarks }}
+                                @else Pending review.
+                                @endif
+                            </p>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 

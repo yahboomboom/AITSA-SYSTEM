@@ -79,7 +79,7 @@ Route::middleware('auth')->group(function () {
             'chair_status'       => 'Pending',
             'cashier_status'     => 'Pending',
             'registrar_status'   => 'Pending',
-        ]);
+        ])->load('items.department');
 
         $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
         $submission = $submissions->first();
