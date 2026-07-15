@@ -247,12 +247,21 @@
                                                 <i class="fa-solid fa-check-double mr-1.5"></i>Signed Off
                                             </button>
                                         @else
-                                            <form action="{{ route('registrar.sign', isset($row->id) ? $row->id : 1) }}" method="POST" class="inline-block">
-                                                @csrf
-                                                <button type="submit" class="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide">
-                                                    Sign Clearance
-                                                </button>
-                                            </form>
+                                            <div class="flex items-center justify-end gap-2">
+                                                <form action="{{ route('registrar.sign', isset($row->id) ? $row->id : 1) }}" method="POST" class="inline-block">
+                                                    @csrf
+                                                    <button type="submit" class="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                        Sign Clearance
+                                                    </button>
+                                                </form>
+                                                <form action="{{ route('registrar.hold', isset($row->id) ? $row->id : 1) }}" method="POST" class="flex items-center gap-2">
+                                                    @csrf
+                                                    <input type="text" name="remarks" required maxlength="500" placeholder="Reason for hold" class="w-36 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-brandNavy dark:text-slate-200 outline-none">
+                                                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                        Hold
+                                                    </button>
+                                                </form>
+                                            </div>
                                         @endif
                                     </td>
                                 </tr>

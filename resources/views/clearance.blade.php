@@ -203,6 +203,12 @@
                 </div>
             </div>
 
+            @if($clearance->remarks)
+                <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation mr-2"></i><strong>Remarks:</strong> {{ $clearance->remarks }}
+                </div>
+            @endif
+
             {{-- CLEARANCE DETAILS --}}
             <div class="space-y-6">
                 <div class="flex items-center justify-between border-b border-brandNavy/5 dark:border-slate-800 pb-2">

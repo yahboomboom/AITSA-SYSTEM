@@ -309,6 +309,7 @@ class AuthController extends Controller
         try {
             $clearance->update([
                 'cashier_status' => 'Approved',
+                'remarks' => null,
             ]);
 
             TransactionLedger::create([

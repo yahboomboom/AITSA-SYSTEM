@@ -227,11 +227,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/registrar/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update(['registrar_status' => 'Approved']);
+            $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
             AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
         }
         return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
     })->name('registrar.sign');
+
+    Route::post('/registrar/hold/{id}', function (Request $request, $id) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        $clearance = Clearance::find($id);
+        if ($clearance) {
+            $clearance->update(['registrar_status' => 'Hold', 'remarks' => $data['remarks']]);
+            AuditLog::record('Clearance Held', 'Registrar held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+            return redirect()->route('registrar.dashboard')->with('success', 'Clearance held with remarks.');
+        }
+        return redirect()->route('registrar.dashboard')->with('error', 'Record not found.');
+    })->name('registrar.hold');
 
     // Registrar verifies a new applicant → forwards to Admin for account creation
     Route::post('/registrar/verify-applicant/{id}', function ($id) {
@@ -364,12 +375,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update(['chair_status' => 'Approved']);
+            $clearance->update(['chair_status' => 'Approved', 'remarks' => null]);
             AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
             return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
     })->name('approver.sign');
+
+    Route::post('/approver/hold/{id}', function (Request $request, $id) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        $clearance = Clearance::find($id);
+        if ($clearance) {
+            $clearance->update(['chair_status' => 'Hold', 'remarks' => $data['remarks']]);
+            AuditLog::record('Clearance Held', 'Department Chair held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+            return redirect()->route('approver.dashboard')->with('success', 'Clearance held with remarks.');
+        }
+        return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
+    })->name('approver.hold');
     }); // end role:chair
 
     Route::middleware('role:faculty')->group(function () {
@@ -430,6 +452,18 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:cashier')->group(function () {
     Route::get('/cashier/dashboard', [AuthController::class, 'showCashierDashboard'])->name('cashier.dashboard');
     Route::post('/cashier/approve', [AuthController::class, 'approveClearance'])->name('cashier.approve');
+
+    Route::post('/cashier/hold', function (Request $request) {
+        $data = $request->validate([
+            'user_id' => ['required', 'integer'],
+            'remarks' => ['required', 'string', 'max:500'],
+        ]);
+        $clearance = Clearance::where('user_id', $data['user_id'])->firstOrFail();
+        $clearance->update(['cashier_status' => 'Hold', 'remarks' => $data['remarks']]);
+        AuditLog::record('Clearance Held', 'Cashier held clearance for student ID ' . $data['user_id'] . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+
+        return redirect()->back()->with('success', 'Clearance held with remarks.');
+    })->name('cashier.hold');
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
 

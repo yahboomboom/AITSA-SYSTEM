@@ -16,18 +16,24 @@
         if ($cl) {
             if ($cl->chair_status === 'Approved') {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-check',  'color' => '#1D7A46', 'title' => 'Dept. Chair Approved',      'desc' => 'Your clearance has been signed by the Department Chair.',          'time' => 'Clearance update'];
+            } elseif ($cl->chair_status === 'Hold') {
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Chair Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Department Chair for details.', 'time' => 'Action needed'];
             } else {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Awaiting Chair Signature',   'desc' => 'Your clearance is pending the Department Chair\'s sign-off.',     'time' => 'Action needed'];
             }
 
             if ($cl->registrar_status === 'Approved') {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-signature', 'color' => '#0B3C5D', 'title' => 'Registrar Cleared',          'desc' => 'The Registrar has verified and signed your clearance slip.',       'time' => 'Clearance update'];
+            } elseif ($cl->registrar_status === 'Hold') {
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Registrar Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Registrar for details.', 'time' => 'Action needed'];
             } else {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Registrar Pending',           'desc' => 'Waiting for the Registrar to process your clearance.',             'time' => 'Action needed'];
             }
 
             if ($cl->cashier_status === 'Approved') {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-wallet',         'color' => '#F97316', 'title' => 'Payment Verified',            'desc' => 'Your payment has been received and verified by the Cashier.',      'time' => 'Finance update'];
+            } elseif ($cl->cashier_status === 'Hold') {
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Cashier Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Cashier for details.', 'time' => 'Action needed'];
             } else {
                 $notifs[] = ['id' => $nid++, 'icon' => 'fa-credit-card',    'color' => '#F97316', 'title' => 'Payment Required',            'desc' => 'Please settle your balance to proceed with clearance.',            'time' => 'Action needed'];
             }

@@ -236,10 +236,21 @@
                     <button type="submit" class="w-full py-3 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
                         <i class="fa-solid fa-circle-check mr-2"></i>Approve & Sign Off
                     </button>
-                    <button type="button" onclick="closeReviewModal()" class="w-full py-3 bg-lightBg dark:bg-slate-800 hover:bg-brandNavy/5 text-brandNavy/60 dark:text-slate-400 text-xs font-bold rounded transition-colors">
-                        Cancel
+                </form>
+
+                <form id="holdForm" action="{{ route('cashier.hold') }}" method="POST" class="grid grid-cols-1 gap-2 mt-2">
+                    @csrf
+                    <input type="hidden" name="user_id" id="modalHoldStudentId" value="">
+                    <input type="text" name="remarks" required maxlength="500" placeholder="Reason for hold"
+                           class="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-xs text-brandNavy dark:text-slate-200 outline-none">
+                    <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
+                        <i class="fa-solid fa-circle-pause mr-2"></i>Hold with Remarks
                     </button>
                 </form>
+
+                <button type="button" onclick="closeReviewModal()" class="w-full py-3 bg-lightBg dark:bg-slate-800 hover:bg-brandNavy/5 text-brandNavy/60 dark:text-slate-400 text-xs font-bold rounded transition-colors mt-2">
+                    Cancel
+                </button>
             </div>
         </div>
     </div>
@@ -252,6 +263,7 @@
             document.getElementById('modalStudentId').value = userId;
             document.getElementById('modalFormRef').value = ref;
             document.getElementById('modalFormAmount').value = balance;
+            document.getElementById('modalHoldStudentId').value = userId;
             document.getElementById('reviewModal').classList.remove('hidden');
             document.getElementById('reviewModal').classList.add('flex');
         }
