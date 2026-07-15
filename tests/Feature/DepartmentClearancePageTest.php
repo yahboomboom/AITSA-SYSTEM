@@ -40,6 +40,66 @@ class DepartmentClearancePageTest extends TestCase
             ->assertSee('Visit the clinic for a checkup.');
     }
 
+    public function test_pending_department_item_blocks_officially_cleared_badge(): void
+    {
+        Department::factory()->create(['name' => 'Library']);
+        $student = User::factory()->create(['role' => 'student']);
+        $this->actingAs($student)->get('/clearance');
+
+        $clearance = $student->clearance;
+        $clearance->update([
+            'admission_status' => 'Approved',
+            'chair_status' => 'Approved',
+            'cashier_status' => 'Approved',
+            'registrar_status' => 'Approved',
+        ]);
+
+        $this->actingAs($student)->get('/clearance')
+            ->assertOk()
+            ->assertDontSee('Officially Cleared');
+    }
+
+    public function test_hold_department_item_blocks_officially_cleared_badge(): void
+    {
+        $department = Department::factory()->create(['name' => 'Clinic']);
+        $student = User::factory()->create(['role' => 'student']);
+        $this->actingAs($student)->get('/clearance');
+
+        $clearance = $student->clearance;
+        $clearance->update([
+            'admission_status' => 'Approved',
+            'chair_status' => 'Approved',
+            'cashier_status' => 'Approved',
+            'registrar_status' => 'Approved',
+        ]);
+        $clearance->items()->where('department_id', $department->id)
+            ->update(['status' => 'Hold', 'remarks' => 'Missing requirement.']);
+
+        $this->actingAs($student)->get('/clearance')
+            ->assertOk()
+            ->assertDontSee('Officially Cleared');
+    }
+
+    public function test_all_items_approved_shows_officially_cleared_badge(): void
+    {
+        Department::factory()->create(['name' => 'Library']);
+        $student = User::factory()->create(['role' => 'student']);
+        $this->actingAs($student)->get('/clearance');
+
+        $clearance = $student->clearance;
+        $clearance->update([
+            'admission_status' => 'Approved',
+            'chair_status' => 'Approved',
+            'cashier_status' => 'Approved',
+            'registrar_status' => 'Approved',
+        ]);
+        $clearance->items()->update(['status' => 'Approved']);
+
+        $this->actingAs($student)->get('/clearance')
+            ->assertOk()
+            ->assertSee('Officially Cleared');
+    }
+
     public function test_department_added_after_clearance_exists_does_not_retroactively_appear(): void
     {
         $student = User::factory()->create(['role' => 'student']);
