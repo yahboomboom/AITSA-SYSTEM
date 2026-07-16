@@ -135,6 +135,7 @@ class EnrollmentService
 
         return Subject::where('program_id', $program->id)
             ->where('semester', $term['semester'])
+            ->where('year_level', '<=', $user->yearNumber())
             ->with(['prerequisites', 'sections' => fn ($q) => $q->where('school_year', $term['school_year'])])
             ->orderBy('year_level')->orderBy('code')
             ->get()

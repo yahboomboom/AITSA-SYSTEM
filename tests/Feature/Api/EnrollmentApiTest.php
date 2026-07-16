@@ -67,6 +67,28 @@ class EnrollmentApiTest extends TestCase
             ->assertJsonCount(1, 'catalogue');
     }
 
+    public function test_catalogue_excludes_subjects_above_students_year_level(): void
+    {
+        $this->seed(ProgramSeeder::class);
+        $user = $this->makeClearedStudent(['year_level' => '2nd Year']);
+        StudentGrade::create(['user_id' => $user->id, 'subject_code' => 'ZZ999', 'status' => 'Failed']);
+
+        $program = Program::where('code', 'BSOA')->first();
+        Subject::factory()->for($program)->create(['code' => 'BSOA111', 'year_level' => 1, 'semester' => 1]);
+        Subject::factory()->for($program)->create(['code' => 'BSOA211', 'year_level' => 2, 'semester' => 1]);
+        Subject::factory()->for($program)->create(['code' => 'BSOA311', 'year_level' => 3, 'semester' => 1]);
+
+        $response = $this->actingAs($user)->getJson('/api/enrollment/context')
+            ->assertOk()
+            ->assertJsonPath('student.type', 'irregular');
+
+        $codes = collect($response->json('catalogue'))->pluck('code');
+
+        $this->assertTrue($codes->contains('BSOA111'), 'lower-year subject (retake case) should be visible');
+        $this->assertTrue($codes->contains('BSOA211'), "student's own year level should be visible");
+        $this->assertFalse($codes->contains('BSOA311'), 'higher-year subject should not be visible');
+    }
+
     public function test_regular_store_enrolls_immediately(): void
     {
         $this->seed(ProgramSeeder::class);
