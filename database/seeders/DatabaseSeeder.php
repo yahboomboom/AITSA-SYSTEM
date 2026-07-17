@@ -123,6 +123,18 @@ class DatabaseSeeder extends Seeder
             ['status' => 'Failed', 'final_grade' => '5.00']
         );
 
+        // 7b. Dummy student for the clearance demo (mid-workflow: chair approved, cashier/registrar pending).
+        $clearanceDemo = User::firstOrCreate(
+            ['login_id' => '2300420'],
+            ['name' => 'Demo Clearance Student', 'email' => 'clearance.demo@aitsa.test', 'password' => Hash::make('password'),
+             'role' => 'student', 'major' => 'BSOA', 'year_level' => '1st Year']
+        );
+        Clearance::initializeFor($clearanceDemo->id, [
+            'chair_status' => 'Approved',
+            'cashier_status' => 'Pending',
+            'registrar_status' => 'Pending',
+        ]);
+
         // 8. Faculty & room loading demo data (still inside the non-production guard above).
         $facultyOne = User::firstOrCreate(
             ['login_id' => 'faculty01'],
