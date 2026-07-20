@@ -368,17 +368,16 @@ function renderQRCode() {
 
 // -- Init on load -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    initializeTheme();
     renderTimetable();
     renderQRCode();
-});
 
-// Re-render timetable when theme is toggled (colors change)
-const _origToggle = window.toggleTheme;
-window.toggleTheme = function() {
-    _origToggle();
-    renderTimetable();
-};
+    // Re-render timetable when theme is toggled (colors change)
+    const _origToggle = window.toggleTheme;
+    window.toggleTheme = function() {
+        _origToggle();
+        renderTimetable();
+    };
+});
 </script>
 
 @include('partials.notif-script')
