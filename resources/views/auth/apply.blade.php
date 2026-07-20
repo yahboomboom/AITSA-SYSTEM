@@ -4,29 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apply Now | Asian Institute of Technology, Science and Arts</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brandNavy: '#0B3C5D', brandGreen: '#1D7A46', brandGold: '#E2A700',
-                        darkBg: '#121212', lightBg: '#EFF3F7', panelDark: '#1E1E1E',
-                    }
-                }
-            }
-        }
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.theme-init')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .prog-card { cursor: pointer; transition: all .18s; }
-        .prog-card:hover { transform: translateY(-2px); }
-        .prog-card.selected { outline: 2px solid #1D7A46; outline-offset: 2px; }
-        .form-slide { transition: max-height .4s ease, opacity .3s ease; overflow: hidden; }
-        .form-slide.hidden-anim { max-height: 0; opacity: 0; pointer-events: none; }
-        .form-slide.visible-anim { max-height: 4000px; opacity: 1; }
-    </style>
 </head>
 <body class="bg-lightBg text-brandNavy font-sans antialiased">
 

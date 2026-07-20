@@ -4,40 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AITSA Portal | Enrollment Clearance</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brandNavy: '#0B3C5D', brandGreen: '#1D7A46', brandGold: '#E2A700',
-                        darkBg: '#121212', lightBg: '#EFF3F7', panelDark: '#1E1E1E',
-                    }
-                }
-            }
-        }
-    </script>
-    <script>
-        function updateThemeIcon() {
-            const icon = document.getElementById('theme-icon');
-            if (icon) {
-                const isDark = document.documentElement.classList.contains('dark');
-                icon.className = isDark ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
-            }
-        }
-        function initializeTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.classList.toggle('dark', theme === 'dark');
-        }
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon();
-        }
-        initializeTheme();
-        document.addEventListener('DOMContentLoaded', updateThemeIcon);
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.theme-init')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>

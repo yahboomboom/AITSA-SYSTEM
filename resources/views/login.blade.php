@@ -10,50 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brandNavy:  '#0B3C5D',
-                        brandGreen: '#1D7A46',
-                        brandGold:  '#E2A700',
-                        darkBg:     '#07101C',
-                        lightBg:    '#EFF3F7',
-                        panelDark:  '#0D1B2A',
-                        surfaceDark:'#111E2E',
-                    },
-                    fontFamily: {
-                        display: ['Cormorant Garamond', 'Georgia', 'serif'],
-                        body:    ['DM Sans', 'sans-serif'],
-                    },
-                    animation: {
-                        'fade-in-up': 'fadeInUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'fade-in':    'fadeIn 0.55s ease-out forwards',
-                    },
-                    keyframes: {
-                        fadeInUp: {
-                            '0%':   { opacity: '0', transform: 'translateY(22px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        fadeIn: {
-                            '0%':   { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                    }
-                }
-            }
-        }
-    </script>
-    <script>
-        function initializeTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.classList.toggle('dark', theme === 'dark');
-        }
-        initializeTheme();
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.theme-init')
 
     <style>
         * { box-sizing: border-box; }

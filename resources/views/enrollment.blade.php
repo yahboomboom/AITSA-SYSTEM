@@ -5,33 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="api-base" content="{{ url('/api') }}">
     <title>AITSA Portal | Enrollment</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { colors: {
-                brandNavy: '#0B3C5D', brandGreen: '#1D7A46', brandGold: '#E2A700',
-                darkBg: '#121212', lightBg: '#EFF3F7', panelDark: '#1E1E1E'
-            }}}
-        }
-    </script>
-    <script>
-        function updateThemeIcon() {
-            var icon = document.getElementById('theme-icon');
-            if (icon) icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
-        }
-        function initializeTheme() {
-            const theme = localStorage.getItem('theme') || 'light';
-            document.documentElement.classList.toggle('dark', theme === 'dark');
-        }
-        document.addEventListener('DOMContentLoaded', updateThemeIcon);
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            updateThemeIcon();
-        }
-        initializeTheme();
-    </script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.theme-init')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
