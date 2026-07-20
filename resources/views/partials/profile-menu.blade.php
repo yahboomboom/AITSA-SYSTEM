@@ -15,7 +15,7 @@
         <div class="w-10 h-10 rounded-full {{ $avatarClass ?? 'bg-gradient-to-tr from-brandNavy to-brandGreen text-white' }} flex items-center justify-center font-bold text-sm relative">
             {{ $avatarInitial ?? strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}
             <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-white dark:bg-panelDark rounded-full border border-brandNavy/10 dark:border-slate-700 flex items-center justify-center">
-                <i class="fa-solid fa-chevron-down text-brandNavy/40 dark:text-slate-500" style="font-size:5px;"></i>
+                <i class="fa-solid fa-chevron-down text-brandNavy/40 dark:text-slate-500 text-[5px]"></i>
             </span>
         </div>
     </button>

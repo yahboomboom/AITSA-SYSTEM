@@ -178,10 +178,10 @@
         <div class="absolute inset-0 bg-gradient-to-br from-[#0B3C5D]/90 via-[#0B3C5D]/55 to-transparent pointer-events-none"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-[#050e18]/92 via-transparent to-transparent pointer-events-none"></div>
 
-        <div class="geo geo-a" style="width:68px;height:68px;top:17%;right:14%;"></div>
-        <div class="geo geo-b" style="width:36px;height:36px;top:41%;right:28%;"></div>
-        <div class="geo geo-c" style="width:16px;height:16px;top:66%;right:17%;"></div>
-        <div class="geo geo-d" style="width:130px;height:130px;top:8%;left:6%;"></div>
+        <div class="geo geo-a w-[68px] h-[68px] top-[17%] right-[14%]"></div>
+        <div class="geo geo-b w-[36px] h-[36px] top-[41%] right-[28%]"></div>
+        <div class="geo geo-c w-[16px] h-[16px] top-[66%] right-[17%]"></div>
+        <div class="geo geo-d w-[130px] h-[130px] top-[8%] left-[6%]"></div>
         <div class="relative z-10 flex-1"></div>
     </div>
 
@@ -309,8 +309,7 @@
 
 {{-- ADMISSION MODAL --}}
 <div id="admissionModal"
-     class="fixed inset-0 modal-backdrop bg-brandNavy/40 dark:bg-black/70 hidden items-center justify-center z-50 p-4"
-     style="transition: opacity .3s;">
+     class="fixed inset-0 modal-backdrop bg-brandNavy/40 dark:bg-black/70 hidden items-center justify-center z-50 p-4 transition-opacity duration-300">
     <div id="modalBox"
          class="bg-white dark:bg-[#0D1B2A] rounded-lg max-w-md w-full overflow-hidden shadow-xl
                 scale-95 opacity-0 transition-all duration-300 border border-brandNavy/5 dark:border-none">
