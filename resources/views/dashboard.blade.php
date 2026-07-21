@@ -61,20 +61,8 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
 
-                {{-- WELCOME SECTION --}}
-                <div class="mb-6">
-                    <h1 class="text-2xl font-black text-brandNavy dark:text-white mb-1">Welcome to <span class="text-brandGreen">AITSA</span></h1>
-                    <p class="text-sm text-brandNavy/50 dark:text-slate-400">Asian Institute of Technology, Science &amp; Arts</p>
-                </div>
-
-                {{-- ANNOUNCEMENTS SECTION --}}
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg p-6">
-                    <h2 class="text-sm font-bold text-brandNavy dark:text-white mb-4">
-                        <i class="fa-solid fa-bullhorn text-brandGreen mr-2"></i>Announcements
-                    </h2>
-                    <div class="text-center text-brandNavy/40 dark:text-slate-500 py-4">
-                        <p class="text-sm">No announcements at this time.</p>
-                    </div>
+                <div id="dashboard-root">
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
@@ -83,5 +71,7 @@
 
 
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/dashboard-app.jsx')
 </body>
 </html>
