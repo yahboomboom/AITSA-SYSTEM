@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/enrollment-app.jsx',
                 'resources/js/curriculum-app.jsx',
+                'resources/js/dashboard-app.jsx',
             ],
             refresh: true,
         }),
