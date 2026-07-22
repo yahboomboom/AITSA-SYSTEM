@@ -13,6 +13,7 @@ export default defineConfig({
                 'resources/js/curriculum-app.jsx',
                 'resources/js/dashboard-app.jsx',
                 'resources/js/schedule-app.jsx',
+                'resources/js/clearance-app.jsx',
             ],
             refresh: true,
         }),
