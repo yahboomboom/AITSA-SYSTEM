@@ -133,7 +133,14 @@
                                     <td class="px-6 py-3 text-brandNavy/70 dark:text-slate-300">{{ $student->year_level ?? '—' }}</td>
                                     <td class="px-6 py-3 text-brandNavy/70 dark:text-slate-300">{{ $student->program_level ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right">
-                                        {{-- delete form added in Task 3 --}}
+                                        <form action="{{ route('admin.students.destroy', $student) }}" method="POST"
+                                            onsubmit="return confirm('Delete {{ $student->name }}\'s account? This cannot be undone from this page.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs">
+                                                <i class="fa-solid fa-trash mr-1"></i>Delete
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             @empty

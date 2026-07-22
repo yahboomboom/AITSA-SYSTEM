@@ -77,4 +77,39 @@ class AdminStudentRegistryTest extends TestCase
 
         $this->actingAs($student)->get('/admin/students')->assertForbidden();
     }
+
+    public function test_admin_can_soft_delete_a_student(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'name' => 'To Be Deleted']);
+
+        $this->actingAs($this->admin)
+            ->delete("/admin/students/{$student->id}")
+            ->assertRedirect(route('admin.students.index'));
+
+        $this->assertNotNull($student->fresh()->deleted_at);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Student Account Deleted']);
+    }
+
+    public function test_destroy_returns_404_for_non_student_account(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+
+        $this->actingAs($this->admin)
+            ->delete("/admin/students/{$chair->id}")
+            ->assertNotFound();
+
+        $this->assertNull($chair->fresh()->deleted_at);
+    }
+
+    public function test_non_admin_cannot_delete_a_student(): void
+    {
+        $requester = User::factory()->create(['role' => 'student']);
+        $target = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($requester)
+            ->delete("/admin/students/{$target->id}")
+            ->assertForbidden();
+
+        $this->assertNull($target->fresh()->deleted_at);
+    }
 }

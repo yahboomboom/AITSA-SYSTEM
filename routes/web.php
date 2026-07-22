@@ -641,6 +641,18 @@ Route::middleware('auth')->group(function () {
         return view('admin.students.index', compact('students', 'programs'));
     })->name('admin.students.index');
 
+    Route::delete('/admin/students/{user}', function (User $user) {
+        abort_unless($user->role === 'student', 404);
+
+        $name = $user->name;
+        $loginId = $user->login_id;
+        $user->delete();
+
+        AuditLog::record('Student Account Deleted', 'Admin deleted student account for ' . $name . ' (Login ID: ' . $loginId . ').', 'User', $user->id);
+
+        return redirect()->route('admin.students.index')->with('success', 'Student account for ' . $name . ' was deleted.');
+    })->name('admin.students.destroy');
+
     Route::get('/admin/audit', function () {
         $logs = AuditLog::orderByDesc('created_at')->paginate(50);
         return view('admin.audit', compact('logs'));
