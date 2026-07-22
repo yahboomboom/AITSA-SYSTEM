@@ -22,6 +22,6 @@ class CorRouteTest extends TestCase
         $this->actingAs($user)
             ->get('/cor')
             ->assertOk()
-            ->assertSee('Certificate of Registration');
+            ->assertSee('id="schedule-root"', false);
     }
 }
