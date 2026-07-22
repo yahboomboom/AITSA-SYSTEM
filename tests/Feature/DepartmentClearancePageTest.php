@@ -56,7 +56,7 @@ class DepartmentClearancePageTest extends TestCase
 
         $this->actingAs($student)->get('/clearance')
             ->assertOk()
-            ->assertDontSee('Officially Cleared');
+            ->assertSee('"isCleared":false');
     }
 
     public function test_hold_department_item_blocks_officially_cleared_badge(): void
@@ -77,7 +77,7 @@ class DepartmentClearancePageTest extends TestCase
 
         $this->actingAs($student)->get('/clearance')
             ->assertOk()
-            ->assertDontSee('Officially Cleared');
+            ->assertSee('"isCleared":false');
     }
 
     public function test_all_items_approved_shows_officially_cleared_badge(): void
