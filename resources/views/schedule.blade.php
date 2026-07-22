@@ -196,8 +196,8 @@ function parseTimePart(t) {
 }
 
 function parseTimeRange(range) {
-    // Supports "7:00–8:00 AM" (en-dash) or "7:00-8:00 AM"
-    const parts = range.split(/\s*[—\-]\s*/);
+    // Supports "7:00–8:00 AM" (en-dash), "7:00—8:00 AM" (em-dash), or "7:00-8:00 AM" (hyphen)
+    const parts = range.split(/\s*[—–\-]\s*/);
     if (parts.length < 2) return null;
 
     let startStr = parts[0].trim();
