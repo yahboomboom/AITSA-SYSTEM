@@ -15,15 +15,26 @@ export default function ScheduleQRCode({ subjects, studentName, studentId, stude
             text += `${s.days} | ${s.time} | ${s.room} [${s.type}]\n\n`;
         });
 
+        // qrcode.min.js's mode-8bit-byte encoder reuses one scratch array across
+        // characters without resetting it, so any non-ASCII byte (e.g. the en-dash
+        // in `time`) leaks stale bytes into every following ASCII character and
+        // wildly inflates the encoded length, throwing "code length overflow" for
+        // even a handful of subjects. Normalize to plain ASCII before encoding.
+        text = text.trim().replace(/[^\x00-\x7F]/g, '-');
+
         qrRef.current.innerHTML = '';
-        new window.QRCode(qrRef.current, {
-            text: text.trim(),
-            width: 176,
-            height: 176,
-            colorDark: '#0B3C5D',
-            colorLight: '#ffffff',
-            correctLevel: window.QRCode.CorrectLevel.M,
-        });
+        try {
+            new window.QRCode(qrRef.current, {
+                text,
+                width: 176,
+                height: 176,
+                colorDark: '#0B3C5D',
+                colorLight: '#ffffff',
+                correctLevel: window.QRCode.CorrectLevel.M,
+            });
+        } catch {
+            qrRef.current.innerHTML = '<p class="text-[10px] text-brandNavy/40 dark:text-slate-600 p-4 text-center">QR code unavailable for this schedule.</p>';
+        }
     }, [subjects, studentName, studentId, studentProgram]);
 
     return (
