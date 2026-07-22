@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Clearance;
 use App\Models\DocumentSubmission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,6 +45,26 @@ class RegistrarDocumentReviewTest extends TestCase
         $this->assertSame($this->registrar->id, $sub->reviewed_by);
         $this->assertNotNull($sub->reviewed_at);
         $this->assertDatabaseHas('audit_logs', ['action' => 'Document Reviewed']);
+    }
+
+    public function test_accepting_document_also_approves_registrar_clearance(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $clearance = Clearance::create([
+            'user_id' => $student->id,
+            'admission_status' => 'Approved', 'chair_status' => 'Pending',
+            'cashier_status' => 'Pending', 'registrar_status' => 'Hold',
+            'remarks' => 'Missing Form 137.',
+        ]);
+        $sub = DocumentSubmission::factory()->create(['user_id' => $student->id]);
+
+        $this->actingAs($this->registrar)
+            ->post("/registrar/documents/{$sub->id}/accept")
+            ->assertRedirect(route('registrar.dashboard'));
+
+        $clearance->refresh();
+        $this->assertSame('Approved', $clearance->registrar_status);
+        $this->assertNull($clearance->remarks);
     }
 
     public function test_reject_requires_remarks(): void

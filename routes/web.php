@@ -269,6 +269,10 @@ Route::middleware('auth')->group(function () {
         $submission->update(['status' => 'accepted', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
         AuditLog::record('Document Reviewed', 'Registrar accepted ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
 
+        if ($clearance = Clearance::where('user_id', $submission->user_id)->first()) {
+            $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
+        }
+
         return redirect()->route('registrar.dashboard')->with('success', 'Document accepted.');
     })->name('registrar.documents.accept');
 
