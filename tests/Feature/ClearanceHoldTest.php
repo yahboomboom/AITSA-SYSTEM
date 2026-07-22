@@ -116,6 +116,6 @@ class ClearanceHoldTest extends TestCase
 
         $this->actingAs($student)->get('/clearance')
             ->assertOk()
-            ->assertSee('Please see the Department Chair.');
+            ->assertSee('"remarks":"Please see the Department Chair."');
     }
 }

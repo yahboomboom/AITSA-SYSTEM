@@ -23,9 +23,9 @@ class ClearancePageDocumentsTest extends TestCase
         $response = $this->actingAs($student)->get('/clearance');
 
         $response->assertOk()
-            ->assertSee('My Submitted Documents')
-            ->assertSee('my-form137.pdf')
-            ->assertSee('Scan is blurry.')
+            ->assertSee('id="clearance-root"', false)
+            ->assertSee('"originalName":"my-form137.pdf"')
+            ->assertSee('"remarks":"Scan is blurry."')
             ->assertDontSee('someone-elses.pdf');
     }
 
@@ -35,6 +35,6 @@ class ClearancePageDocumentsTest extends TestCase
 
         $this->actingAs($student)->get('/clearance')
             ->assertOk()
-            ->assertDontSee('My Submitted Documents');
+            ->assertSee('"submissions":[]');
     }
 }

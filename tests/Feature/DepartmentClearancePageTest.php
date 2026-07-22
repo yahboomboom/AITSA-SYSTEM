@@ -97,7 +97,7 @@ class DepartmentClearancePageTest extends TestCase
 
         $this->actingAs($student)->get('/clearance')
             ->assertOk()
-            ->assertSee('Officially Cleared');
+            ->assertSee('"isCleared":true');
     }
 
     public function test_department_added_after_clearance_exists_does_not_retroactively_appear(): void
