@@ -102,17 +102,6 @@
                 </div>
             @endif
 
-            {{-- PAGE TITLE + ENROLLMENT SHORTCUT --}}
-            <div class="text-center py-2 relative">
-                <h1 class="text-2xl font-bold tracking-tight text-brandNavy dark:text-white">Enrollment Clearance</h1>
-                <div id="enrollmentShortcut" class="hidden justify-center mt-3 animate-bounce">
-                    <a href="{{ route('enrollment') }}" class="inline-flex items-center space-x-2 text-xs font-black bg-brandGreen text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-emerald-600 transition-all">
-                        <i class="fa-solid fa-rocket"></i>
-                        <span>CONGRATULATIONS! CLICK HERE TO PROCEED TO ENROLLMENT</span>
-                    </a>
-                </div>
-            </div>
-
             @php
                 $isCleared = isset($clearance) && (
                     $clearance->cashier_status === 'Approved' &&
