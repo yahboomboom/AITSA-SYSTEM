@@ -134,7 +134,7 @@
                                     <td class="px-6 py-3 text-brandNavy/70 dark:text-slate-300">{{ $student->program_level ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right">
                                         <form action="{{ route('admin.students.destroy', $student) }}" method="POST"
-                                            onsubmit="return confirm('Delete {{ $student->name }}\'s account? This cannot be undone from this page.');">
+                                            onsubmit="return confirm({{ Illuminate\Support\Js::from('Delete '.$student->name.'\'s account? This cannot be undone from this page.') }});">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs">
