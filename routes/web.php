@@ -616,6 +616,31 @@ Route::middleware('auth')->group(function () {
             ->with('success', 'Account created for ' . $student->name . '. Login ID: ' . $student->login_id . '.');
     })->name('admin.students.store');
 
+    Route::get('/admin/students', function (Request $request) {
+        $query = User::where('role', 'student');
+
+        if ($request->filled('q')) {
+            $search = $request->query('q');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('login_id', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('program')) {
+            $query->where('major', $request->query('program'));
+        }
+
+        if ($request->filled('year_level')) {
+            $query->where('year_level', $request->query('year_level'));
+        }
+
+        $students = $query->orderBy('name')->paginate(20)->withQueryString();
+        $programs = Program::orderBy('level')->orderBy('code')->get();
+
+        return view('admin.students.index', compact('students', 'programs'));
+    })->name('admin.students.index');
+
     Route::get('/admin/audit', function () {
         $logs = AuditLog::orderByDesc('created_at')->paginate(50);
         return view('admin.audit', compact('logs'));

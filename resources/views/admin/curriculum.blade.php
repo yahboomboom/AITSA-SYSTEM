@@ -23,6 +23,8 @@
             <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Core Control</p>
             <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 {{ Route::is('admin.dashboard') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }} rounded-xl text-sm transition-colors"><span>System Overview</span>
             </a>
+            <a href="{{ route('admin.students.index') }}" class="flex items-center space-x-3 px-4 py-3 {{ Route::is('admin.students.index') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }} rounded-xl text-sm transition-colors"><span>Student Registry</span>
+            </a>
             <a href="#" class="flex items-center space-x-3 px-4 py-3 text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50 rounded-xl font-medium text-sm transition-colors"><span>Manage Users</span>
             </a>
             <a href="#" class="flex items-center space-x-3 px-4 py-3 text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/50 rounded-xl font-medium text-sm transition-colors"><span>Clearance Settings</span>
