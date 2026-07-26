@@ -310,13 +310,47 @@ git commit -m "feat: add BalanceCard component for payment island"
 
 ### Task 5: `payment-app.jsx` entry point + Vite wiring
 
+**Amendment (discovered during implementation):** this task's brief and the design spec both assumed `resources/js/components/ErrorBoundary.jsx` already existed and was used by all 5 committed islands. It does not — `git log --all` for that path returns nothing, and the actually-committed `clearance-app.jsx`/`dashboard-app.jsx`/etc. import no such thing. (Root cause: earlier brainstorming read uncommitted working-tree state in a different checkout and mistook it for committed history.) Per explicit user decision, this task now also creates a minimal `ErrorBoundary.jsx` from scratch as Step 0 below, rather than dropping the wrapper from this island.
+
 **Files:**
+- Create: `resources/js/components/ErrorBoundary.jsx`
 - Create: `resources/js/payment-app.jsx`
 - Modify: `vite.config.js`
 
 **Interfaces:**
-- Consumes: `BalanceCard` (Task 4), `PaymentHistoryCard` (Task 2), `ClearanceStatusCard` (Task 3), `ErrorBoundary` from `resources/js/components/ErrorBoundary.jsx` (existing).
-- Produces: mounts to `#payment-root`, reading `data-context` (JSON), `data-csrf-token`, `data-checkout-url`, `data-verify-url` off that element. Consumed by Task 6 (`payment.blade.php`).
+- Consumes: `BalanceCard` (Task 4), `PaymentHistoryCard` (Task 2), `ClearanceStatusCard` (Task 3), `ErrorBoundary` from `resources/js/components/ErrorBoundary.jsx` (new, this task).
+- Produces: mounts to `#payment-root`, reading `data-context` (JSON), `data-csrf-token`, `data-checkout-url`, `data-verify-url` off that element. Consumed by Task 6 (`payment.blade.php`). `ErrorBoundary` is also available for other islands to adopt later (out of scope for this task).
+
+- [ ] **Step 0: Create the ErrorBoundary component**
+
+Create `resources/js/components/ErrorBoundary.jsx`:
+
+```jsx
+import { Component } from 'react';
+
+export default class ErrorBoundary extends Component {
+    state = { hasError: false };
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, info) {
+        console.error('React island crashed:', error, info);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <p className="text-sm text-red-600 p-4">
+                    Something went wrong loading this section. Please refresh the page.
+                </p>
+            );
+        }
+        return this.props.children;
+    }
+}
+```
 
 - [ ] **Step 1: Create the entry point**
 
