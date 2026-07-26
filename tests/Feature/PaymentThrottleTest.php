@@ -78,4 +78,23 @@ class PaymentThrottleTest extends TestCase
 
         $this->actingAs($student)->get('/ledger/payment/return')->assertStatus(429);
     }
+
+    public function test_checkout_and_verify_rate_limit_buckets_are_independent(): void
+    {
+        Http::fake(['api.paymongo.com/*' => Http::response(['errors' => []], 500)]);
+        $student = $this->studentWithBalance();
+
+        // Exhaust verify's bucket first (10/10 for its throttle:10,1 limit).
+        // Its count (10) exceeds checkout's limit (6), so if the two routes
+        // shared a single rate-limit key (no distinct prefix), the very
+        // next checkout call would be blocked immediately with 429 even
+        // though checkout has made zero requests of its own.
+        for ($i = 0; $i < 10; $i++) {
+            $this->actingAs($student)->post('/ledger/verify');
+        }
+        $this->actingAs($student)->post('/ledger/verify')->assertStatus(429);
+
+        // Checkout has its own, independent bucket and must start fresh.
+        $this->actingAs($student)->post('/ledger/checkout')->assertStatus(302);
+    }
 }
