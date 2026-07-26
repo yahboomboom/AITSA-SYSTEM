@@ -67,138 +67,30 @@
                     </div>
                 @endif
 
-                {{-- BALANCE OVERVIEW CARD --}}
-                @php $settled = ($breakdown['balance'] ?? 0) <= 0; @endphp
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                    <div class="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center">
-                        <span class="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
-                            <i class="fa-solid fa-wallet mr-2"></i>Account Balance
-                        </span>
-                        <span class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">Accounting Office</span>
-                    </div>
-                    <div class="p-6 lg:p-8 flex flex-col md:flex-row items-start justify-between gap-6">
-                        <div class="space-y-2 text-center md:text-left">
-                            @if($settled)
-                                <p class="text-[10px] font-bold text-brandGreen uppercase tracking-widest">Outstanding Balance</p>
-                                <h3 class="text-4xl font-black text-brandGreen">₱ 0.00</h3>
-                                <p class="text-xs text-brandNavy/60 dark:text-slate-400">Your account has been fully settled with the Accounting Office.</p>
-                            @else
-                                <p class="text-[10px] font-bold text-brandGold uppercase tracking-widest">Outstanding Balance</p>
-                                <h3 class="text-4xl font-black text-brandGold dark:text-amber-400">₱ {{ number_format($breakdown['balance'], 2) }}</h3>
-                                <p class="text-xs text-brandNavy/60 dark:text-slate-400">Settle your balance to clear the cashier hold before enrollment.</p>
-                            @endif
+                @php
+                    $paymentContext = [
+                        'settled' => ($breakdown['balance'] ?? 0) <= 0,
+                        'hasPendingGateway' => $hasPendingGateway,
+                        'breakdown' => $breakdown,
+                        'history' => $history->map(fn ($row) => [
+                            'referenceNo' => $row->reference_no,
+                            'gatewayLabel' => $row->gateway === 'paymongo' ? 'PayMongo (online)' : 'Cashier window',
+                            'createdAtFormatted' => $row->created_at->format('M d, Y g:i A'),
+                            'amount' => $row->amount,
+                            'status' => $row->status,
+                        ])->all(),
+                        'cashierCleared' => isset($clearance) && $clearance->cashier_status === 'Approved',
+                        'registrarCleared' => isset($clearance) && $clearance->registrar_status === 'Approved',
+                        'chairCleared' => isset($clearance) && $clearance->chair_status === 'Approved',
+                    ];
+                @endphp
 
-                            {{-- ASSESSMENT BREAKDOWN --}}
-                            <div class="mt-4 bg-lightBg dark:bg-slate-900/40 border border-brandNavy/5 dark:border-slate-800 rounded-xl p-4 text-xs space-y-1.5 w-full md:w-80">
-                                <p class="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Assessment Breakdown</p>
-                                <div class="flex justify-between">
-                                    <span class="text-brandNavy/60 dark:text-slate-400">Tuition ({{ $breakdown['units'] }} units × ₱{{ number_format($breakdown['rate'], 2) }})</span>
-                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['tuition'], 2) }}</span>
-                                </div>
-                                @if($breakdown['discount_amount'] > 0)
-                                    <div class="flex justify-between text-brandGreen">
-                                        <span>{{ $breakdown['discount_name'] }} (−{{ $breakdown['discount_percent'] }}% tuition)</span>
-                                        <span class="font-bold">− ₱ {{ number_format($breakdown['discount_amount'], 2) }}</span>
-                                    </div>
-                                @endif
-                                <div class="flex justify-between">
-                                    <span class="text-brandNavy/60 dark:text-slate-400">Miscellaneous Fee</span>
-                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['misc'], 2) }}</span>
-                                </div>
-                                <div class="flex justify-between pt-1.5 border-t border-brandNavy/10 dark:border-slate-800">
-                                    <span class="text-brandNavy/60 dark:text-slate-400">Total Assessment</span>
-                                    <span class="font-bold text-brandNavy dark:text-slate-200">₱ {{ number_format($breakdown['assessment'], 2) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-brandNavy/60 dark:text-slate-400">Payments Made</span>
-                                    <span class="font-bold text-brandGreen">− ₱ {{ number_format($breakdown['paid'], 2) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col gap-3 w-full md:w-auto">
-                            @if($settled)
-                                <button disabled class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-lightBg text-brandNavy/40 dark:bg-slate-800 dark:text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed border border-brandNavy/10 dark:border-slate-700">
-                                    <i class="fa-solid fa-circle-check"></i>Account Settled
-                                </button>
-                            @elseif(! $hasPendingGateway)
-                                <form action="{{ route('ledger.checkout') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0">
-                                        <i class="fa-solid fa-credit-card"></i>Pay ₱ {{ number_format($breakdown['balance'], 2) }} via PayMongo
-                                    </button>
-                                </form>
-                            @endif
-                            @if($hasPendingGateway)
-                                <form action="{{ route('ledger.verify') }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-brandGold/10 hover:bg-brandGold text-brandGold hover:text-white border border-brandGold/30 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">
-                                        <i class="fa-solid fa-rotate"></i>Verify Payment
-                                    </button>
-                                </form>
-                                <p class="text-[10px] text-brandNavy/50 dark:text-slate-500 text-center max-w-48">Finished paying on the gateway but the balance did not update? Verify here.</p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- PAYMENT HISTORY --}}
-                @if(isset($history) && $history->isNotEmpty())
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                        <div class="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800">
-                            <span class="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
-                                <i class="fa-solid fa-clock-rotate-left mr-2"></i>Payment History
-                            </span>
-                        </div>
-                        <div class="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-                            @foreach($history as $row)
-                                <div class="px-6 py-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                                    <div>
-                                        <span class="font-mono font-bold text-brandNavy dark:text-slate-200 block">{{ $row->reference_no }}</span>
-                                        <span class="text-brandNavy/50 dark:text-slate-500">{{ $row->gateway === 'paymongo' ? 'PayMongo (online)' : 'Cashier window' }} · {{ $row->created_at->format('M d, Y g:i A') }}</span>
-                                    </div>
-                                    <div class="flex items-center gap-3">
-                                        <span class="font-black text-brandNavy dark:text-slate-200">₱ {{ number_format($row->amount, 2) }}</span>
-                                        @if($row->status === 'Settled')
-                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">Settled</span>
-                                        @elseif($row->status === 'Pending')
-                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">Pending</span>
-                                        @elseif($row->status === 'Failed')
-                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-red-600/10 text-red-600 border border-red-600/20 uppercase tracking-wider">Failed</span>
-                                        @else
-                                            <span class="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-slate-500/10 text-slate-500 border border-slate-500/20 uppercase tracking-wider">{{ $row->status }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                {{-- CLEARANCE STATUS SUMMARY --}}
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                    <div class="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800">
-                        <span class="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
-                            <i class="fa-solid fa-file-invoice mr-2"></i>Clearance Status Overview
-                        </span>
-                    </div>
-                    <div class="p-6 space-y-3 text-xs">
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid @if(isset($clearance) && $clearance->cashier_status === 'Approved') fa-circle-check text-brandGreen @else fa-circle-xmark text-brandGold @endif text-sm"></i>
-                            <p class="text-brandNavy/70 dark:text-slate-400">Accounting Office — Balance Assessment</p>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-circle-check text-brandGreen text-sm"></i>
-                            <p class="text-brandNavy/70 dark:text-slate-400">Library — No pending borrowed items on record</p>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid @if(isset($clearance) && $clearance->registrar_status === 'Approved') fa-circle-check text-brandGreen @else fa-circle-xmark text-red-500 @endif text-sm"></i>
-                            <p class="text-brandNavy/70 dark:text-slate-400">Registrar — Administrative document verification</p>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid @if(isset($clearance) && $clearance->chair_status === 'Approved') fa-circle-check text-brandGreen @else fa-circle-xmark text-brandGold @endif text-sm"></i>
-                            <p class="text-brandNavy/70 dark:text-slate-400">Department Head — Curriculum evaluation</p>
-                        </div>
-                    </div>
+                <div id="payment-root"
+                     data-context="{{ json_encode($paymentContext) }}"
+                     data-csrf-token="{{ csrf_token() }}"
+                     data-checkout-url="{{ route('ledger.checkout') }}"
+                     data-verify-url="{{ route('ledger.verify') }}">
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
@@ -206,5 +98,7 @@
     </div>
 
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/payment-app.jsx')
 </body>
 </html>
