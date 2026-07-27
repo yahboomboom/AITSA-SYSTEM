@@ -14,6 +14,7 @@ export default defineConfig({
                 'resources/js/dashboard-app.jsx',
                 'resources/js/schedule-app.jsx',
                 'resources/js/clearance-app.jsx',
+                'resources/js/payment-app.jsx',
             ],
             refresh: true,
         }),

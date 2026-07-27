@@ -158,7 +158,7 @@ Route::middleware('auth')->group(function () {
         }
 
         return redirect()->away($url);
-    })->name('ledger.checkout');
+    })->name('ledger.checkout')->middleware('throttle:6,1,ledger-checkout');
 
     Route::get('/ledger/payment/return', function (PaymentService $payments) {
         try {
@@ -168,7 +168,7 @@ Route::middleware('auth')->group(function () {
         }
 
         return redirect()->route('ledger')->with($result['ok'] ? 'success' : 'error', $result['message']);
-    })->name('ledger.payment.return');
+    })->name('ledger.payment.return')->middleware('throttle:10,1,ledger-return');
 
     Route::get('/ledger/payment/cancel', function (PaymentService $payments) {
         $payments->cancelLatestPending(Auth::user());
@@ -184,7 +184,7 @@ Route::middleware('auth')->group(function () {
         }
 
         return redirect()->route('ledger')->with($result['ok'] ? 'success' : 'error', $result['message']);
-    })->name('ledger.verify');
+    })->name('ledger.verify')->middleware('throttle:10,1,ledger-verify');
 
     // 5. Certificate of Registration (COR) View
     Route::get('/cor', [AuthController::class, 'showCor'])->name('cor');

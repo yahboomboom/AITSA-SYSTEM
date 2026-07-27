@@ -24,9 +24,8 @@ class LedgerPageTest extends TestCase
         $response = $this->actingAs($student)->get('/ledger');
 
         $response->assertOk()
-            ->assertSee('Assessment Breakdown')
-            ->assertSee('Miscellaneous Fee')
-            ->assertSee('PMG-MINE123456')
+            ->assertSee('id="payment-root"', false)
+            ->assertSee('&quot;referenceNo&quot;:&quot;PMG-MINE123456&quot;', false)
             ->assertDontSee('PMG-OTHERS7890')
             ->assertDontSee('mockPay');
     }
@@ -39,7 +38,6 @@ class LedgerPageTest extends TestCase
 
         $this->actingAs($student)->get('/ledger')
             ->assertOk()
-            ->assertSee('Verify Payment')
-            ->assertDontSee('via PayMongo'); // Pay is hidden until the pending payment is verified or cancelled
+            ->assertSee('&quot;hasPendingGateway&quot;:true', false);
     }
 }
