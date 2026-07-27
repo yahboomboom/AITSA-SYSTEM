@@ -23,7 +23,7 @@ class FacultySchedulePageTest extends TestCase
 
         $this->actingAs($prof)->get('/faculty/schedule')
             ->assertOk()
-            ->assertSee('MINE101')
+            ->assertSee('&quot;subjectCode&quot;:&quot;MINE101&quot;', false)
             ->assertDontSee('THEIRS101');
     }
 
@@ -33,7 +33,7 @@ class FacultySchedulePageTest extends TestCase
 
         $this->actingAs($prof)->get('/faculty/schedule')
             ->assertOk()
-            ->assertSee('No teaching load');
+            ->assertSee('&quot;days&quot;:[]', false);
     }
 
     public function test_students_cannot_view_faculty_schedule(): void

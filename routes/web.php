@@ -407,7 +407,27 @@ Route::middleware('auth')->group(function () {
                 ->orderBy('start_time')
                 ->get();
 
-            return view('faculty.schedule', ['sections' => $sections]);
+            $dayNames = ['M' => 'Monday', 'T' => 'Tuesday', 'W' => 'Wednesday', 'Th' => 'Thursday', 'F' => 'Friday', 'Sat' => 'Saturday', 'Sun' => 'Sunday'];
+
+            $context = [
+                'teacherName' => auth()->user()->name,
+                'schoolYear' => \App\Models\Setting::get('school_year', '2026-2027'),
+                'days' => collect($dayNames)->map(function ($label, $key) use ($sections) {
+                    return [
+                        'label' => $label,
+                        'sections' => $sections->filter(fn ($s) => in_array($key, $s->days))->map(fn ($s) => [
+                            'subjectCode' => $s->subject->code,
+                            'subjectTitle' => $s->subject->title,
+                            'blockLabel' => $s->block_label,
+                            'timeRange' => $s->start_time . '–' . $s->end_time,
+                            'roomLabel' => $s->roomLabel(),
+                            'isOnline' => (bool) ($s->roomEntity && ! $s->roomEntity->isPhysical()),
+                        ])->values(),
+                    ];
+                })->filter(fn ($day) => $day['sections']->isNotEmpty())->values(),
+            ];
+
+            return view('faculty.schedule', ['context' => $context]);
         })->name('faculty.schedule');
     }); // end role:faculty
 
