@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\TransactionLedger;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PaymentService
@@ -24,18 +25,20 @@ class PaymentService
      */
     public function startCheckout(User $user, float $balance): string
     {
-        TransactionLedger::where('user_id', $user->id)
-            ->where('gateway', 'paymongo')->where('status', 'Pending')
-            ->update(['status' => 'Cancelled']);
+        $row = Cache::lock("ledger-checkout-{$user->id}", 10)->block(5, function () use ($user, $balance) {
+            TransactionLedger::where('user_id', $user->id)
+                ->where('gateway', 'paymongo')->where('status', 'Pending')
+                ->update(['status' => 'Cancelled']);
 
-        $row = TransactionLedger::create([
-            'user_id' => $user->id,
-            'reference_no' => 'PMG-' . strtoupper(Str::random(10)),
-            'amount' => $balance,
-            'status' => 'Pending',
-            'gateway' => 'paymongo',
-            'remarks' => 'Online payment via PayMongo checkout.',
-        ]);
+            return TransactionLedger::create([
+                'user_id' => $user->id,
+                'reference_no' => 'PMG-' . strtoupper(Str::random(10)),
+                'amount' => $balance,
+                'status' => 'Pending',
+                'gateway' => 'paymongo',
+                'remarks' => 'Online payment via PayMongo checkout.',
+            ]);
+        });
 
         try {
             $session = $this->gateway->createCheckoutSession(
