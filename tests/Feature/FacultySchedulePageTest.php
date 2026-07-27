@@ -27,7 +27,7 @@ class FacultySchedulePageTest extends TestCase
             ->assertDontSee('THEIRS101');
     }
 
-    public function test_faculty_page_shows_empty_state_without_load(): void
+    public function test_context_is_empty_without_teaching_load(): void
     {
         $prof = User::factory()->create(['role' => 'faculty']);
 
