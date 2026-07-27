@@ -6,12 +6,18 @@ import RegistrarCard from './clearance/RegistrarCard';
 import SubmittedDocumentsList from './clearance/SubmittedDocumentsList';
 import SubmitRequirementModal from './clearance/SubmitRequirementModal';
 
+const EMPTY_BREAKDOWN = {
+    units: 0, rate: 0, tuition: 0, discount_name: null, discount_percent: 0,
+    discount_amount: 0, misc: 0, assessment: 0, paid: 0, balance: 0, fully_paid: false,
+};
+
 const EMPTY_CONTEXT = {
     isCleared: false,
     cashierCleared: false,
     registrarCleared: false,
     chairCleared: false,
     remarks: null,
+    breakdown: EMPTY_BREAKDOWN,
     items: [],
     submission: { hasSubmission: false, submissionPending: false, createdAt: null, originalName: null },
     submissions: [],
@@ -26,6 +32,7 @@ function parseContext(raw) {
             registrarCleared: !!parsed.registrarCleared,
             chairCleared: !!parsed.chairCleared,
             remarks: parsed.remarks ?? null,
+            breakdown: parsed.breakdown ?? EMPTY_BREAKDOWN,
             items: Array.isArray(parsed.items) ? parsed.items : [],
             submission: parsed.submission ?? EMPTY_CONTEXT.submission,
             submissions: Array.isArray(parsed.submissions) ? parsed.submissions : [],
@@ -78,7 +85,7 @@ function ClearanceApp({ context, csrfToken, submitUrl }) {
                         <p className="text-[10px] text-brandNavy/50 dark:text-slate-400 italic">Updates reflect immediately upon administrative action.</p>
                     </div>
 
-                    <AccountingCard cashierCleared={context.cashierCleared} />
+                    <AccountingCard cashierCleared={context.cashierCleared} breakdown={context.breakdown} />
                     <RegistrarCard registrarCleared={context.registrarCleared} submission={context.submission} onOpenModal={openModal} />
                 </div>
 

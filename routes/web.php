@@ -67,7 +67,7 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     // 2. Student e-Clearance Routing Module
-    Route::get('/clearance', function () {
+    Route::get('/clearance', function (FeeAssessmentService $fees) {
         $user = Auth::user();
 
         if (!$user) {
@@ -83,7 +83,8 @@ Route::middleware('auth')->group(function () {
 
         $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
         $submission = $submissions->first();
-        return view('clearance', compact('clearance', 'submission', 'submissions'));
+        $breakdown = $fees->breakdownFor($user);
+        return view('clearance', compact('clearance', 'submission', 'submissions', 'breakdown'));
     })->name('clearance');
 
     Route::post('/clearance/submit-requirement', function (Request $request) {

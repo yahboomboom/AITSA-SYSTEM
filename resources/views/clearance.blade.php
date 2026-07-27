@@ -122,6 +122,7 @@
                     'registrarCleared' => $registrarCleared,
                     'chairCleared' => $chairCleared,
                     'remarks' => $clearance->remarks,
+                    'breakdown' => $breakdown,
                     'items' => $clearance->items->map(fn ($item) => [
                         'departmentName' => $item->department->name,
                         'status' => $item->status,

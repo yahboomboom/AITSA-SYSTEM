@@ -1,16 +1,15 @@
-const ACTION_ITEMS = [
-    { label: 'Reservation Fee', paid: true, amount: '500.00' },
-    { label: 'Tuition Fee — 1st Payment', paid: true, amount: '3,500.00' },
-    { label: 'Tuition Fee — 2nd Payment', paid: false, amount: '3,500.00' },
-    { label: 'Tuition Fee — 3rd Payment', paid: false, amount: '3,500.00' },
-    { label: 'Tuition Fee — 4th Payment', paid: false, amount: '3,500.00' },
-    { label: 'Tuition Fee — 5th Payment', paid: false, amount: '3,500.00' },
-    { label: 'Acquaintance Party', paid: true, amount: '150.00' },
-    { label: 'SportsFest', paid: false, amount: '200.00' },
-    { label: 'Grad Ball (Graduating)', paid: false, amount: '500.00' },
-];
+const peso = (n) => `₱ ${Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function AccountingCard({ cashierCleared }) {
+export default function AccountingCard({ cashierCleared, breakdown }) {
+    const b = breakdown ?? {};
+    const hasDiscount = (b.discount_amount ?? 0) > 0;
+
+    const lineItems = [
+        { label: `Tuition Fee (${b.units ?? 0} units × ${peso(b.rate)})`, amount: b.tuition },
+        { label: 'Miscellaneous Fee', amount: b.misc },
+        ...(hasDiscount ? [{ label: `Discount — ${b.discount_name ?? 'Applied'}`, amount: -b.discount_amount }] : []),
+    ];
+
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="bg-lightBg dark:bg-slate-800/60 px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center text-xs">
@@ -20,46 +19,44 @@ export default function AccountingCard({ cashierCleared }) {
             <div id="accountingCardBody" className="p-6 space-y-5">
                 {cashierCleared ? (
                     <div className="text-center space-y-1">
-                        <h3 className="text-xl font-black text-brandGreen">Balance: ₱ 0.00</h3>
-                        <p className="text-xs text-brandNavy/60 dark:text-slate-400">Your account balance has been fully settled.</p>
+                        <h3 className="text-xl font-black text-brandGreen">Balance: {peso(b.balance)}</h3>
+                        <p className="text-xs text-brandNavy/60 dark:text-slate-400">
+                            {b.fully_paid
+                                ? 'Your account balance has been fully settled.'
+                                : 'Your account has been cleared by the Accounting Office.'}
+                        </p>
                     </div>
                 ) : (
                     <div className="text-center space-y-2">
-                        <h3 className="text-xl font-black text-brandGold">Balance: Pending Assessment</h3>
-                        <p className="text-xs text-brandNavy/60 dark:text-slate-400">You have pending tuition or institutional fee obligations. Settle the items below to complete your clearance.</p>
+                        <h3 className="text-xl font-black text-brandGold">Balance: {peso(b.balance)}</h3>
+                        <p className="text-xs text-brandNavy/60 dark:text-slate-400">You have pending tuition or institutional fee obligations. Settle your balance below to complete your clearance.</p>
                     </div>
                 )}
 
                 <div className="border border-brandNavy/8 dark:border-slate-700 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-lightBg dark:bg-slate-800/50 border-b border-brandNavy/8 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider">Clearance Action Items</span>
+                        <span className="text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider">Assessment Breakdown</span>
                         <span className="text-[9px] font-black text-brandNavy/40 dark:text-slate-500">A.Y. 2025–2026</span>
                     </div>
                     <div className="divide-y divide-brandNavy/5 dark:divide-slate-800">
-                        {ACTION_ITEMS.map((item) => (
+                        {lineItems.map((item) => (
                             <div key={item.label} className="flex items-center justify-between px-4 py-3 text-xs">
-                                <div className="flex items-center gap-3">
-                                    {item.paid ? (
-                                        <>
-                                            <div className="w-5 h-5 rounded-full bg-brandGreen/10 flex items-center justify-center flex-shrink-0" />
-                                            <span className="font-medium text-brandNavy/60 dark:text-slate-400 line-through">{item.label}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="w-5 h-5 rounded-full bg-brandGold/10 border border-brandGold/30 flex items-center justify-center flex-shrink-0" />
-                                            <span className="font-semibold text-brandNavy dark:text-slate-200">{item.label}</span>
-                                        </>
-                                    )}
-                                </div>
-                                <div className="text-right flex-shrink-0 ml-4">
-                                    {item.paid ? (
-                                        <span className="text-[10px] font-bold text-brandGreen">Settled</span>
-                                    ) : (
-                                        <span className="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400">₱ {item.amount}</span>
-                                    )}
-                                </div>
+                                <span className="font-semibold text-brandNavy dark:text-slate-200">{item.label}</span>
+                                <span className="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400">{peso(item.amount)}</span>
                             </div>
                         ))}
+                        <div className="flex items-center justify-between px-4 py-3 text-xs bg-lightBg/60 dark:bg-slate-800/30">
+                            <span className="font-bold text-brandNavy dark:text-slate-100">Total Assessment</span>
+                            <span className="text-[10px] font-black text-brandNavy dark:text-slate-100">{peso(b.assessment)}</span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3 text-xs">
+                            <span className="font-semibold text-brandNavy/60 dark:text-slate-400">Amount Paid</span>
+                            <span className="text-[10px] font-bold text-brandGreen">{peso(b.paid)}</span>
+                        </div>
+                        <div className="flex items-center justify-between px-4 py-3 text-xs">
+                            <span className="font-bold text-brandNavy dark:text-slate-100">Remaining Balance</span>
+                            <span className={`text-[10px] font-black ${b.fully_paid ? 'text-brandGreen' : 'text-brandGold'}`}>{peso(b.balance)}</span>
+                        </div>
                     </div>
                 </div>
 
