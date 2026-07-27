@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import MasterStatusBadge from './clearance/MasterStatusBadge';
 import AccountingCard from './clearance/AccountingCard';
 import RegistrarCard from './clearance/RegistrarCard';
@@ -108,5 +109,9 @@ if (el) {
     const context = parseContext(el.dataset.context);
     const csrfToken = el.dataset.csrfToken ?? '';
     const submitUrl = el.dataset.submitUrl ?? '';
-    createRoot(el).render(<ClearanceApp context={context} csrfToken={csrfToken} submitUrl={submitUrl} />);
+    createRoot(el).render(
+        <ErrorBoundary>
+            <ClearanceApp context={context} csrfToken={csrfToken} submitUrl={submitUrl} />
+        </ErrorBoundary>
+    );
 }

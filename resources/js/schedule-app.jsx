@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import CorHeader from './schedule/CorHeader';
 import WeeklyTimetable from './schedule/WeeklyTimetable';
 import ScheduleQRCode from './schedule/ScheduleQRCode';
@@ -35,11 +36,13 @@ if (el) {
     const studentId = el.dataset.studentId ?? 'N/A';
     const studentProgram = el.dataset.studentProgram ?? 'BSIT - Web Development';
     createRoot(el).render(
-        <ScheduleApp
-            subjects={subjects}
-            studentName={studentName}
-            studentId={studentId}
-            studentProgram={studentProgram}
-        />
+        <ErrorBoundary>
+            <ScheduleApp
+                subjects={subjects}
+                studentName={studentName}
+                studentId={studentId}
+                studentProgram={studentProgram}
+            />
+        </ErrorBoundary>
     );
 }

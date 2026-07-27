@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import api from './lib/api';
 import StatusCard from './enrollment/StatusCard';
 import RegularView from './enrollment/RegularView';
@@ -124,4 +125,4 @@ function EnrollmentApp() {
 }
 
 const el = document.getElementById('enrollment-root');
-if (el) createRoot(el).render(<EnrollmentApp />);
+if (el) createRoot(el).render(<ErrorBoundary><EnrollmentApp /></ErrorBoundary>);

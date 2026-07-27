@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
 import api from './lib/api';
 import SubjectRow from './curriculum/SubjectRow';
 import FacultyLoading from './curriculum/FacultyLoading';
@@ -146,4 +147,4 @@ function CurriculumApp() {
 }
 
 const el = document.getElementById('curriculum-root');
-if (el) createRoot(el).render(<CurriculumApp />);
+if (el) createRoot(el).render(<ErrorBoundary><CurriculumApp /></ErrorBoundary>);
