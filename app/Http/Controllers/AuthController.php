@@ -16,6 +16,7 @@ use App\Models\ShsStrand;
 use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\TransactionLedger;
+use App\Services\FeeAssessmentService;
 
 class AuthController extends Controller
 {
@@ -226,7 +227,7 @@ class AuthController extends Controller
     }
 
     // 6.5 Render the Cashier Administrative Dashboard with SQLite compatibility
-    public function showCashierDashboard()
+    public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
         $clearances = Clearance::with('user')
@@ -234,8 +235,38 @@ class AuthController extends Controller
             ->get();
 
         $totalOutstandingDocs = Clearance::where('cashier_status', 'Pending')->count();
-        
-        return view('cashier.dashboard', compact('clearances', 'totalOutstandingDocs'));
+
+        $rows = $clearances->map(function ($clearance) use ($fees) {
+            $balance = $clearance->user ? (float) $fees->breakdownFor($clearance->user)['balance'] : 0.0;
+
+            $latestSettled = TransactionLedger::where('user_id', $clearance->user_id)
+                ->where('status', 'Settled')
+                ->latest()
+                ->latest('id')
+                ->first();
+
+            return [
+                'id' => $clearance->id,
+                'userId' => $clearance->user_id,
+                'studentName' => $clearance->user->name ?? 'Unknown Student',
+                'studentEmail' => $clearance->user->email ?? 'N/A',
+                'balance' => $balance,
+                'isApproved' => $clearance->cashier_status === 'Approved',
+                'referenceNo' => $latestSettled->reference_no ?? null,
+            ];
+        })->values();
+
+        $context = [
+            'stats' => [
+                'totalOutstanding' => (float) $rows->where('isApproved', false)->sum('balance'),
+                'settledBase' => (float) TransactionLedger::where('status', 'Settled')->sum('amount'),
+                'settledCount' => TransactionLedger::where('status', 'Settled')->count(),
+                'pendingActions' => $totalOutstandingDocs,
+            ],
+            'rows' => $rows,
+        ];
+
+        return view('cashier.dashboard', compact('context'));
     }
 
     /**
