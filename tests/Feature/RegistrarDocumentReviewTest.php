@@ -28,8 +28,8 @@ class RegistrarDocumentReviewTest extends TestCase
 
         $response->assertOk();
         $this->assertTrue($response->viewData('documentSubmissions')->contains('id', $sub->id));
-        $response->assertSee('Student Document Submissions');
-        $response->assertSee($sub->original_name);
+        $response->assertSee('id="registrar-dashboard-root"', false);
+        $response->assertSee('&quot;originalName&quot;:&quot;' . $sub->original_name . '&quot;', false);
     }
 
     public function test_registrar_can_accept(): void
