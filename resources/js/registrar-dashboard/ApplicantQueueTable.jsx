@@ -1,0 +1,100 @@
+const APPLICANT_TYPE_STYLES = {
+    NEW: 'bg-brandGreen/10 text-brandGreen',
+    TRANSFEREE: 'bg-blue-500/10 text-blue-600',
+    RETURNEE: 'bg-amber-500/10 text-amber-600',
+};
+
+export default function ApplicantQueueTable({ applicants, csrfToken }) {
+    return (
+        <div className="bg-white dark:bg-panelDark/40 border border-brandGold/30 dark:border-amber-500/20 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-brandGold/20 dark:border-amber-500/20 bg-brandGold/5 dark:bg-amber-500/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <h3 className="text-sm font-bold text-brandNavy dark:text-white">Pending Admission Applications</h3>
+                    <span className="px-2 py-0.5 text-[9px] font-black bg-amber-500 text-white rounded-full">{applicants.length} new</span>
+                </div>
+                <p className="text-[10px] text-brandNavy/50 dark:text-slate-400">Review each application before forwarding to Admin for account creation.</p>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">
+                            <th className="py-3.5 px-6">Applicant Name</th>
+                            <th className="py-3.5 px-6">Contact</th>
+                            <th className="py-3.5 px-6">Program Applied</th>
+                            <th className="py-3.5 px-6">Type</th>
+                            <th className="py-3.5 px-6">Last School</th>
+                            <th className="py-3.5 px-6 text-center">Date Applied</th>
+                            <th className="py-3.5 px-6 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
+                        {applicants.map((applicant) => (
+                            <tr key={applicant.id} className="hover:bg-amber-50/50 dark:hover:bg-amber-500/5 transition-colors">
+                                <td className="py-4 px-6">
+                                    <p className="font-bold text-brandNavy dark:text-white">{applicant.name}</p>
+                                    <p className="text-brandNavy/50 dark:text-slate-500 text-[11px]">{applicant.email}</p>
+                                    {applicant.dob && (
+                                        <p className="text-brandNavy/40 dark:text-slate-600 text-[10px]">{applicant.sex ?? ''} · {applicant.dob}</p>
+                                    )}
+                                </td>
+                                <td className="py-4 px-6 text-brandNavy/60 dark:text-slate-400">
+                                    <p>{applicant.contactNumber ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600 mt-0.5 max-w-[140px] truncate">{applicant.address ?? ''}</p>
+                                </td>
+                                <td className="py-4 px-6">
+                                    <p className="font-semibold text-brandNavy dark:text-slate-200">{applicant.major ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600">{applicant.programLevel ?? ''}</p>
+                                </td>
+                                <td className="py-4 px-6">
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide ${APPLICANT_TYPE_STYLES[applicant.applicantType] ?? 'bg-slate-100 dark:bg-slate-800 text-brandNavy/50'}`}>
+                                        {applicant.applicantType ?? '—'}
+                                    </span>
+                                </td>
+                                <td className="py-4 px-6 text-brandNavy/60 dark:text-slate-400">
+                                    <p>{applicant.lastSchool ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600">Grad: {applicant.yearGraduated ?? '—'}</p>
+                                </td>
+                                <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>
+                                <td className="py-4 px-6 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <form
+                                            action={applicant.verifyUrl}
+                                            method="POST"
+                                            className="inline"
+                                            onSubmit={(e) => {
+                                                if (!window.confirm(`Verify application for ${applicant.name} and forward to Admin?`)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        >
+                                            <input type="hidden" name="_token" value={csrfToken} />
+                                            <button type="submit" className="px-3 py-1.5 text-[11px] font-black text-white bg-brandGreen hover:bg-emerald-700 rounded transition-colors">
+                                                <i className="fa-solid fa-circle-check mr-1" />Verify
+                                            </button>
+                                        </form>
+                                        <form
+                                            action={applicant.declineUrl}
+                                            method="POST"
+                                            className="inline"
+                                            onSubmit={(e) => {
+                                                if (!window.confirm(`Decline and remove the application for ${applicant.name}?`)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        >
+                                            <input type="hidden" name="_token" value={csrfToken} />
+                                            <button type="submit" className="px-3 py-1.5 text-[11px] font-black text-red-500 border border-red-500/30 hover:bg-red-500/10 rounded transition-colors">
+                                                <i className="fa-solid fa-xmark mr-1" />Decline
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
