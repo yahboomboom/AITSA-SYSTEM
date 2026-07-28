@@ -21,6 +21,7 @@ class DepartmentDashboardIslandTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="department-dashboard-root"', false);
+        $response->assertSee('data-context="[]"', false);
         $response->assertDontSee('No students in your queue.');
     }
 
@@ -47,7 +48,7 @@ class DepartmentDashboardIslandTest extends TestCase
 
         $holdStudent = User::factory()->create(['role' => 'student', 'name' => 'Hold Student', 'login_id' => '2300902']);
         $holdClearance = Clearance::create(['user_id' => $holdStudent->id]);
-        $holdClearance->items()->create(['department_id' => $department->id, 'status' => 'Hold', 'remarks' => 'Missing borrowed book.']);
+        $holdItem = $holdClearance->items()->create(['department_id' => $department->id, 'status' => 'Hold', 'remarks' => 'Missing borrowed book.']);
 
         $pendingStudent = User::factory()->create(['role' => 'student', 'name' => 'Pending Student', 'login_id' => '2300903']);
         $pendingClearance = Clearance::create(['user_id' => $pendingStudent->id]);
@@ -59,6 +60,16 @@ class DepartmentDashboardIslandTest extends TestCase
         $response->assertSee('&quot;status&quot;:&quot;Approved&quot;', false);
         $response->assertSee('&quot;status&quot;:&quot;Hold&quot;', false);
         $response->assertSee('&quot;status&quot;:&quot;Pending&quot;', false);
-        $response->assertSee('Missing borrowed book.', false);
+        $response->assertSee('&quot;remarks&quot;:&quot;Missing borrowed book.&quot;', false);
+
+        // The approveUrl/holdUrl keys are a cross-file contract with the JSX
+        // component, which reads row.approveUrl / row.holdUrl as form action
+        // attributes. A key-name typo on either side would silently omit the
+        // action, submitting to the current (GET-only) page and causing a 405.
+        $expectedApproveUrl = str_replace('/', '\/', route('department.items.approve', $holdItem));
+        $expectedHoldUrl = str_replace('/', '\/', route('department.items.hold', $holdItem));
+
+        $response->assertSee('&quot;approveUrl&quot;:&quot;' . $expectedApproveUrl . '&quot;', false);
+        $response->assertSee('&quot;holdUrl&quot;:&quot;' . $expectedHoldUrl . '&quot;', false);
     }
 }
