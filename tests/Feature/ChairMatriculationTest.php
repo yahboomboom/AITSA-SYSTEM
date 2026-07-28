@@ -45,7 +45,8 @@ class ChairMatriculationTest extends TestCase
 
         $response->assertOk();
         $this->assertTrue($response->viewData('pendingChanges')->contains('id', $change->id));
-        $response->assertSee('Change of Matriculation');
+        $response->assertSee('id="approver-dashboard-root"', false);
+        $response->assertSee('&quot;action&quot;:&quot;drop&quot;', false);
     }
 
     public function test_chair_can_approve(): void
