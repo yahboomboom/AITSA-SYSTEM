@@ -115,15 +115,9 @@
                                             </td>
                                             <td class="p-4 text-right">
                                                 @if($a->cashier_status !== 'Approved')
-                                                    <form action="{{ route('cashier.approve') }}" method="POST" class="inline-block">
-                                                        @csrf
-                                                        <input type="hidden" name="user_id" value="{{ $a->user_id }}">
-                                                        <input type="hidden" name="reference_no" value="TXN-{{ 10000 + ($a->user_id ?? 0) }}-WIT">
-                                                        <input type="hidden" name="amount" value="₱ 3,500.00">
-                                                        <button type="submit" class="px-3 py-1.5 bg-brandGreen hover:bg-emerald-600 text-white rounded transition-colors font-bold text-[11px]">
-                                                            Quick Approve
-                                                        </button>
-                                                    </form>
+                                                    <a href="{{ route('cashier.dashboard') }}" class="inline-block px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]">
+                                                        <i class="fa-solid fa-arrow-right mr-1"></i>Review in Cashier Hub
+                                                    </a>
                                                 @else
                                                     <button disabled class="px-3 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-600 rounded cursor-not-allowed font-medium border border-brandNavy/8 dark:border-slate-700 text-[11px]">
                                                         <i class="fa-solid fa-check mr-1"></i>Settled
