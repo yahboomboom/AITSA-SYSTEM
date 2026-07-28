@@ -19,6 +19,8 @@ class CashierDashboardIslandTest extends TestCase
         $response->assertOk();
         $response->assertSee('id="cashier-dashboard-root"', false);
         $response->assertDontSee('Clearance Evaluation Queue');
+        $response->assertDontSee('TXN-', false);
+        $response->assertDontSee('₱ 3,500.00', false);
     }
 
     public function test_guest_is_redirected(): void

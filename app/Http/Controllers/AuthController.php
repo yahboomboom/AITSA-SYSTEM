@@ -230,20 +230,23 @@ class AuthController extends Controller
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
-        $clearances = Clearance::with('user')
+        $clearances = Clearance::with('user.discountType')
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
             ->get();
 
         $totalOutstandingDocs = Clearance::where('cashier_status', 'Pending')->count();
 
-        $rows = $clearances->map(function ($clearance) use ($fees) {
+        $latestSettledByUser = TransactionLedger::where('status', 'Settled')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($group) => $group->first());
+
+        $rows = $clearances->map(function ($clearance) use ($fees, $latestSettledByUser) {
             $balance = $clearance->user ? (float) $fees->breakdownFor($clearance->user)['balance'] : 0.0;
 
-            $latestSettled = TransactionLedger::where('user_id', $clearance->user_id)
-                ->where('status', 'Settled')
-                ->latest()
-                ->latest('id')
-                ->first();
+            $latestSettled = $latestSettledByUser->get($clearance->user_id);
 
             return [
                 'id' => $clearance->id,
