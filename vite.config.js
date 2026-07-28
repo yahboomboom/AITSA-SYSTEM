@@ -17,6 +17,7 @@ export default defineConfig({
                 'resources/js/payment-app.jsx',
                 'resources/js/faculty-schedule-app.jsx',
                 'resources/js/registrar-dashboard-app.jsx',
+                'resources/js/cashier-dashboard-app.jsx',
             ],
             refresh: true,
         }),
