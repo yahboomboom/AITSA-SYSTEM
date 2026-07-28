@@ -16,6 +16,7 @@ export default defineConfig({
                 'resources/js/clearance-app.jsx',
                 'resources/js/payment-app.jsx',
                 'resources/js/faculty-schedule-app.jsx',
+                'resources/js/registrar-dashboard-app.jsx',
             ],
             refresh: true,
         }),
