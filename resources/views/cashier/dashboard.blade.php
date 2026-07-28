@@ -79,178 +79,22 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg p-5 space-y-2">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-brandNavy/40 dark:text-slate-500">Total Outstanding</p>
-                        <h3 class="text-2xl font-black text-brandGold">₱ {{ number_format(($totalOutstandingDocs ?? 0) * 3500, 2) }}</h3>
-                        <p class="text-[10px] text-brandNavy/40 dark:text-slate-500">Estimated value across remaining clear routes.</p>
-                    </div>
-
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg p-5 space-y-2">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-brandNavy/40 dark:text-slate-500">Settled Base</p>
-                        <h3 class="text-2xl font-black text-brandGreen">₱ 24,500.00</h3>
-                        <p class="text-[10px] text-brandNavy/40 dark:text-slate-500">7 verified gateway updates logged.</p>
-                    </div>
-
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg p-5 space-y-2">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-brandNavy/40 dark:text-slate-500">Pending Actions</p>
-                        <h3 class="text-2xl font-black text-brandNavy dark:text-slate-200">{{ $totalOutstandingDocs ?? 0 }} Students</h3>
-                        <p class="text-[10px] text-brandNavy/40 dark:text-slate-500">Awaiting clearance validation.</p>
-                    </div>
-                </div>
-
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
-                    <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <h2 class="text-sm font-bold text-brandNavy dark:text-white">Clearance Evaluation Queue</h2>
-
-                        <div class="relative w-full sm:w-64">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-brandNavy/30 dark:text-slate-500">
-                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                            </span>
-                            <input type="text" id="queueSearchInput" placeholder="Search student name or ID..." class="w-full text-xs bg-lightBg dark:bg-slate-900 text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded pl-9 pr-4 py-2 outline-none focus:border-brandGreen/40 transition-colors">
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-lightBg dark:bg-slate-800/40 border-b border-brandNavy/8 dark:border-slate-800 text-brandNavy/40 dark:text-slate-500 font-bold uppercase tracking-wider">
-                                    <th class="p-4">Student Info</th>
-                                    <th class="p-4">Reference</th>
-                                    <th class="p-4">Outstanding Bal</th>
-                                    <th class="p-4">Clearance</th>
-                                    <th class="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-                                @forelse($clearances as $item)
-                                    <tr class="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                        <td class="p-4">
-                                            <div class="font-bold text-brandNavy dark:text-white">
-                                                {{ $item->user->name ?? 'Unknown Student' }}
-                                            </div>
-                                            <div class="text-[10px] text-brandNavy/40 dark:text-slate-500">
-                                                {{ $item->user->email ?? 'N/A' }}
-                                            </div>
-                                        </td>
-                                        <td class="p-4 font-mono text-brandNavy/40 dark:text-slate-500">
-                                            TXN-{{ 10000 + ($item->user_id ?? 0) }}-WIT
-                                        </td>
-                                        <td class="p-4 font-bold {{ $item->cashier_status === 'Approved' ? 'text-brandGreen' : 'text-brandGold' }}">
-                                            {{ $item->cashier_status === 'Approved' ? '₱ 0.00' : '₱ 3,500.00' }}
-                                        </td>
-                                        <td class="p-4">
-                                            @if($item->cashier_status === 'Approved')
-                                                <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGreen/10 text-brandGreen border border-brandGreen/20 rounded">Approved</span>
-                                            @else
-                                                <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
-                                            @endif
-                                        </td>
-                                        <td class="p-4 text-right">
-                                            @if($item->cashier_status === 'Approved')
-                                                <button disabled class="px-3 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-600 rounded text-[11px] font-medium border border-brandNavy/8 dark:border-slate-700 cursor-not-allowed">
-                                                    <i class="fa-solid fa-check mr-1"></i>Settled
-                                                </button>
-                                            @else
-                                                <button onclick="openReviewModal({{ $item->user_id ?? 0 }}, '{{ addslashes($item->user->name ?? 'Unknown') }}', '₱ 3,500.00', 'TXN-{{ 10000 + ($item->user_id ?? 0) }}-WIT')" class="px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]">
-                                                    Review
-                                                </button>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="p-8 text-center text-brandNavy/40 dark:text-slate-500 text-sm">
-                                            No students pending clearance.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div
+                    id="cashier-dashboard-root"
+                    data-context="{{ json_encode($context) }}"
+                    data-csrf-token="{{ csrf_token() }}"
+                    data-approve-url="{{ route('cashier.approve') }}"
+                    data-hold-url="{{ route('cashier.hold') }}"
+                >
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
         </main>
     </div>
 
-    {{-- Review Modal --}}
-    <div id="reviewModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 rounded-lg w-full max-w-md overflow-hidden">
-            <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800 flex items-center justify-between">
-                <span class="text-sm font-bold text-brandNavy dark:text-white">Review Clearance</span>
-                <button type="button" onclick="closeReviewModal()" class="text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-5">
-                <div class="space-y-1">
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-brandNavy/40 dark:text-slate-500">Evaluating</p>
-                    <h3 id="modalStudentName" class="text-base font-bold text-brandNavy dark:text-white">Student Name</h3>
-                </div>
-
-                <div class="bg-lightBg dark:bg-slate-800/60 rounded-lg p-4 border border-brandNavy/8 dark:border-slate-700 text-xs space-y-2">
-                    <div class="flex justify-between"><span class="text-brandNavy/50 dark:text-slate-400">Payment Ref:</span><span id="modalRef" class="text-brandNavy dark:text-slate-300 font-mono">---</span></div>
-                    <div class="flex justify-between items-center font-bold pt-2 border-t border-brandNavy/8 dark:border-slate-700"><span class="text-brandNavy/50 dark:text-slate-400">Balance:</span><span id="modalBalance" class="text-brandGold text-base">₱ 0.00</span></div>
-                </div>
-
-                <form id="overrideForm" action="{{ route('cashier.approve') }}" method="POST" class="grid grid-cols-1 gap-2">
-                    @csrf
-                    <input type="hidden" name="user_id" id="modalStudentId" value="">
-                    <input type="hidden" name="reference_no" id="modalFormRef" value="">
-                    <input type="hidden" name="amount" id="modalFormAmount" value="">
-
-                    <button type="submit" class="w-full py-3 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
-                        <i class="fa-solid fa-circle-check mr-2"></i>Approve & Sign Off
-                    </button>
-                </form>
-
-                <form id="holdForm" action="{{ route('cashier.hold') }}" method="POST" class="grid grid-cols-1 gap-2 mt-2">
-                    @csrf
-                    <input type="hidden" name="user_id" id="modalHoldStudentId" value="">
-                    <input type="text" name="remarks" required maxlength="500" placeholder="Reason for hold"
-                           class="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-xs text-brandNavy dark:text-slate-200 outline-none">
-                    <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
-                        <i class="fa-solid fa-circle-pause mr-2"></i>Hold with Remarks
-                    </button>
-                </form>
-
-                <button type="button" onclick="closeReviewModal()" class="w-full py-3 bg-lightBg dark:bg-slate-800 hover:bg-brandNavy/5 text-brandNavy/60 dark:text-slate-400 text-xs font-bold rounded transition-colors mt-2">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function openReviewModal(userId, name, balance, ref) {
-            document.getElementById('modalStudentName').innerText = name;
-            document.getElementById('modalBalance').innerText = balance;
-            document.getElementById('modalRef').innerText = ref;
-            document.getElementById('modalStudentId').value = userId;
-            document.getElementById('modalFormRef').value = ref;
-            document.getElementById('modalFormAmount').value = balance;
-            document.getElementById('modalHoldStudentId').value = userId;
-            document.getElementById('reviewModal').classList.remove('hidden');
-            document.getElementById('reviewModal').classList.add('flex');
-        }
-
-        function closeReviewModal() {
-            document.getElementById('reviewModal').classList.add('hidden');
-            document.getElementById('reviewModal').classList.remove('flex');
-        }
-
-        document.getElementById('queueSearchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                if (row.cells.length === 1) return;
-                const name = row.cells[0].textContent.toLowerCase();
-                const reference = row.cells[1].textContent.toLowerCase();
-                row.style.display = (name.includes(searchTerm) || reference.includes(searchTerm)) ? '' : 'none';
-            });
-        });
-    </script>
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/cashier-dashboard-app.jsx')
 </body>
 </html>
