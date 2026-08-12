@@ -118,6 +118,7 @@
 
                 $clearanceContext = [
                     'isCleared' => $isCleared,
+		    'printUrl' => $isCleared ? route('clearance.print', $clearance->id) : null,
                     'cashierCleared' => $cashierCleared,
                     'registrarCleared' => $registrarCleared,
                     'chairCleared' => $chairCleared,

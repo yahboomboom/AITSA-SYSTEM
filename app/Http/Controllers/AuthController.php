@@ -341,8 +341,10 @@ class AuthController extends Controller
         DB::beginTransaction();
 
         try {
-            $clearance->update([
+           $clearance->update([
                 'cashier_status' => 'Approved',
+                'cashier_signed_by' => Auth::id(),
+                'cashier_signed_at' => now(),
                 'remarks' => null,
             ]);
 

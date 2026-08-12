@@ -14,6 +14,7 @@ const EMPTY_BREAKDOWN = {
 
 const EMPTY_CONTEXT = {
     isCleared: false,
+    printUrl: null,
     cashierCleared: false,
     registrarCleared: false,
     chairCleared: false,
@@ -29,6 +30,7 @@ function parseContext(raw) {
         const parsed = JSON.parse(raw ?? '{}');
         return {
             isCleared: !!parsed.isCleared,
+            printUrl: parsed.printUrl ?? null,
             cashierCleared: !!parsed.cashierCleared,
             registrarCleared: !!parsed.registrarCleared,
             chairCleared: !!parsed.chairCleared,
@@ -58,6 +60,15 @@ function ClearanceApp({ context, csrfToken, submitUrl }) {
             <div className="space-y-6">
                 <div className="text-center py-2 relative">
                     <h1 className="text-2xl font-bold tracking-tight text-brandNavy dark:text-white">Enrollment Clearance</h1>
+{context.isCleared && context.printUrl && (
+                        <div className="flex justify-center mt-3">
+                            <a href={context.printUrl} target="_blank" rel="noreferrer"
+                               className="inline-flex items-center gap-2 text-xs font-black bg-brandGreen text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-emerald-600 transition-all">
+                                <i className="fa-solid fa-print" />
+                                <span>PRINT CLEARANCE CERTIFICATE</span>
+                            </a>
+                        </div>
+                    )}
                     <div className="hidden justify-center mt-3 animate-bounce">
                         <a href="/enrollment" className="inline-flex items-center space-x-2 text-xs font-black bg-brandGreen text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-emerald-600 transition-all">
                             <i className="fa-solid fa-rocket" />

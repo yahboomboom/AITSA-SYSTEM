@@ -47,7 +47,8 @@ Route::post('/apply', [AuthController::class, 'processApplication'])->name('appl
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    
+     Route::get('/my-signature', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('signature.edit');
+     Route::post('/my-signature', [\App\Http\Controllers\SignatureController::class, 'update'])->name('signature.update');
     // 1. Student Dashboard Module
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -87,10 +88,14 @@ Route::middleware('auth')->group(function () {
         return view('clearance', compact('clearance', 'submission', 'submissions', 'breakdown'));
     })->name('clearance');
 
-    Route::post('/clearance/submit-requirement', function (Request $request) {
+  Route::post('/clearance/submit-requirement', function (Request $request) {
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
+        }
+
+        if (!$user->signature_path) {
+            return redirect()->route('clearance')->with('error', 'Please set up your e-signature before submitting documents. Go to "My Signature" in your profile menu.');
         }
 
         $request->validate([
@@ -109,9 +114,10 @@ Route::middleware('auth')->group(function () {
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
+            'signed_at' => now(),
         ]);
 
-        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . '.', 'DocumentSubmission', $submission->id);
+        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . ' and e-signed the submission.', 'DocumentSubmission', $submission->id);
 
         return redirect()->route('clearance')->with('success', 'Your document has been submitted to the Registrar for review.');
     })->name('clearance.submitRequirement');
@@ -188,6 +194,24 @@ Route::middleware('auth')->group(function () {
 
     // 5. Certificate of Registration (COR) View
     Route::get('/cor', [AuthController::class, 'showCor'])->name('cor');
+    Route::get('/clearance/{id}/print', function ($id) {
+        $clearance = Clearance::with(['user', 'items.department', 'chairSignedBy', 'cashierSignedBy', 'registrarSignedBy'])
+            ->findOrFail($id);
+
+        $user = Auth::user();
+        abort_unless($user->id === $clearance->user_id || in_array($user->role, ['admin', 'registrar']), 403);
+
+        $isCleared = $clearance->admission_status === 'Approved'
+            && $clearance->chair_status === 'Approved'
+            && $clearance->cashier_status === 'Approved'
+            && $clearance->registrar_status === 'Approved'
+            && $clearance->allItemsApproved();
+
+        abort_unless($isCleared, 403, 'Clearance is not yet fully approved.');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('clearance.print', compact('clearance'));
+        return $pdf->stream('clearance-' . $clearance->user->login_id . '.pdf');
+    })->name('clearance.print');	
 
     /*
     |--------------------------------------------------------------------------
@@ -228,7 +252,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/registrar/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
+            $clearance->update([ 'registrar_status' => 'Approved',
+                'registrar_signed_by' => Auth::id(),
+                'registrar_signed_at' => now(),
+                'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
         }
         return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
@@ -380,7 +407,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update(['chair_status' => 'Approved', 'remarks' => null]);
+            $clearance->update([ 'chair_status' => 'Approved',
+                'chair_signed_by' => Auth::id(),
+                'chair_signed_at' => now(),
+                'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
             return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
         }

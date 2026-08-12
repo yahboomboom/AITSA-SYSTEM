@@ -31,6 +31,11 @@
             </p>
         </div>
         <div class="p-2">
+		<a href="{{ route('signature.edit') }}"
+                class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-brandNavy/70 dark:text-slate-300 hover:bg-brandNavy/5 dark:hover:bg-slate-800 rounded transition-colors text-left">
+                <i class="fa-solid fa-signature w-4"></i>
+                <span>My Signature</span>
+            </a>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button type="submit"

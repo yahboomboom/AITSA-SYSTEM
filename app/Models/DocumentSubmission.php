@@ -20,7 +20,7 @@ class DocumentSubmission extends Model
 
     protected $fillable = [
         'user_id', 'document_type', 'notes', 'file_path', 'original_name',
-        'mime_type', 'size', 'status', 'remarks', 'reviewed_by', 'reviewed_at',
+'mime_type', 'size', 'status', 'remarks', 'reviewed_by', 'reviewed_at', 'signed_at',
     ];
 
     protected $casts = ['reviewed_at' => 'datetime'];

@@ -23,6 +23,18 @@ class Clearance extends Model
         'cashier_status',
         'registrar_status',
         'remarks',
+        'chair_signed_by',
+        'chair_signed_at',
+        'cashier_signed_by',
+        'cashier_signed_at',
+        'registrar_signed_by',
+        'registrar_signed_at',
+    ];
+    
+    protected $casts = [
+        'chair_signed_at' => 'datetime',
+        'cashier_signed_at' => 'datetime',
+        'registrar_signed_at' => 'datetime',
     ];
 
     /**
@@ -42,6 +54,21 @@ class Clearance extends Model
     public function allItemsApproved(): bool
     {
         return $this->items->isEmpty() || $this->items->every(fn (ClearanceItem $item) => $item->status === 'Approved');
+    }
+  
+    public function chairSignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'chair_signed_by');
+    }
+
+    public function cashierSignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cashier_signed_by');
+    }
+
+    public function registrarSignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registrar_signed_by');
     }
 
     public static function initializeFor(int $userId, array $attributes = []): self
