@@ -41,6 +41,7 @@ class User extends Authenticatable
         'applicant_type',
         'program_level',
         'applicant_remarks',
+        'is_reserved',/**for reservation */
     ];
 
     /**
@@ -51,6 +52,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'is_reserved' => 'boolean', /**for reservation */
     ];
 
     /**

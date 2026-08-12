@@ -28,5 +28,7 @@ class ProgramSeeder extends Seeder
         Setting::put('semester', '1');
         Setting::put('tuition_per_unit', '300');
         Setting::put('misc_fee', '1500');
+        Setting::put('reservation_fee', '500');/**for resertvation  slot fee */
+        Setting::put('tuition_fee_flat', '15000');/**for tuition fee */
     }
 }

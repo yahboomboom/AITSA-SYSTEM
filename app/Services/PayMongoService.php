@@ -25,7 +25,7 @@ class PayMongoService
                         ]],
                         'payment_method_types' => ['gcash', 'card', 'paymaya'],
                         'description' => $description,
-                        'success_url' => route('ledger.payment.return'),
+                        'success_url' => config('services.paymongo.success_url') ?: route('ledger.payment.return'),/**success */
                         'cancel_url' => route('ledger.payment.cancel'),
                         'metadata' => ['user_id' => (string) $user->id, 'login_id' => (string) ($user->login_id ?? '')],
                     ],

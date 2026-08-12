@@ -20,17 +20,20 @@ class FeeAssessmentService
      */
     public function breakdownFor(User $user): array
     {
+        $reservationFee = (int) Setting::get('reservation_fee', '500');/**reservation fee of student */
+        $flatTuition = (int) Setting::get('tuition_fee_flat', '15000');/**tuition fee of school */
         $rate = (int) Setting::get('tuition_per_unit', '300');
         $misc = (int) Setting::get('misc_fee', '1500');
 
         $units = $this->plannedUnits($user);
-        $tuition = round($units * $rate, 2);
+        $tuition = $flatTuition > 0 ? (float) $flatTuition : round($units * $rate, 2);/**tuiton fee */
 
         $discountType = $user->discountType;
         $percent = $discountType->percent ?? 0;
         $discountAmount = round($tuition * $percent / 100, 2);
 
-        $assessment = round($tuition - $discountAmount + $misc, 2);
+        $reservationFee = $user->is_reserved ? $reservationFee : 0;/**if the student reserve the slot reservation fee */
+        $assessment = round($tuition - $discountAmount + $misc + $reservationFee, 2);/**calculation fee */
         $paid = round((float) TransactionLedger::where('user_id', $user->id)
             ->where('status', 'Settled')->sum('amount'), 2);
         $balance = round(max($assessment - $paid, 0), 2);
@@ -39,6 +42,7 @@ class FeeAssessmentService
             'units' => $units,
             'rate' => $rate,
             'tuition' => $tuition,
+            'reservation_fee' => $reservationFee,/**reservation fee */
             'discount_name' => $discountType->name ?? null,
             'discount_percent' => $percent,
             'discount_amount' => $discountAmount,

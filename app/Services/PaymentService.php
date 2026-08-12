@@ -64,36 +64,132 @@ class PaymentService
      * @return array{ok: bool, message: string}
      */
     public function verifyLatestPending(User $user): array
-    {
-        $row = TransactionLedger::where('user_id', $user->id)
-            ->where('gateway', 'paymongo')->where('status', 'Pending')
-            ->latest()->first();
+{
+    // Get this user's most recent unpaid PayMongo transaction, if any.
+    $row = TransactionLedger::where('user_id', $user->id)
+        ->where('gateway', 'paymongo')->where('status', 'Pending')
+        ->latest()->first();
 
-        if (! $row || ! $row->checkout_session_id) {
-            return ['ok' => false, 'message' => 'No pending online payment to verify.'];
-        }
+    // Nothing to verify — either no payment was ever started, or it
+    // was never linked to a real PayMongo checkout session.
+    if (! $row || ! $row->checkout_session_id) {
+        return ['ok' => false, 'message' => 'No pending online payment to verify.'];
+    }
 
-        $session = $this->gateway->retrieveCheckoutSession($row->checkout_session_id);
-        if (! $this->gateway->sessionIsPaid($session)) {
-            return ['ok' => false, 'message' => 'The gateway has not confirmed this payment yet. If you completed payment, try Verify Payment again in a moment.'];
-        }
+    // Ask PayMongo directly: has this checkout session actually been paid?
+    $session = $this->gateway->retrieveCheckoutSession($row->checkout_session_id);
+    if (! $this->gateway->sessionIsPaid($session)) {
+        return ['ok' => false, 'message' => 'The gateway has not confirmed this payment yet. If you completed payment, try Verify Payment again in a moment.'];
+    }
 
-        $row->update(['status' => 'Settled', 'paid_at' => now()]);
-        AuditLog::record('Payment Settled', 'Online payment of ₱' . number_format((float) $row->amount, 2) . ' settled via PayMongo for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . '). Ref ' . $row->reference_no . '.', 'TransactionLedger', $row->id);
+    // Confirmed paid — hand off to the shared settlement logic.
+    return $this->settleRow($row);
+}
+/**
+ * Start a checkout for the ₱500 slot-reservation fee.
+ * Only for users who haven't reserved yet — prevents double charging.
+ * Returns the PayMongo hosted checkout URL to redirect the user to.
+ */
+public function startReservationCheckout(User $user): string
+{
+    // Reservation fee amount is configurable via Settings, not hardcoded.
+    $reservationFee = (int) \App\Models\Setting::get('reservation_fee', '500');
 
-        $message = 'Payment received — ₱' . number_format((float) $row->amount, 2) . ' settled.';
+    // Guard: don't let an already-reserved student pay again.
+    if ($user->is_reserved) {
+        throw new PaymentGatewayException('You have already reserved your slot.');
+    }
 
-        if ($this->fees->breakdownFor($user)['fully_paid']) {
-            $clearance = Clearance::where('user_id', $user->id)->first();
-            if ($clearance && $clearance->cashier_status !== 'Approved') {
-                $clearance->update(['cashier_status' => 'Approved']);
-                AuditLog::record('Cashier Cleared (Gateway)', 'Cashier clearance auto-approved for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') after gateway-verified full payment.', 'Clearance', $clearance->id);
+    // Create the actual PayMongo checkout session (amount is in centavos).
+    $session = $this->gateway->createCheckoutSession(
+        $user,
+        $reservationFee * 100,
+        'AITSA Slot Reservation — ' . ($user->login_id ?? $user->name)
+    );
+    // Record this as a Pending transaction so we can match it later,
+    // either via the webhook or the manual "verify on return" check.
+    // fee_type = 'reservation' distinguishes it from regular tuition payments.
+    TransactionLedger::create([
+        'user_id' => $user->id,
+        'gateway' => 'paymongo',
+        'checkout_session_id' => $session['id'],
+        'amount' => $reservationFee,
+        'fee_type' => 'reservation',
+        'status' => 'Pending',
+        'reference_no' => 'RES-' . strtoupper(Str::random(10)),
+    ]);
+
+    return $session['checkout_url'];
+}
+/**
+ * Called by the PayMongo webhook when checkout_session.payment.paid fires.
+ * This is the PRIMARY, reliable settlement path — it works even if the
+ * student closes their browser before returning from checkout.
+ * The webhook controller already verified the request's signature before
+ * calling this, so we trust the checkoutSessionId here.
+ * @return array{ok: bool, message: string}
+ */
+public function settleByCheckoutSessionId(string $checkoutSessionId): array
+{
+    $row = TransactionLedger::where('checkout_session_id', $checkoutSessionId)
+        ->where('gateway', 'paymongo')->where('status', 'Pending')
+        ->first();
+
+        // Could happen if the webhook fires twice, or for a session we don't
+        // recognize — fail quietly, no error thrown.
+    if (! $row) {
+        return ['ok' => false, 'message' => 'No matching pending payment found for this session.'];
+    }
+
+    return $this->settleRow($row);
+}
+/**
+ * Shared settlement logic used by BOTH the webhook path and the
+ * "verify on return" path — keeps the two in sync so payments are
+ * never processed differently depending on which path caught them first.
+ *
+ * What it does:
+ *  1. Marks the transaction as Settled.
+ *  2. If this was a reservation fee, flips the student's is_reserved flag
+ *     to true — this is what makes the ₱500 start appearing in their
+ *     regular tuition assessment from now on.
+ *  3. Logs the payment to the audit trail.
+ *  4. If the student's balance is now fully paid, auto-approves their
+ *     cashier clearance so they don't need to be cleared manually.
+ * 
+ * @return array{ok: bool, message: string}
+*/
+private function settleRow(TransactionLedger $row): array
+{
+    // Step 1: mark this specific transaction as paid.
+    $row->update(['status' => 'Settled', 'paid_at' => now()]);
+
+    // Step 2: reservation payments unlock the reservation fee line item
+    // in FeeAssessmentService::breakdownFor() for future assessments.
+    if ($row->fee_type === 'reservation') {
+        $row->user->update(['is_reserved' => true]);
+    }
+
+    $user = $row->user;
+
+    // Step 3: audit trail — who paid, how much, and for what reference.
+    AuditLog::record('Payment Settled', 'Online payment of ₱' . number_format((float) $row->amount, 2) . ' settled via PayMongo for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . '). Ref ' . $row->reference_no . '.', 'TransactionLedger', $row->id);
+
+    $message = 'Payment received — ₱' . number_format((float) $row->amount, 2) . ' settled.';
+    // Step 4: if this payment brought the student's balance to zero,
+    // auto-approve their cashier clearance so registrar/cashier don't
+    // need to manually check and approve it.
+    if ($this->fees->breakdownFor($user)['fully_paid']) {
+        $clearance = Clearance::where('user_id', $user->id)->first();
+        if ($clearance && $clearance->cashier_status !== 'Approved') {
+            $clearance->update(['cashier_status' => 'Approved']);
+            AuditLog::record('Cashier Cleared (Gateway)', 'Cashier clearance auto-approved for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') after gateway-verified full payment.', 'Clearance', $clearance->id);
                 $message .= ' Your cashier clearance has been approved.';
             }
-        }
-
-        return ['ok' => true, 'message' => $message];
     }
+
+    return ['ok' => true, 'message' => $message];
+}
 
     public function cancelLatestPending(User $user): void
     {
