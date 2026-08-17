@@ -24,7 +24,8 @@ class TransactionLedger extends Model
         'checkout_session_id',
         'paid_at',
         'processed_by',
-        'remarks'
+        'remarks',
+        'fee_type', // 'reservation' o 'tuition'
     ];
 
     protected $casts = ['paid_at' => 'datetime'];

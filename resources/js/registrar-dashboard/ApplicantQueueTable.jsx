@@ -24,6 +24,7 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                             <th className="py-3.5 px-6">Program Applied</th>
                             <th className="py-3.5 px-6">Type</th>
                             <th className="py-3.5 px-6">Last School</th>
+                            <th className="py-3.5 px-6 text-center">Reservation</th>
                             <th className="py-3.5 px-6 text-center">Date Applied</th>
                             <th className="py-3.5 px-6 text-right">Action</th>
                         </tr>
@@ -54,6 +55,47 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                 <td className="py-4 px-6 text-brandNavy/60 dark:text-slate-400">
                                     <p>{applicant.lastSchool ?? '—'}</p>
                                     <p className="text-[10px] text-brandNavy/40 dark:text-slate-600">Grad: {applicant.yearGraduated ?? '—'}</p>
+                                </td>
+                                <td className="py-4 px-6 text-center">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        {applicant.isReserved ? (
+                                            // Green badge: fee has been paid, slot is secured.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGreen/10 text-brandGreen">
+                                                <i className="fa-solid fa-circle-check mr-1" />Reserved
+                                            </span>
+                                        ) : applicant.wantsReservation ? (
+                                            // Gold badge: they said they want to reserve, but haven't paid yet.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGold/10 text-brandGold">
+                                                <i className="fa-solid fa-clock mr-1" />Wants to Reserve
+                                            </span>
+                                        ) : (
+                                            // Gray badge: no interest indicated at all.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-brandNavy/50 dark:text-slate-500">
+                                                Not Reserved
+                                            </span>
+                                        )}
+
+                                        {/* Admission staff can manually flip is_reserved once payment is confirmed
+                                            (e.g. paid in cash at the counter). */}
+                                        <form
+                                            action={applicant.toggleReservationUrl}
+                                            method="POST"
+                                            onSubmit={(e) => {
+                                                const action = applicant.isReserved ? 'Unmark' : 'Mark';
+                                                if (!window.confirm(`${action} ${applicant.name} as having paid the ₱500 reservation fee?`)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                        >
+                                            <input type="hidden" name="_token" value={csrfToken} />
+                                            <button
+                                                type="submit"
+                                                className="text-[9px] font-bold text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-slate-300 underline underline-offset-2 transition-colors"
+                                            >
+                                                {applicant.isReserved ? 'Unmark Paid' : 'Mark as Paid'}
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                                 <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>
                                 <td className="py-4 px-6 text-right">

@@ -9,7 +9,12 @@ use App\Http\Controllers\Api\Admin\SubjectController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\MatriculationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PaymongoWebhookController;
 
+// Public — no login required, since this is called by PayMongo's own
+// servers, not by a logged-in user. The verifySignature() check inside
+// the controller is what confirms the request is genuinely from PayMongo.
+Route::post('/webhooks/paymongo', [PaymongoWebhookController::class, 'handle']);
 Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
     Route::get('/enrollment/context', [EnrollmentController::class, 'context']);
     Route::post('/enrollment', [EnrollmentController::class, 'store']);

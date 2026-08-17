@@ -41,7 +41,8 @@ class User extends Authenticatable
         'applicant_type',
         'program_level',
         'applicant_remarks',
-        'is_reserved',/**for reservation */
+        'is_reserved',       // true once the reservation fee is actually paid
+        'wants_reservation',  // true if the applicant checked the box on the form (intent only)
     ];
 
     /**
@@ -63,6 +64,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed', // Ensures Laravel auto-hashes password changes and checks hashes safely
+        'is_reserved' => 'boolean',
+        'wants_reservation' => 'boolean',
     ];
 
     /**

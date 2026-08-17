@@ -252,6 +252,17 @@
                         </div>
                     </div>
                 </div>
+                {{-- Slot Reservation --}}
+                    <div class="p-4 bg-brandGreen/5 border border-brandGreen/20 rounded-xl">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="wants_reservation" value="1" {{ old('wants_reservation') ? 'checked' : '' }}
+                                class="mt-1 w-4 h-4 rounded border-brandNavy/30 text-brandGreen focus:ring-brandGreen">
+                            <span>
+                                <span class="block text-sm font-bold text-brandNavy">I would like to reserve my slot (₱500 reservation fee)</span>
+                                <span class="block text-xs text-brandNavy/60 mt-0.5">Optional. Reserving your slot early helps guarantee your spot in your chosen program before regular enrollment opens. Our admissions team will contact you with payment instructions.</span>
+                            </span>
+                        </label>
+                    </div>
 
                 {{-- Remarks --}}
                 <div>

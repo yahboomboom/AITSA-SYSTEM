@@ -41,6 +41,7 @@ return [
         'base_url' => env('PAYMONGO_BASE_URL', 'https://api.paymongo.com/v1'),
         'success_url' => env('PAYMONGO_SUCCESS_URL'),/**success */
         'cancel_url' => env('PAYMONGO_CANCEL_URL'),/**cancel */
+        'webhook_secret' => env('PAYMONGO_WEBHOOK_SECRET'),
     ],
 
 ];

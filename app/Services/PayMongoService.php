@@ -72,6 +72,54 @@ class PayMongoService
         return false;
     }
 
+    /**
+     * Verify that this webhook request genuinely came from PayMongo and
+     * wasn't spoofed. Uses the HMAC signature in the "Paymongo-Signature"
+     * header, compared against our own webhook secret.
+     */
+    public function verifySignature(string $payload, ?string $signatureHeader): bool
+    {
+        // If we don't have a webhook secret configured, we can't verify the signature.
+        if (! config('services.paymongo.webhook_secret')) {
+            return false;
+        }
+
+        // If the payload is empty, it's definitely not from PayMongo.
+        if (! $payload) {
+            return false;
+        }
+        // No signature header at all = definitely not from PayMongo.
+        if (! $signatureHeader) {
+        return false;
+        }
+   
+        // The header format is: "t=timestamp,te=test_sig,li=live_sig"
+       // Parse it into a key-value array.
+       $parts = [];
+        foreach (explode(',', $signatureHeader) as $part) {
+        if (str_contains($part, '=')) {
+            [$key, $value] = explode('=', $part, 2);
+            $parts[$key] = $value;
+        }
+    }
+
+        $timestamp = $parts['t'] ?? null;
+        $secret = config('services.paymongo.webhook_secret');
+
+        // Pick the test or live signature depending on which secret key we're using.
+        $isLive = str_starts_with((string) config('services.paymongo.secret'), 'sk_live_');
+        $signature = $isLive ? ($parts['li'] ?? null) : ($parts['te'] ?? null);
+
+        if (! $timestamp || ! $signature || ! $secret) {
+            return false;
+            }
+
+         // Recreate the expected signature using our own secret, then compare it
+         // against the one PayMongo sent — if they match, the request is genuine.
+         $expected = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
+
+            return hash_equals($expected, $signature);
+    }
     private function client(): PendingRequest
     {
         $secret = config('services.paymongo.secret');

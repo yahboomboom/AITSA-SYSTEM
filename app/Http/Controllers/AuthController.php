@@ -118,6 +118,7 @@ class AuthController extends Controller
             'applicant_type'    => $request->input('applicant_type'),
             'program_level'     => $request->input('program_level'),
             'applicant_remarks' => $request->input('remarks'),
+            'wants_reservation' => $request->boolean('wants_reservation'), // checkbox intent from the application form
         ]);
 
         return redirect()->route('apply')
@@ -327,43 +328,67 @@ class AuthController extends Controller
     }
 
     // 7. Process administrative clearance override and write long-term transaction ledger records
-    public function approveClearance(Request $request)
+    public function approveClearance(Request $request, FeeAssessmentService $fees)
     {
         $request->validate([
             'user_id'      => ['required', 'integer'],
             'reference_no' => ['required', 'string'],
             'amount'       => ['required', 'string']
-        ]);
-
-        $cleanAmount = (float) str_replace(['₱', ',', ' '], '', $request->input('amount'));
-        $clearance = Clearance::where('user_id', $request->input('user_id'))->firstOrFail();
-
-        DB::beginTransaction();
-
-        try {
-           $clearance->update([
-                'cashier_status' => 'Approved',
-                'cashier_signed_by' => Auth::id(),
-                'cashier_signed_at' => now(),
-                'remarks' => null,
             ]);
+            
+            $cleanAmount = (float) str_replace(['₱', ',', ' '], '', 
+            $request->input('amount'));$clearance = Clearance::where('user_id', 
+            $request->input('user_id'))->firstOrFail();$user = User::findOrFail($request->input('user_id'));
+            DB::beginTransaction();
 
-            TransactionLedger::create([
-                'user_id'      => $request->input('user_id'),
-                'reference_no' => $request->input('reference_no'),
-                'amount'       => $cleanAmount,
-                'status'       => 'Settled',
-                'processed_by' => Auth::id() ?? 1, 
-                'remarks'      => 'Cleared and signed off via Administrative Console Queue.'
-            ]);
+            try {
+                // First, record this payment as a Settled transaction.
+                TransactionLedger::create([
+                    'user_id'      => $request->input('user_id'),
+                    'reference_no' => $request->input('reference_no'),
+                    'amount'       => $cleanAmount,
+                    'status'       => 'Settled',
+                    'processed_by' => Auth::id() ?? 1,
+                    'remarks'      => 'Recorded via Cashier — Administrative Console Queue.'
+                ]);
 
-            DB::commit();
-            \App\Models\AuditLog::record('Payment Approved', 'Cashier approved payment for student ID ' . $request->input('user_id') . '. Ref #' . $request->input('reference_no') . ', Amount: ₱' . number_format($cleanAmount, 2) . '.', 'Clearance', $clearance->id);
-            return redirect()->back()->with('success', 'Clearance finalized! Transaction successfully archived.');
+                // Now recompute the student's full assessment, including this
+                // new payment, to check whether they are actually fully paid.
+                $breakdown = $fees->breakdownFor($user);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Execution Error: ' . $e->getMessage());
+                if ($breakdown['fully_paid']) {
+                    // Balance is fully settled — safe to approve clearance.
+                    $clearance->update([
+                        'cashier_status' => 'Approved',
+                        'cashier_signed_by' => Auth::id(),
+                        'cashier_signed_at' => now(),
+                        'remarks' => null,
+                    ]);
+                    $message = 'Payment recorded — balance fully settled. Clearance approved.';
+                } else {
+                    // There's still a remaining balance — should NOT be marked
+                    // "Approved" yet.
+                    $clearance->update([
+                        'cashier_status' => 'Pending',
+                        'remarks' => 'Partial payment received. Remaining balance: ₱' . number_format($breakdown['balance'], 2) . '.',
+                    ]);
+                    $message = 'Payment recorded — but ₱' . number_format($breakdown['balance'], 2) . ' balance remains. Clearance still Pending.';
+                }
+
+                DB::commit();
+
+                \App\Models\AuditLog::record(
+                    'Payment Recorded',
+                    'Cashier recorded payment for student ID ' . $request->input('user_id') . '. Ref #' . $request->input('reference_no') . ', Amount: ₱' . number_format($cleanAmount, 2) . '. Balance after: ₱' . number_format($breakdown['balance'], 2) . '.',
+                    'Clearance',
+                    $clearance->id
+                );
+
+                return redirect()->back()->with('success', $message);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Execution Error: ' . $e->getMessage());
+            }
         }
-    }
 }

@@ -821,5 +821,27 @@ Route::middleware('auth')->group(function () {
         $pendingApplicants = User::where('role', 'applicant')->count();
         return view('registrar.reports', compact('clearances', 'pendingApplicants'));
     })->name('registrar.reports');
+
+    /**
+     * Mark or unmark whether an applicant has actually PAID the ₱500
+     * slot-reservation fee. Used when it's collected in person at the
+     * counter rather than through the online PayMongo checkout.
+     */
+        Route::post('/registrar/toggle-reservation/{id}', function ($id) {
+            $applicant = User::where('id', $id)->whereIn('role', ['applicant', 'verified_applicant'])->firstOrFail();
+
+            // Simple toggle — flips true/false each time it's clicked.
+            $applicant->update(['is_reserved' => ! $applicant->is_reserved]);
+
+            AuditLog::record(
+                $applicant->is_reserved ? 'Slot Reserved' : 'Slot Reservation Reverted',
+                ($applicant->is_reserved ? 'Marked' : 'Unmarked') . ' slot reservation for ' . $applicant->name . ' (' . $applicant->email . ').',
+                'User',
+                $applicant->id
+            );
+
+            return redirect()->back()->with('success', $applicant->name . ' is now marked as ' . ($applicant->is_reserved ? 'Reserved' : 'Not Reserved') . '.');
+        })->name('registrar.toggle-reservation');
+
     }); // end role:registrar,admission
 });
