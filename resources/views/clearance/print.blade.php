@@ -8,9 +8,12 @@
         .sub { text-align: center; color: #666; margin-bottom: 24px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
         td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
+
         .sig-block { display: inline-block; width: 30%; text-align: center; vertical-align: top; margin-right: 2%; }
-        .sig-img { height: 50px; margin-bottom: 4px; }
-        .sig-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 4px; font-size: 10px; }
+        .sig-img { height: 60px; max-width: 90%; margin-bottom: 4px; }
+        .sig-name { font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+        .sig-line { border-top: 1px solid #333; margin-top: 4px; }
+        .sig-dept { padding-top: 4px; font-size: 10px; color: #555; }
     </style>
 </head>
 <body>
@@ -32,26 +35,31 @@
             @if ($clearance->cashierSignedBy?->signature_path)
                 <img class="sig-img" src="{{ storage_path('app/public/' . $clearance->cashierSignedBy->signature_path) }}">
             @endif
-            <div class="sig-line">
-                {{ $clearance->cashierSignedBy->name ?? '' }}<br>
+            <div class="sig-name">{{ $clearance->cashierSignedBy->name ?? '' }}</div>
+            <div class="sig-line"></div>
+            <div class="sig-dept">
                 Accounting Office{{ $clearance->cashier_signed_at ? ' — ' . $clearance->cashier_signed_at->format('M d, Y') : '' }}
             </div>
         </div>
+
         <div class="sig-block">
             @if ($clearance->registrarSignedBy?->signature_path)
                 <img class="sig-img" src="{{ storage_path('app/public/' . $clearance->registrarSignedBy->signature_path) }}">
             @endif
-            <div class="sig-line">
-                {{ $clearance->registrarSignedBy->name ?? '' }}<br>
+            <div class="sig-name">{{ $clearance->registrarSignedBy->name ?? '' }}</div>
+            <div class="sig-line"></div>
+            <div class="sig-dept">
                 Registrar{{ $clearance->registrar_signed_at ? ' — ' . $clearance->registrar_signed_at->format('M d, Y') : '' }}
             </div>
         </div>
+
         <div class="sig-block">
             @if ($clearance->chairSignedBy?->signature_path)
                 <img class="sig-img" src="{{ storage_path('app/public/' . $clearance->chairSignedBy->signature_path) }}">
             @endif
-            <div class="sig-line">
-                {{ $clearance->chairSignedBy->name ?? '' }}<br>
+            <div class="sig-name">{{ $clearance->chairSignedBy->name ?? '' }}</div>
+            <div class="sig-line"></div>
+            <div class="sig-dept">
                 Department Chair{{ $clearance->chair_signed_at ? ' — ' . $clearance->chair_signed_at->format('M d, Y') : '' }}
             </div>
         </div>
