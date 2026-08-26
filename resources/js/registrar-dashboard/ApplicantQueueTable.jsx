@@ -24,7 +24,7 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                             <th className="py-3.5 px-6">Program Applied</th>
                             <th className="py-3.5 px-6">Type</th>
                             <th className="py-3.5 px-6">Last School</th>
-                            <th className="py-3.5 px-6 text-center">Reservation</th>
+                            <th className="py-3.5 px-6 text-center">Reservation</th>/** the resrvation fee check boxs*/
                             <th className="py-3.5 px-6 text-center">Date Applied</th>
                             <th className="py-3.5 px-6 text-right">Action</th>
                         </tr>

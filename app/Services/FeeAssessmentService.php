@@ -45,7 +45,7 @@ class FeeAssessmentService
             'reservation_fee' => $reservationFee,/**reservation fee */
             'discount_name' => $discountType->name ?? null,
             'discount_percent' => $percent,
-            'discount_amount' => $discountAmount,
+            'discount_amount' => $discountAmount,/**discount amount fee */
             'misc' => $misc,
             'assessment' => $assessment,
             'paid' => $paid,
