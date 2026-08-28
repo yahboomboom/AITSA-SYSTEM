@@ -18,29 +18,37 @@ export default function MasterStatusBadge({ isCleared, cashierCleared, registrar
                     </>
                 )}
             </div>
-            <div className="flex-1 text-xs space-y-2 w-full">
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconAccounting" className={`fa-solid ${cashierCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-brandGold'} mt-0.5`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">Accounting Office — Balance assessment verification.</p>
+            {!isCleared && (
+                <div className="flex-1 text-xs space-y-2 w-full">
+                    {!cashierCleared && (
+                        <div className="flex items-start space-x-2">
+                            <i id="checkIconAccounting" className="fa-solid fa-circle-xmark text-brandGold mt-0.5" />
+                            <p className="text-brandNavy/70 dark:text-slate-400">Accounting Office — Balance assessment verification.</p>
+                        </div>
+                    )}
+                    {!registrarCleared && (
+                        <div className="flex items-start space-x-2">
+                            <i id="checkIconRegistrar" className="fa-solid fa-circle-xmark text-red-500 mt-0.5" />
+                            <p className="text-brandNavy/70 dark:text-slate-400">Registrar — On-hold administrative document verification.</p>
+                        </div>
+                    )}
+                    {!chairCleared && (
+                        <div className="flex items-start space-x-2">
+                            <i id="checkIconChair" className="fa-solid fa-circle-xmark text-brandGold mt-0.5" />
+                            <p className="text-brandNavy/70 dark:text-slate-400">Department Head — Curriculum evaluation sign-off.</p>
+                        </div>
+                    )}
+                    {items.filter((item) => item.status !== 'Approved').map((item, i) => (
+                        <div key={i} className="flex items-start space-x-2">
+                            <i className={`fa-solid ${item.status === 'Hold' ? 'fa-circle-xmark text-red-500' : 'fa-circle-xmark text-brandGold'} mt-0.5`} />
+                            <p className="text-brandNavy/70 dark:text-slate-400">
+                                {item.departmentName} —{' '}
+                                {item.status === 'Hold' ? `On hold: ${item.remarks}` : 'Pending review.'}
+                            </p>
+                        </div>
+                    ))}
                 </div>
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconRegistrar" className={`fa-solid ${registrarCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-red-500'} mt-0.5`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">Registrar — On-hold administrative document verification.</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconChair" className={`fa-solid ${chairCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-brandGold'} mt-0.5`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">Department Head — Curriculum evaluation sign-off.</p>
-                </div>
-                {items.map((item, i) => (
-                    <div key={i} className="flex items-start space-x-2">
-                        <i className={`fa-solid ${item.status === 'Approved' ? 'fa-circle-check text-brandGreen' : item.status === 'Hold' ? 'fa-circle-xmark text-red-500' : 'fa-circle-xmark text-brandGold'} mt-0.5`} />
-                        <p className="text-brandNavy/70 dark:text-slate-400">
-                            {item.departmentName} —{' '}
-                            {item.status === 'Approved' ? 'Cleared.' : item.status === 'Hold' ? `On hold: ${item.remarks}` : 'Pending review.'}
-                        </p>
-                    </div>
-                ))}
-            </div>
+            )}
         </div>
     );
 }

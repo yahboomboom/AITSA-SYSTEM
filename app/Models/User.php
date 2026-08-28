@@ -41,7 +41,7 @@ class User extends Authenticatable
         'applicant_type',
         'program_level',
         'applicant_remarks',
-	 'signature_path',
+	    'signature_path',
         'is_reserved',       // true once the reservation fee is actually paid
         'wants_reservation',  // true if the applicant checked the box on the form (intent only)
     ];

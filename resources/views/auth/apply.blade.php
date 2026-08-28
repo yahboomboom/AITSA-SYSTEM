@@ -56,6 +56,14 @@
 </div>
 @endif
 
+{{-- NEW: SESSION ERROR BANNER (e.g. reservation payment failed/cancelled) --}}
+@if(session('error'))
+<div class="bg-red-500/10 border-b border-red-500/20 px-6 lg:px-16 py-4 flex items-start gap-4">
+    <i class="fa-solid fa-triangle-exclamation text-red-600 mt-0.5"></i>
+    <p class="text-sm text-red-600 font-semibold">{{ session('error') }}</p>
+</div>
+@endif
+
 {{-- ═══ ERROR BANNER ═══ --}}
 @if ($errors->any())
 <div class="bg-red-500/10 border-b border-red-500/20 px-6 lg:px-16 py-4 text-xs text-red-600 space-y-1 font-semibold">
@@ -91,15 +99,23 @@
                     ['id'=>'em3',  'name'=>'Events Management NC III',  'icon'=>'fa-calendar-star', 'duration'=>'6 months'],
                     ['id'=>'fb3',  'name'=>'Food & Beverages NC III',   'icon'=>'fa-utensils',      'duration'=>'6 months'],
                 ] as $prog)
-                <div class="prog-card bg-white border border-amber-200 rounded-2xl p-5 shadow-sm"
+                @php $slot = $slots[$prog['id']] ?? null; @endphp
+                <div class="prog-card bg-white border border-amber-200 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
                      data-prog="{{ $prog['id'] }}" data-level="TESDA" data-name="{{ $prog['name'] }}"
-                     onclick="selectProgram('{{ $prog['id'] }}', 'TESDA', '{{ $prog['name'] }}')">
+                     @if(!$slot || !$slot['isFull']) onclick="selectProgram('{{ $prog['id'] }}', 'TESDA', '{{ $prog['name'] }}')" @endif>
                     <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
                         <i class="fa-solid {{ $prog['icon'] }} text-amber-600"></i>
                     </div>
                     <h3 class="text-xs font-extrabold text-brandNavy leading-snug">{{ $prog['name'] }}</h3>
                     <p class="text-[10px] text-amber-600 font-semibold mt-1">{{ $prog['duration'] }} · TESDA NC</p>
                     <p class="text-[10px] text-brandNavy/40 mt-2">TESDA-certified vocational qualification recognized nationwide.</p>
+                    @if($slot)
+                        <p class="text-[10px] font-bold mt-2 {{ $slot['isFull'] ? 'text-red-500' : 'text-brandNavy/50' }}">
+                            @if($slot['isFull']) <i class="fa-solid fa-circle-xmark"></i> Slots full
+                            @else <i class="fa-solid fa-users"></i> {{ $slot['slotsLeft'] }} / {{ $slot['totalSlots'] }} slots left
+                            @endif
+                        </p>
+                    @endif
                 </div>
                 @endforeach
             </div>
@@ -115,16 +131,24 @@
                     ['id'=>'bom', 'name'=>'Business Office Management',  'icon'=>'fa-briefcase',  'abbr'=>'BoM'],
                     ['id'=>'fsm', 'name'=>'Food Service Management',      'icon'=>'fa-bowl-food',  'abbr'=>'FSM'],
                 ] as $prog)
-                <div class="prog-card bg-white border border-blue-200 rounded-2xl p-5 shadow-sm"
+                @php $slot = $slots[$prog['id']] ?? null; @endphp
+                <div class="prog-card bg-white border border-blue-200 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
                      data-prog="{{ $prog['id'] }}" data-level="ASSOCIATE" data-name="{{ $prog['name'] }}"
-                     onclick="selectProgram('{{ $prog['id'] }}', 'ASSOCIATE', '{{ $prog['name'] }}')">
+                     @if(!$slot || !$slot['isFull']) onclick="selectProgram('{{ $prog['id'] }}', 'ASSOCIATE', '{{ $prog['name'] }}')" @endif>
                     <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3">
-                        <i class="fa-solid {{ $prog['icon'] }} text-blue-600"></i>
+                       <i class="fa-solid {{ $prog['icon'] }} text-blue-600"></i>
                     </div>
                     <span class="inline-block text-[9px] font-black text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-full mb-2">{{ $prog['abbr'] }}</span>
                     <h3 class="text-xs font-extrabold text-brandNavy leading-snug">{{ $prog['name'] }}</h3>
                     <p class="text-[10px] text-blue-600 font-semibold mt-1">2 years · Associate Degree</p>
                     <p class="text-[10px] text-brandNavy/40 mt-2">CHED-recognized 2-year college associate program.</p>
+                    @if($slot)
+                        <p class="text-[10px] font-bold mt-2 {{ $slot['isFull'] ? 'text-red-500' : 'text-brandNavy/50' }}">
+                            @if($slot['isFull']) <i class="fa-solid fa-circle-xmark"></i> Slots full
+                            @else <i class="fa-solid fa-users"></i> {{ $slot['slotsLeft'] }} / {{ $slot['totalSlots'] }} slots left
+                            @endif
+                        </p>
+                    @endif
                 </div>
                 @endforeach
             </div>
@@ -140,9 +164,10 @@
                     ['id'=>'bsoa',   'name'=>'Bachelor in Science Office Administration',          'icon'=>'fa-landmark-flag',  'abbr'=>'BSOA',   'desc'=>'Administrative management and business operations.'],
                     ['id'=>'btvted', 'name'=>'Bachelor in Technical Vocational Teacher Education', 'icon'=>'fa-chalkboard-user','abbr'=>'BTVTED', 'desc'=>'Prepare graduates to teach technical-vocational subjects.'],
                 ] as $prog)
-                <div class="prog-card bg-white border border-brandNavy/15 rounded-2xl p-5 shadow-sm"
+                @php $slot = $slots[$prog['id']] ?? null; @endphp
+                <div class="prog-card bg-white border border-brandNavy/15 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
                      data-prog="{{ $prog['id'] }}" data-level="BACHELOR" data-name="{{ $prog['name'] }}"
-                     onclick="selectProgram('{{ $prog['id'] }}', 'BACHELOR', '{{ $prog['name'] }}')">
+                     @if(!$slot || !$slot['isFull']) onclick="selectProgram('{{ $prog['id'] }}', 'BACHELOR', '{{ $prog['name'] }}')" @endif>
                     <div class="w-10 h-10 rounded-xl bg-brandNavy/8 flex items-center justify-center mb-3">
                         <i class="fa-solid {{ $prog['icon'] }} text-brandNavy"></i>
                     </div>
@@ -150,6 +175,13 @@
                     <h3 class="text-xs font-extrabold text-brandNavy leading-snug">{{ $prog['name'] }}</h3>
                     <p class="text-[10px] text-brandNavy/60 font-semibold mt-1">4 years · Bachelor's Degree</p>
                     <p class="text-[10px] text-brandNavy/40 mt-2">{{ $prog['desc'] }}</p>
+                    @if($slot)
+                        <p class="text-[10px] font-bold mt-2 {{ $slot['isFull'] ? 'text-red-500' : 'text-brandNavy/50' }}">
+                        @if($slot['isFull']) <i class="fa-solid fa-circle-xmark"></i> Slots full
+                        @else <i class="fa-solid fa-users"></i> {{ $slot['slotsLeft'] }} / {{ $slot['totalSlots'] }} slots left
+                        @endif
+                        </p>
+                    @endif
                 </div>
                 @endforeach
             </div>
@@ -258,8 +290,8 @@
                             <input type="checkbox" name="wants_reservation" value="1" {{ old('wants_reservation') ? 'checked' : '' }}
                                 class="mt-1 w-4 h-4 rounded border-brandNavy/30 text-brandGreen focus:ring-brandGreen">
                             <span>
-                                <span class="block text-sm font-bold text-brandNavy">I would like to reserve my slot (₱500 reservation fee)</span>
-                                <span class="block text-xs text-brandNavy/60 mt-0.5">Optional. Reserving your slot early helps guarantee your spot in your chosen program before regular enrollment opens. Our admissions team will contact you with payment instructions.</span>
+                                <span class="block text-sm font-bold text-brandNavy">I would like to reserve my slot (₱{{ number_format($reservationFee) }} reservation fee)</span>
+                                <span class="block text-xs text-brandNavy/60 mt-0.5">Optional. You'll be sent straight to our secure online payment page after you submit this form to pay the ₱{{ number_format($reservationFee) }} — this guarantees your spot in your chosen program before regular enrollment opens.</span>
                             </span>
                         </label>
                     </div>

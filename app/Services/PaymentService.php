@@ -86,13 +86,18 @@ class PaymentService
     return $this->settleRow($row);
 }
 /**
- * Start a checkout for the ₱500 slot-reservation fee.
+ * Start a checkout for the slot-reservation fee.
  * Only for users who haven't reserved yet — prevents double charging.
  * Returns the PayMongo hosted checkout URL to redirect the user to.
+ *
+ * @param  string|null  $successUrl  Where PayMongo sends the user back to after a successful
+ *                                   payment. Needed for applicants, who aren't logged in yet
+ *                                   and can't use the normal /ledger return route.
+ * @param  string|null  $cancelUrl   Where PayMongo sends the user back to if they cancel.
  */
-public function startReservationCheckout(User $user): string
+public function startReservationCheckout(User $user, ?string $successUrl = null, ?string $cancelUrl = null): string
 {
-    // Reservation fee amount is configurable via Settings, not hardcoded.
+    // Reservation fee amount is configurable via Settings (Cashier -> Billing Setup), not hardcoded.
     $reservationFee = (int) \App\Models\Setting::get('reservation_fee', '500');
 
     // Guard: don't let an already-reserved student pay again.
@@ -101,10 +106,14 @@ public function startReservationCheckout(User $user): string
     }
 
     // Create the actual PayMongo checkout session (amount is in centavos).
+    // Custom success/cancel URLs let applicants (who aren't logged in yet)
+    // get routed back to a signed applicant-facing page instead of /ledger.
     $session = $this->gateway->createCheckoutSession(
         $user,
         $reservationFee * 100,
-        'AITSA Slot Reservation — ' . ($user->login_id ?? $user->name)
+        'AITSA Slot Reservation — ' . ($user->login_id ?? $user->name),
+        $successUrl,
+        $cancelUrl
     );
     // Record this as a Pending transaction so we can match it later,
     // either via the webhook or the manual "verify on return" check.
@@ -151,8 +160,8 @@ public function settleByCheckoutSessionId(string $checkoutSessionId): array
  * What it does:
  *  1. Marks the transaction as Settled.
  *  2. If this was a reservation fee, flips the student's is_reserved flag
- *     to true — this is what makes the ₱500 start appearing in their
- *     regular tuition assessment from now on.
+ *     to true — this is what makes the reservation fee start appearing in their
+ *     regular tuition assessment (as its own paid line, not merged into tuition).
  *  3. Logs the payment to the audit trail.
  *  4. If the student's balance is now fully paid, auto-approves their
  *     cashier clearance so they don't need to be cleared manually.

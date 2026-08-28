@@ -40,6 +40,35 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/apply', [AuthController::class, 'showApplicationForm'])->name('apply');
 Route::post('/apply', [AuthController::class, 'processApplication'])->name('apply.store');
 
+// Applicant slot-reservation fee — paid immediately after submitting the
+// application form, before the applicant has an account to log into.
+// These use Laravel's signed-URL middleware so the links can't be tampered
+// with or reused for a different applicant.
+Route::middleware('signed')->group(function () {
+    Route::get('/apply/reservation/{user}/return', function (User $user, PaymentService $payments) {
+        abort_unless($user->role === 'applicant', 404);
+
+        try {
+            $result = $payments->verifyLatestPending($user);
+        } catch (PaymentGatewayException $e) {
+            return redirect()->route('apply')->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('apply')->with(
+            $result['ok'] ? 'success' : 'error',
+            $result['ok']
+                ? 'Reservation fee received — your slot is now reserved! Our admin team will send your login credentials to your email within 1–3 business days.'
+                : $result['message']
+        );
+    })->name('apply.reservation.return');
+
+    Route::get('/apply/reservation/{user}/cancel', function (User $user, PaymentService $payments) {
+        abort_unless($user->role === 'applicant', 404);
+        $payments->cancelLatestPending($user);
+
+        return redirect()->route('apply')->with('error', 'Reservation payment cancelled. Your application was still submitted — you can settle the reservation fee at the cashier window instead.');
+    })->name('apply.reservation.cancel');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -230,6 +259,53 @@ Route::middleware('auth')->group(function () {
         $documentSubmissions = DocumentSubmission::with('user')->latest()->get();
         return view('registrar.dashboard', compact('clearances', 'applicants', 'documentSubmissions'));
     })->name('registrar.dashboard');
+
+    // Admission Slots: lets the Registrar set how many total slots each curriculum
+    // has for the current registration/reservation period, split evenly across a
+    // number of sections (e.g. 200 slots / 4 sections = 50 seats per section).
+    Route::get('/registrar/slots', function () {
+        $schoolYear = \App\Models\Setting::get('school_year', '2026-2027');
+
+        // Build one row per curriculum, creating its slot-limit record on the fly
+        // (with 200 slots / 4 sections as defaults) the first time it's viewed.
+        $curricula = collect(config('curricula'))->map(function ($prog) use ($schoolYear) {
+            $limit = \App\Models\AdmissionSlotLimit::forProgram($prog['id'], $prog['name'], $schoolYear);
+
+            return [
+                'id'           => $limit->id,
+                'programKey'   => $prog['id'],
+                'programName'  => $prog['name'],
+                'level'        => $prog['level'],
+                'totalSlots'   => $limit->total_slots,
+                'sections'     => $limit->sections,
+                'perSection'   => $limit->slotsPerSection(),
+                'taken'        => $limit->takenCount(),
+                'slotsLeft'    => $limit->slotsLeft(),
+            ];
+        });
+
+        return view('registrar.slots', compact('curricula', 'schoolYear'));
+    })->name('registrar.slots');
+
+    // Update the total slot limit + number of sections for one curriculum.
+    Route::post('/registrar/slots/{admissionSlotLimit}', function (Request $request, \App\Models\AdmissionSlotLimit $admissionSlotLimit) {
+        $data = $request->validate([
+            'total_slots' => ['required', 'integer', 'min:1', 'max:100000'],
+            'sections'    => ['required', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $admissionSlotLimit->update($data);
+
+        AuditLog::record(
+            'Admission Slot Limit Updated',
+            'Registrar set ' . $admissionSlotLimit->program_name . ' (' . $admissionSlotLimit->school_year . ') to ' .
+                $data['total_slots'] . ' total slots across ' . $data['sections'] . ' section(s).',
+            'AdmissionSlotLimit',
+            $admissionSlotLimit->id
+        );
+
+        return redirect()->route('registrar.slots')->with('success', 'Slot limit for ' . $admissionSlotLimit->program_name . ' updated.');
+    })->name('registrar.slots.update');
 
     Route::get('/admission/dashboard', function () {
         return redirect()->route('registrar.dashboard');
@@ -522,11 +598,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
 
-    // Billing configuration: fee rates, discount types, student assignment
+        // Billing configuration: fee rates, discount types, student assignment
     Route::get('/cashier/billing', function () {
         return view('cashier.billing', [
             'tuitionPerUnit' => (int) \App\Models\Setting::get('tuition_per_unit', '300'),
             'miscFee' => (int) \App\Models\Setting::get('misc_fee', '1500'),
+            // NEW: reservation fee is now editable here instead of being a hidden default.
+            'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
+            // NEW: flat tuition specifically for TESDA Short-Term Programs.
+            'tesdaTuitionFee' => (int) \App\Models\Setting::get('tesda_tuition_fee', '1500'),
             'discountTypes' => DiscountType::withCount('students')->orderBy('name')->get(),
             'students' => User::where('role', 'student')->with('discountType')->orderBy('name')->get(),
         ]);
@@ -536,41 +616,48 @@ Route::middleware('auth')->group(function () {
         $request->validate([
             'tuition_per_unit' => ['required', 'integer', 'min:0'],
             'misc_fee' => ['required', 'integer', 'min:0'],
+            'reservation_fee' => ['required', 'integer', 'min:0'],
+            'tesda_tuition_fee' => ['required', 'integer', 'min:0'],
         ]);
 
         \App\Models\Setting::put('tuition_per_unit', (string) $request->integer('tuition_per_unit'));
         \App\Models\Setting::put('misc_fee', (string) $request->integer('misc_fee'));
-        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit and misc fee to ₱' . $request->integer('misc_fee') . '.', 'Setting', null);
+        \App\Models\Setting::put('reservation_fee', (string) $request->integer('reservation_fee'));
+        \App\Models\Setting::put('tesda_tuition_fee', (string) $request->integer('tesda_tuition_fee'));
+        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit, misc fee to ₱' . $request->integer('misc_fee') . ', reservation fee to ₱' . $request->integer('reservation_fee') . ', and TESDA flat tuition to ₱' . $request->integer('tesda_tuition_fee') . '.', 'Setting', null);
 
-        return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
+                return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
     })->name('cashier.billing.fees');
 
     Route::post('/cashier/billing/discounts', function (Request $request) {
-        $request->validate([
-            'name' => ['required', 'string', 'max:100', 'unique:discount_types,name'],
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
             'percent' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $type = DiscountType::create($request->only('name', 'percent'));
-        AuditLog::record('Discount Type Created', 'Cashier created discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
+        $type = DiscountType::create($data);
+        AuditLog::record('Discount Type Added', 'Cashier added discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
 
         return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
     })->name('cashier.billing.discounts');
 
-    Route::post('/cashier/billing/discounts/{type}/delete', function (DiscountType $type) {
-        AuditLog::record('Discount Type Deleted', 'Cashier deleted discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
-        $type->delete();
+    Route::post('/cashier/billing/discounts/{discountType}/delete', function (DiscountType $discountType) {
+        $name = $discountType->name;
+        // Detach the discount from any students before deleting the type.
+        User::where('discount_type_id', $discountType->id)->update(['discount_type_id' => null]);
+        $discountType->delete();
+        AuditLog::record('Discount Type Removed', 'Cashier removed discount type "' . $name . '".', 'DiscountType', null);
 
         return redirect()->route('cashier.billing')->with('success', 'Discount type removed.');
     })->name('cashier.billing.discounts.delete');
 
-    Route::post('/cashier/billing/students/{user}/discount', function (Request $request, User $user) {
-        abort_unless($user->role === 'student', 404);
-        $request->validate(['discount_type_id' => ['nullable', 'exists:discount_types,id']]);
+    Route::post('/cashier/billing/assign/{student}', function (Request $request, User $student) {
+        $data = $request->validate([
+            'discount_type_id' => ['nullable', 'exists:discount_types,id'],
+        ]);
 
-        $user->update(['discount_type_id' => $request->input('discount_type_id') ?: null]);
-        $label = $user->discountType->name ?? 'none';
-        AuditLog::record('Discount Assigned', 'Cashier set discount for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') to ' . $label . '.', 'User', $user->id);
+        $student->update(['discount_type_id' => $data['discount_type_id'] ?? null]);
+        AuditLog::record('Student Discount Updated', 'Cashier updated discount assignment for student ID ' . $student->id . '.', 'User', $student->id);
 
         return redirect()->route('cashier.billing')->with('success', 'Student discount updated.');
     })->name('cashier.billing.assign');

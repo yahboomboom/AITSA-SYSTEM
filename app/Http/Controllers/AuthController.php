@@ -6,16 +6,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Exceptions\PaymentGatewayException;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\ShsStrand;
 use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\TransactionLedger;
+use App\Models\AdmissionSlotLimit;
+use App\Models\Setting;
 use App\Services\FeeAssessmentService;
 
 class AuthController extends Controller
@@ -71,18 +75,37 @@ class AuthController extends Controller
     }
 
     // 3. Render the Student Application Form UI Workspace
-    public function showApplicationForm()
+        public function showApplicationForm()
     {
         if (Auth::check()) {
             return $this->handleRoleRedirection(Auth::user());
         }
 
         $strands = ShsStrand::all();
-        return view('auth.apply', compact('strands'));
+        // Reservation fee is now editable in Cashier > Billing Setup, so pull the live value
+        // instead of hardcoding ₱500 in the form's checkbox label.
+        $reservationFee = (int) \App\Models\Setting::get('reservation_fee', '500');
+
+        // Slot limits per curriculum (total, divided into sections) — set by the
+        // Registrar under Admission Slots. Shown to applicants so they know how
+        // many slots are left before they pick a program.
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $slots = collect(config('curricula'))->mapWithKeys(function ($prog) use ($schoolYear) {
+            $limit = AdmissionSlotLimit::forProgram($prog['id'], $prog['name'], $schoolYear);
+            return [$prog['id'] => [
+                'totalSlots'      => $limit->total_slots,
+                'sections'        => $limit->sections,
+                'perSection'      => $limit->slotsPerSection(),
+                'slotsLeft'       => $limit->slotsLeft(),
+                'isFull'          => $limit->isFull(),
+            ]];
+        });
+
+        return view('auth.apply', compact('strands', 'reservationFee', 'slots'));
     }
 
     // 4. Store incoming application as pending — admin creates the account and emails credentials
-    public function processApplication(Request $request)
+        public function processApplication(Request $request, \App\Services\PaymentService $payments)
     {
         $request->validate([
             'name'           => ['required', 'string', 'max:255'],
@@ -94,19 +117,31 @@ class AuthController extends Controller
             'last_school'    => ['required', 'string', 'max:255'],
             'year_graduated' => ['required', 'string', 'max:10'],
             'applicant_type' => ['required', 'string', Rule::in(['NEW', 'TRANSFEREE', 'RETURNEE'])],
-            'program_key'    => ['required', 'string'],
+            'program_key'    => ['required', 'string', Rule::in(collect(config('curricula'))->pluck('id')->all())],
             'program_name'   => ['required', 'string'],
             'program_level'  => ['required', 'string'],
             'remarks'        => ['nullable', 'string', 'max:1000'],
         ], [
             'email.unique' => 'An application with this email address already exists. If you need help, contact our admissions office.',
+            'program_key.in' => 'That program could not be found. Please pick a program from the list.',
         ]);
 
-        User::create([
+        // Enforce the curriculum slot limit set by the Registrar (Admission Slots).
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $slotLimit  = AdmissionSlotLimit::forProgram($request->input('program_key'), $request->input('program_name'), $schoolYear);
+        if ($slotLimit->isFull()) {
+            return redirect()->route('apply')->withInput()->with('error',
+                'Sorry, ' . $request->input('program_name') . ' has reached its slot limit for ' . $schoolYear . '. ' .
+                'Please choose another program or contact our admissions office.'
+            );
+        }
+
+        $applicant = User::create([
             'name'              => $request->input('name'),
             'email'             => $request->input('email'),
             'login_id'          => 'APPL-' . strtoupper(Str::random(8)),
             'major'             => $request->input('program_name'),
+            'program_key'       => $request->input('program_key'),
             'role'              => 'applicant',
             'password'          => Hash::make(Str::random(32)),
             'contact_number'    => $request->input('contact_number'),
@@ -120,6 +155,31 @@ class AuthController extends Controller
             'applicant_remarks' => $request->input('remarks'),
             'wants_reservation' => $request->boolean('wants_reservation'), // checkbox intent from the application form
         ]);
+
+        // If the applicant opted to reserve their slot, send them straight to
+        // the reservation-fee checkout right after they submit — they aren't
+        // logged in yet, so this uses signed, applicant-scoped URLs instead of /ledger.
+        if ($applicant->wants_reservation) {
+            try {
+                $checkoutUrl = $payments->startReservationCheckout(
+                    $applicant,
+                    URL::signedRoute('apply.reservation.return', ['user' => $applicant->id]),
+                    URL::signedRoute('apply.reservation.cancel', ['user' => $applicant->id])
+                );
+            } catch (PaymentGatewayException $e) {
+                // Gateway down / not configured — the application is still saved either way.
+                $fee = (int) \App\Models\Setting::get('reservation_fee', '500');
+                return redirect()->route('apply')->with('success',
+                    'Your application for ' . $request->input('program_name') . ' has been received! ' .
+                    'We could not open the online payment page just now (' . $e->getMessage() . '), ' .
+                    'so please settle the ₱' . number_format($fee) . ' reservation fee at the cashier window. ' .
+                    'Our admin team will send your login credentials to ' . $request->input('email') . ' within 1–3 business days.'
+                );
+            }
+
+            // Redirect the applicant off-site to PayMongo's hosted checkout page.
+            return redirect()->away($checkoutUrl);
+        }
 
         return redirect()->route('apply')
             ->with('success', 'Your application for ' . $request->input('program_name') . ' has been received! Our admin team will review it and send your login credentials to ' . $request->input('email') . ' within 1–3 business days.');

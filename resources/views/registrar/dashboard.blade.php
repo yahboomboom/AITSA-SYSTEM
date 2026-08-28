@@ -32,6 +32,10 @@
                 <a href="{{ route('registrar.reports') }}" class="flex items-center px-3 py-2.5 border-l-2 {{ Route::is('registrar.reports') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
                     <span>Reports</span>
                 </a>
+                
+                <a href="{{ route('registrar.slots') }}" class="flex items-center px-3 py-2.5 border-l-2 {{ Route::is('registrar.slots') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
+                    <span>Admission Slots</span>
+                </a>
             </nav>
         </aside>
 

@@ -44,6 +44,14 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                             <span className="text-brandNavy/60 dark:text-slate-400">Miscellaneous Fee</span>
                             <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.misc)}</span>
                         </div>
+                        {/* NEW: show the reservation fee as its own line, separate from tuition, so it's
+                            clear it's already been paid and not being billed again inside "Total Assessment" */}
+                        {(b.reservation_fee ?? 0) > 0 && (
+                            <div className="flex justify-between">
+                                <span className="text-brandNavy/60 dark:text-slate-400">Slot Reservation Fee <span className="text-brandGreen/80">(already paid)</span></span>
+                                <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.reservation_fee)}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between pt-1.5 border-t border-brandNavy/10 dark:border-slate-800">
                             <span className="text-brandNavy/60 dark:text-slate-400">Total Assessment</span>
                             <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.assessment)}</span>

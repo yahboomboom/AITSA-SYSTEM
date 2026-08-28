@@ -10,8 +10,14 @@ use Illuminate\Support\Facades\Http;
 
 class PayMongoService
 {
-    /** @return array{id: string, checkout_url: string} */
-    public function createCheckoutSession(User $user, int $amountCentavos, string $description): array
+    /**
+     * @param  string|null  $successUrl  Overrides the default student-ledger return URL.
+     *                                   Used by flows where the payer isn't an authenticated
+     *                                   student yet (e.g. an applicant paying the reservation fee).
+     * @param  string|null  $cancelUrl   Overrides the default student-ledger cancel URL.
+     * @return array{id: string, checkout_url: string}
+     */
+    public function createCheckoutSession(User $user, int $amountCentavos, string $description, ?string $successUrl = null, ?string $cancelUrl = null): array
     {
         try {
             $response = $this->client()->post('/checkout_sessions', [
@@ -25,8 +31,10 @@ class PayMongoService
                         ]],
                         'payment_method_types' => ['gcash', 'card', 'paymaya'],
                         'description' => $description,
-                        'success_url' => config('services.paymongo.success_url') ?: route('ledger.payment.return'),/**success */
-                        'cancel_url' => route('ledger.payment.cancel'),
+                        // Use the caller-provided URL first (e.g. applicant reservation flow),
+                        // otherwise fall back to the .env config, otherwise the default student ledger route.
+                        'success_url' => $successUrl ?? config('services.paymongo.success_url') ?: route('ledger.payment.return'),/**success */
+                        'cancel_url' => $cancelUrl ?? config('services.paymongo.cancel_url') ?: route('ledger.payment.cancel'),
                         'metadata' => ['user_id' => (string) $user->id, 'login_id' => (string) ($user->login_id ?? '')],
                     ],
                 ],

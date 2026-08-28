@@ -90,6 +90,20 @@
                                 <input type="number" name="misc_fee" min="0" required value="{{ $miscFee }}"
                                     class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                             </div>
+                            {{-- NEW: Slot reservation fee, now editable here instead of a hidden default --}}
+                            <div>
+                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Slot reservation fee (₱)</label>
+                                <input type="number" name="reservation_fee" min="0" required value="{{ $reservationFee }}"
+                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
+                                <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Charged once, when a new applicant reserves their slot. Kept separate from tuition — never added on top of it.</p>
+                            </div>
+                            {{-- NEW: Flat tuition override for TESDA Short-Term Programs --}}
+                            <div>
+                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">TESDA Short-Term Program tuition (₱, flat)</label>
+                                <input type="number" name="tesda_tuition_fee" min="0" required value="{{ $tesdaTuitionFee }}"
+                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
+                                <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Flat tuition for TESDA NC students (Bookkeeping, Events Management, Food & Beverages), used instead of the regular tuition above.</p>
+                            </div>
                             <button type="submit" class="px-5 py-2.5 bg-brandNavy hover:bg-brandGreen text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors">
                                 Save Rates
                             </button>
