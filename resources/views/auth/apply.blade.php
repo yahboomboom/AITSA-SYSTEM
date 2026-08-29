@@ -211,7 +211,7 @@
             </button>
         </div>
 
-        <form action="{{ route('apply.store') }}" method="POST" class="bg-white border border-brandNavy/10 rounded-2xl shadow-sm overflow-hidden">
+        <form id="applicationForm" action="{{ route('apply.store') }}" method="POST" class="bg-white border border-brandNavy/10 rounded-2xl shadow-sm overflow-hidden">
             @csrf
             <input type="hidden" name="program_key" id="programKeyInput">
             <input type="hidden" name="program_level" id="programLevelInput">
@@ -315,7 +315,12 @@
 
             <div class="px-6 lg:px-8 py-5 border-t border-brandNavy/8 bg-lightBg flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p class="text-[10px] text-brandNavy/40">Fields marked <span class="text-red-500">*</span> are required.</p>
-                <button type="submit"
+                {{-- type="button" (not "submit") — opens the React review modal (apply-app.jsx) via the
+                     window.openApplicationReview() bridge it exposes. The form is only actually submitted
+                     from inside that modal, after the applicant confirms.
+                     Fallback: if the React island failed to load for any reason (build not run yet,
+                     JS error, etc.), submit the form directly instead of silently doing nothing. --}}
+                <button type="button" onclick="window.openApplicationReview ? window.openApplicationReview() : document.getElementById('applicationForm').requestSubmit()"
                     class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-brandGreen hover:bg-emerald-700 text-white text-sm font-black rounded-xl transition-all shadow-md hover:-translate-y-0.5 active:translate-y-0">
                     <i class="fa-solid fa-paper-plane"></i>Submit Application
                 </button>
@@ -324,6 +329,13 @@
     </div>
 
 </div>
+
+{{-- ═══ REVIEW & CONFIRM MODAL — React island (resources/js/apply-app.jsx) ═══
+     Reads the plain <form id="applicationForm"> via the DOM (FormData), shows a
+     summary, and only calls form.requestSubmit() once the applicant confirms. --}}
+@viteReactRefresh
+@vite('resources/js/apply-app.jsx')
+<div id="apply-review-root" data-reservation-fee="{{ $reservationFee }}"></div>
 
 {{-- Footer --}}
 <footer class="border-t border-brandNavy/10 mt-10 py-8 px-6 text-center text-[10px] text-brandNavy/40">
