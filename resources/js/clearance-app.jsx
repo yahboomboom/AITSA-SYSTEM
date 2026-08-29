@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import MasterStatusBadge from './clearance/MasterStatusBadge';
 import AccountingCard from './clearance/AccountingCard';
 import RegistrarCard from './clearance/RegistrarCard';
-import SubmittedDocumentsList from './clearance/SubmittedDocumentsList';
-import SubmitRequirementModal from './clearance/SubmitRequirementModal';
 
 const EMPTY_BREAKDOWN = {
     units: 0, rate: 0, tuition: 0, discount_name: null, discount_percent: 0,
@@ -22,7 +20,7 @@ const EMPTY_CONTEXT = {
     breakdown: EMPTY_BREAKDOWN,
     items: [],
     submission: { hasSubmission: false, submissionPending: false, createdAt: null, originalName: null },
-    submissions: [],
+    documentsUrl: '/documents',
 };
 
 function parseContext(raw) {
@@ -38,23 +36,14 @@ function parseContext(raw) {
             breakdown: parsed.breakdown ?? EMPTY_BREAKDOWN,
             items: Array.isArray(parsed.items) ? parsed.items : [],
             submission: parsed.submission ?? EMPTY_CONTEXT.submission,
-            submissions: Array.isArray(parsed.submissions) ? parsed.submissions : [],
+            documentsUrl: parsed.documentsUrl ?? EMPTY_CONTEXT.documentsUrl,
         };
     } catch {
         return EMPTY_CONTEXT;
     }
 }
 
-function ClearanceApp({ context, csrfToken, submitUrl }) {
-    const [modalOpen, setModalOpen] = useState(false);
-    const [modalIsResubmit, setModalIsResubmit] = useState(false);
-
-    const openModal = (isResubmit) => {
-        setModalIsResubmit(isResubmit);
-        setModalOpen(true);
-    };
-    const closeModal = () => setModalOpen(false);
-
+function ClearanceApp({ context }) {
     return (
         <>
             <div className="space-y-6">
@@ -98,19 +87,9 @@ function ClearanceApp({ context, csrfToken, submitUrl }) {
                     </div>
 
                     <AccountingCard cashierCleared={context.cashierCleared} breakdown={context.breakdown} />
-                    <RegistrarCard registrarCleared={context.registrarCleared} submission={context.submission} onOpenModal={openModal} />
+                    <RegistrarCard registrarCleared={context.registrarCleared} submission={context.submission} documentsUrl={context.documentsUrl} />
                 </div>
-
-                <SubmittedDocumentsList submissions={context.submissions} />
             </div>
-
-            <SubmitRequirementModal
-                open={modalOpen}
-                isResubmit={modalIsResubmit}
-                onClose={closeModal}
-                csrfToken={csrfToken}
-                submitUrl={submitUrl}
-            />
         </>
     );
 }
@@ -118,11 +97,9 @@ function ClearanceApp({ context, csrfToken, submitUrl }) {
 const el = document.getElementById('clearance-root');
 if (el) {
     const context = parseContext(el.dataset.context);
-    const csrfToken = el.dataset.csrfToken ?? '';
-    const submitUrl = el.dataset.submitUrl ?? '';
     createRoot(el).render(
         <ErrorBoundary>
-            <ClearanceApp context={context} csrfToken={csrfToken} submitUrl={submitUrl} />
+            <ClearanceApp context={context} />
         </ErrorBoundary>
     );
 }

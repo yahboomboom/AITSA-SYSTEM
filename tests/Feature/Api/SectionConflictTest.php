@@ -20,7 +20,7 @@ class SectionConflictTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'registrar']);
         $this->prof = User::factory()->create(['role' => 'faculty', 'name' => 'Prof. Cruz']);
         $this->room = Room::create(['name' => 'Rm 301', 'type' => 'physical']);
     }

@@ -62,10 +62,12 @@ function EnrollmentApp() {
     return (
         <div className="space-y-6">
             <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6 flex items-center justify-between flex-wrap gap-3">
-                <div>
-                    <h1 className="text-xl font-bold text-brandNavy dark:text-slate-100">Enrollment — A.Y. {term.school_year}, Semester {term.semester}</h1>
+                <h1 className="text-xl font-bold text-brandNavy dark:text-slate-100">Enrollment — A.Y. {term.school_year}, Semester {term.semester}</h1>
+
+                <div className="text-right">
+                    <p className="text-sm font-bold text-brandNavy dark:text-white">{student.name}</p>
                     <p className="text-xs text-slate-500">
-                        {student.name} ({student.login_id}) · {student.program_name ?? student.program} · {student.year_level} ·{' '}
+                        {student.year_level} · Sem {term.semester} ·{' '}
                         <span className={student.type === 'regular' ? 'text-brandGreen font-semibold' : 'text-amber-600 font-semibold'}>
                             {student.type === 'regular' ? 'Regular' : 'Irregular'}
                         </span>

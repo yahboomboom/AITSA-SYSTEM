@@ -15,20 +15,22 @@ class DocumentUploadTest extends TestCase
 
     private function student(): User
     {
-        return User::factory()->create(['role' => 'student']);
+        // signature_path is required before a student may submit a document
+        // (see routes/web.php's documents.submitRequirement guard).
+        return User::factory()->create(['role' => 'student', 'signature_path' => 'signatures/fake.png']);
     }
 
     public function test_student_can_submit_a_document(): void
     {
         Storage::fake('local');
 
-        $response = $this->actingAs($this->student())->post('/clearance/submit-requirement', [
+        $response = $this->actingAs($this->student())->post('/documents/submit-requirement', [
             'document' => UploadedFile::fake()->create('form137.pdf', 500, 'application/pdf'),
             'document_type' => 'form137',
             'notes' => 'Certified true copy attached.',
         ]);
 
-        $response->assertRedirect(route('clearance'));
+        $response->assertRedirect(route('documents'));
         $response->assertSessionHas('success');
 
         $sub = DocumentSubmission::first();
@@ -40,11 +42,24 @@ class DocumentUploadTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'Document Submitted']);
     }
 
+    public function test_student_can_submit_a_2x2_id_photo(): void
+    {
+        Storage::fake('local');
+
+        $response = $this->actingAs($this->student())->post('/documents/submit-requirement', [
+            'document' => UploadedFile::fake()->create('id-photo.jpg', 200, 'image/jpeg'),
+            'document_type' => 'id_photo_2x2',
+        ]);
+
+        $response->assertRedirect(route('documents'));
+        $this->assertSame('id_photo_2x2', DocumentSubmission::first()->document_type);
+    }
+
     public function test_oversized_file_is_rejected(): void
     {
         Storage::fake('local');
 
-        $this->actingAs($this->student())->post('/clearance/submit-requirement', [
+        $this->actingAs($this->student())->post('/documents/submit-requirement', [
             'document' => UploadedFile::fake()->create('big.pdf', 6000, 'application/pdf'),
             'document_type' => 'form137',
         ])->assertSessionHasErrors('document');
@@ -56,7 +71,7 @@ class DocumentUploadTest extends TestCase
     {
         Storage::fake('local');
 
-        $this->actingAs($this->student())->post('/clearance/submit-requirement', [
+        $this->actingAs($this->student())->post('/documents/submit-requirement', [
             'document' => UploadedFile::fake()->create('virus.exe', 100, 'application/octet-stream'),
             'document_type' => 'form137',
         ])->assertSessionHasErrors('document');
@@ -66,7 +81,7 @@ class DocumentUploadTest extends TestCase
     {
         Storage::fake('local');
 
-        $this->actingAs($this->student())->post('/clearance/submit-requirement', [
+        $this->actingAs($this->student())->post('/documents/submit-requirement', [
             'document' => UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'),
             'document_type' => 'diploma',
         ])->assertSessionHasErrors('document_type');
@@ -76,7 +91,7 @@ class DocumentUploadTest extends TestCase
     {
         Storage::fake('local');
 
-        $this->post('/clearance/submit-requirement', [
+        $this->post('/documents/submit-requirement', [
             'document' => UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'),
             'document_type' => 'form137',
         ])->assertRedirect();

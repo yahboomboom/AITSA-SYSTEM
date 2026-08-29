@@ -20,6 +20,7 @@ export default defineConfig({
                 'resources/js/cashier-dashboard-app.jsx',
                 'resources/js/approver-dashboard-app.jsx',
                 'resources/js/department-dashboard-app.jsx',
+                'resources/js/documents-app.jsx',
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/apply-app.jsx',

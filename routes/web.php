@@ -111,25 +111,53 @@ Route::middleware('auth')->group(function () {
             'registrar_status'   => 'Pending',
         ])->load('items.department');
 
-        $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
-        $submission = $submissions->first();
+        // Only the latest submission (any type) is needed here, to show the
+        // registrar hold banner's pending/awaiting-review state. The full
+        // upload UI and submission history now live on the /documents page.
+        $submission = DocumentSubmission::where('user_id', $user->id)->latest()->first();
         $breakdown = $fees->breakdownFor($user);
-        return view('clearance', compact('clearance', 'submission', 'submissions', 'breakdown'));
+        return view('clearance', compact('clearance', 'submission', 'breakdown'));
     })->name('clearance');
 
-  Route::post('/clearance/submit-requirement', function (Request $request) {
+    // 2.1. Documents Module — submit & track institutional requirements,
+    // separate from Clearance (matches the paper's distinct Fig 55 vs Fig 56 pages).
+    Route::get('/documents', function () {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
+
+        // One row per known requirement type, showing its latest submission (if any).
+        $requirements = collect(DocumentSubmission::TYPES)->map(function ($label, $type) use ($submissions) {
+            $latest = $submissions->firstWhere('document_type', $type);
+            return [
+                'type' => $type,
+                'label' => $label,
+                'status' => $latest->status ?? 'missing',
+                'remarks' => $latest->remarks ?? null,
+                'originalName' => $latest->original_name ?? null,
+                'createdAt' => $latest ? $latest->created_at->format('M d, Y') : null,
+            ];
+        })->values();
+
+        return view('documents', compact('requirements', 'submissions'));
+    })->name('documents');
+
+    Route::post('/documents/submit-requirement', function (Request $request) {
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
         }
 
         if (!$user->signature_path) {
-            return redirect()->route('clearance')->with('error', 'Please set up your e-signature before submitting documents. Go to "My Signature" in your profile menu.');
+            return redirect()->route('documents')->with('error', 'Please set up your e-signature before submitting documents. Go to "My Signature" in your profile menu.');
         }
 
         $request->validate([
             'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'document_type' => ['required', 'in:form137,form138,birth_cert,good_moral,other'],
+            'document_type' => ['required', 'in:' . implode(',', array_keys(DocumentSubmission::TYPES))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -148,8 +176,8 @@ Route::middleware('auth')->group(function () {
 
         AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . ' and e-signed the submission.', 'DocumentSubmission', $submission->id);
 
-        return redirect()->route('clearance')->with('success', 'Your document has been submitted to the Registrar for review.');
-    })->name('clearance.submitRequirement');
+        return redirect()->route('documents')->with('success', 'Your document has been submitted to the Registrar for review.');
+    })->name('documents.submitRequirement');
 
     // 3. Enrollment Hub Module
     Route::get('/enrollment', function () {
@@ -347,22 +375,6 @@ Route::middleware('auth')->group(function () {
         }
         return redirect()->route('registrar.dashboard')->with('error', 'Record not found.');
     })->name('registrar.hold');
-
-    // Registrar verifies a new applicant → forwards to Admin for account creation
-    Route::post('/registrar/verify-applicant/{id}', function ($id) {
-        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
-        $applicant->update(['role' => 'verified_applicant']);
-        AuditLog::record('Applicant Verified', 'Registrar verified application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '. Forwarded to Admin for account creation.', 'User', $applicant->id);
-        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $applicant->name . ' verified and forwarded to Admin.');
-    })->name('registrar.verify-applicant');
-
-    Route::post('/registrar/decline-applicant/{id}', function ($id) {
-        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
-        AuditLog::record('Applicant Declined', 'Registrar declined and removed application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '.', 'User', $applicant->id);
-        $name = $applicant->name;
-        $applicant->delete();
-        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $name . ' has been declined and removed.');
-    })->name('registrar.decline-applicant');
 
     // Document submission review
     Route::post('/registrar/documents/{submission}/accept', function (DocumentSubmission $submission) {
@@ -666,42 +678,23 @@ Route::middleware('auth')->group(function () {
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
     Route::middleware('role:admin')->group(function () {
     Route::get('/admin/dashboard', function () {
-        $verifiedApplicants = User::where('role', 'verified_applicant')->orderByDesc('created_at')->get();
-        return view('admin.dashboard', compact('verifiedApplicants'));
+        return view('admin.dashboard');
     })->name('admin.dashboard');
 
-    // Single create-student page — handles both walk-in and admission queue (pass ?from={id} for pre-fill)
-    Route::get('/admin/students/create', function (Request $request) {
-        $applicant = null;
-        if ($request->query('from')) {
-            $applicant = User::where('id', $request->query('from'))
-                ->where('role', 'verified_applicant')->first();
-        }
+    // Walk-in registration — for staff to manually register a student who never
+    // went through the online /apply pipeline. Applicants who did apply are now
+    // converted to student accounts automatically once their reservation fee is
+    // confirmed paid (see AdmissionService), so no admin step is needed for them.
+    Route::get('/admin/students/create', function () {
         $programs = Program::orderBy('level')->orderBy('code')->get();
-        return view('admin.create-student', compact('applicant', 'programs'));
+        return view('admin.create-student', ['applicant' => null, 'programs' => $programs]);
     })->name('admin.students.create');
 
     Route::post('/admin/students/create', function (Request $request) {
-        $applicantId = $request->input('applicant_id');
-
-        // If no explicit applicant_id but the email matches an existing applicant, auto-resolve it
-        // so the walk-in form can still convert applicants without requiring the ?from= flow
-        if (!$applicantId && $request->filled('email')) {
-            $existing = User::where('email', $request->input('email'))
-                ->whereIn('role', ['applicant', 'verified_applicant'])->first();
-            if ($existing) {
-                $applicantId = $existing->id;
-            }
-        }
-
-        // Email/login_id uniqueness: if converting an existing applicant, exclude their own record
-        $emailRule    = ['required', 'string', 'email', 'max:255', 'unique:users,email' . ($applicantId ? ',' . $applicantId : '')];
-        $loginIdRule  = ['required', 'string', 'max:50',           'unique:users,login_id'];
-
         $request->validate([
             'name'           => ['required', 'string', 'max:255'],
-            'email'          => $emailRule,
-            'login_id'       => $loginIdRule,
+            'email'          => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'login_id'       => ['required', 'string', 'max:50', 'unique:users,login_id'],
             'password'       => ['required', 'string', 'min:8', 'confirmed'],
             'major'          => ['required', 'string'],
             'year_level'     => ['required', 'string'],
@@ -717,7 +710,9 @@ Route::middleware('auth')->group(function () {
             'password.confirmed' => 'Password and confirmation do not match.',
         ]);
 
-        $fields = [
+        $student = User::create([
+            'name'           => $request->input('name'),
+            'email'          => $request->input('email'),
             'login_id'       => $request->input('login_id'),
             'password'       => $request->input('password'),
             'role'           => 'student',
@@ -730,18 +725,7 @@ Route::middleware('auth')->group(function () {
             'address'        => $request->input('address'),
             'applicant_type' => $request->input('applicant_type'),
             'program_level'  => $request->input('program_level'),
-        ];
-
-        if ($applicantId) {
-            // Converting a verified applicant — update in place
-            $student = User::where('id', $applicantId)->where('role', 'verified_applicant')->firstOrFail();
-            $student->update($fields);
-        } else {
-            // Walk-in / manual registration — create fresh
-            $fields['name']  = $request->input('name');
-            $fields['email'] = $request->input('email');
-            $student = User::create($fields);
-        }
+        ]);
 
         Clearance::initializeFor($student->id, [
             'admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
@@ -807,10 +791,6 @@ Route::middleware('auth')->group(function () {
             ->groupBy('major')->orderByDesc('count')->get();
         return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown'));
     })->name('admin.reports');
-
-    Route::get('/admin/curriculum', function () {
-        return view('admin.curriculum');
-    })->name('admin.curriculum');
 
     Route::get('/admin/departments', function () {
         return view('admin.departments', [
@@ -909,16 +889,28 @@ Route::middleware('auth')->group(function () {
         return view('registrar.reports', compact('clearances', 'pendingApplicants'));
     })->name('registrar.reports');
 
+    // Curriculum editing — moved here from Admin (per the adviser's note that
+    // Admin was carrying too much); Dept Chair was considered but not included.
+    Route::get('/registrar/curriculum', function () {
+        return view('registrar.curriculum');
+    })->name('registrar.curriculum');
+
     /**
      * Mark or unmark whether an applicant has actually PAID the ₱500
      * slot-reservation fee. Used when it's collected in person at the
      * counter rather than through the online PayMongo checkout.
      */
-        Route::post('/registrar/toggle-reservation/{id}', function ($id) {
-            $applicant = User::where('id', $id)->whereIn('role', ['applicant', 'verified_applicant'])->firstOrFail();
+        Route::post('/registrar/toggle-reservation/{id}', function ($id, \App\Services\AdmissionService $admissions) {
+            $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
 
             // Simple toggle — flips true/false each time it's clicked.
             $applicant->update(['is_reserved' => ! $applicant->is_reserved]);
+
+            // Marking as paid (a counter payment) activates the student account
+            // immediately, same as the online PayMongo reservation flow.
+            if ($applicant->is_reserved) {
+                $admissions->activateStudentAccount($applicant);
+            }
 
             AuditLog::record(
                 $applicant->is_reserved ? 'Slot Reserved' : 'Slot Reservation Reverted',

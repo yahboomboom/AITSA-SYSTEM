@@ -13,7 +13,7 @@ class SettingsApiTest extends TestCase
 
     public function test_admin_can_toggle_change_matriculation_window(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'registrar']);
 
         $this->actingAs($admin)
             ->postJson('/api/admin/settings/change-matriculation', ['open' => true])
@@ -33,7 +33,7 @@ class SettingsApiTest extends TestCase
 
     public function test_programs_index_exposes_window_state(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
+        $admin = User::factory()->create(['role' => 'registrar']);
         Setting::put('change_matriculation_open', '1');
 
         $this->actingAs($admin)->getJson('/api/admin/programs')

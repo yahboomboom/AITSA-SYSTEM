@@ -34,6 +34,7 @@ class DocumentSubmissionTest extends TestCase
             'form138' => 'Form 138 — Report Card',
             'birth_cert' => 'PSA Birth Certificate',
             'good_moral' => 'Certificate of Good Moral Character',
+            'id_photo_2x2' => '2x2 ID Photo',
             'other' => 'Other Supporting Document',
         ];
 

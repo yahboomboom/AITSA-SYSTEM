@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Services;
+
+use App\Mail\ApplicantAccountCreated;
+use App\Models\AuditLog;
+use App\Models\Clearance;
+use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+
+/**
+ * Converts a reserved applicant straight into a live student account —
+ * no Registrar verify/decline step. Triggered the moment an applicant's
+ * reservation fee is confirmed paid (online via PayMongo, or marked paid
+ * at the counter by the Registrar), matching the same event that already
+ * makes AdmissionSlotLimit::takenCount() count them as occupying a slot.
+ */
+class AdmissionService
+{
+    /**
+     * @return array{login_id: string, password: string}|null  null if the
+     *   user isn't an applicant awaiting activation (already converted, or
+     *   never was an applicant) — safe to call more than once.
+     */
+    public function activateStudentAccount(User $applicant): ?array
+    {
+        if ($applicant->role !== 'applicant') {
+            return null;
+        }
+
+        $loginId = $this->generateUniqueLoginId();
+        $password = Str::password(10, letters: true, numbers: true, symbols: false, spaces: false);
+
+        $applicant->update([
+            'login_id' => $loginId,
+            'password' => $password, // cast to 'hashed' on the model, hashed automatically on save
+            'role' => 'student',
+            'year_level' => $applicant->year_level ?? '1st Year',
+        ]);
+
+        Clearance::initializeFor($applicant->id, [
+            'admission_status' => 'Approved',
+            'chair_status' => 'Pending',
+            'cashier_status' => 'Pending',
+            'registrar_status' => 'Pending',
+        ]);
+
+        AuditLog::record(
+            'Student Account Auto-Created',
+            'Reservation fee confirmed for ' . $applicant->name . ' (' . $applicant->email . ') — student account ' .
+                $loginId . ' created automatically, no Registrar review required.',
+            'User',
+            $applicant->id
+        );
+
+        Mail::to($applicant->email)->send(new ApplicantAccountCreated($applicant, $loginId, $password));
+
+        return ['login_id' => $loginId, 'password' => $password];
+    }
+
+    private function generateUniqueLoginId(): string
+    {
+        $year = now()->format('Y');
+
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $candidate = $year . '-' . str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT);
+            if (! User::where('login_id', $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+
+        throw new \RuntimeException('Could not generate a unique student ID — please try again.');
+    }
+}

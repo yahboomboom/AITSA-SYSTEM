@@ -17,7 +17,7 @@ class FacultyRoomApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->admin = User::factory()->create(['role' => 'registrar']);
     }
 
     public function test_admin_can_create_and_list_rooms(): void

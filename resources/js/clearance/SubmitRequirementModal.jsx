@@ -1,13 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-const DOCUMENT_TYPES = [
-    { value: 'form137', label: 'Form 137 — Permanent Record / Senior HS Report Card' },
-    { value: 'form138', label: 'Form 138 — Report Card' },
-    { value: 'birth_cert', label: 'PSA Birth Certificate' },
-    { value: 'good_moral', label: 'Certificate of Good Moral Character' },
-    { value: 'other', label: 'Other Supporting Document' },
-];
-
 function formatBytes(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -20,7 +12,7 @@ function fileIconClass(file) {
     return 'fa-solid fa-file text-slate-400 text-base';
 }
 
-export default function SubmitRequirementModal({ open, isResubmit, onClose, csrfToken, submitUrl }) {
+export default function SubmitRequirementModal({ open, onClose, csrfToken, submitUrl, documentType, documentLabel }) {
     const [file, setFile] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -28,12 +20,15 @@ export default function SubmitRequirementModal({ open, isResubmit, onClose, csrf
     const fileInputRef = useRef(null);
     const formRef = useRef(null);
 
+    // Reset the picked file whenever the modal opens for a (possibly different)
+    // requirement row — this instance is now shared across every row on the
+    // Documents page, so stale selections from a previous row must not carry over.
     useEffect(() => {
-        if (open && isResubmit) {
+        if (open) {
             setFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [open, isResubmit]);
+    }, [open]);
 
     if (!open) return null;
 
@@ -90,7 +85,7 @@ export default function SubmitRequirementModal({ open, isResubmit, onClose, csrf
                             <i className="fa-solid fa-file-arrow-up text-brandNavy dark:text-brandGold text-sm" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-brandNavy dark:text-white">Submit Missing Requirements</h3>
+                            <h3 className="text-sm font-bold text-brandNavy dark:text-white">{documentLabel}</h3>
                             <p className="text-[10px] text-brandNavy/50 dark:text-slate-500 mt-0.5">Office of the University Registrar</p>
                         </div>
                     </div>
@@ -103,12 +98,13 @@ export default function SubmitRequirementModal({ open, isResubmit, onClose, csrf
                     <i className="fa-solid fa-triangle-exclamation text-red-500 mt-0.5 flex-shrink-0" />
                     <div>
                         <span className="font-bold text-brandNavy dark:text-slate-200">Outstanding Requirement</span>
-                        <p className="text-brandNavy/60 dark:text-slate-500 mt-0.5">Original Copy — Form 137 / Permanent Academic Records</p>
+                        <p className="text-brandNavy/60 dark:text-slate-500 mt-0.5">{documentLabel}</p>
                     </div>
                 </div>
 
                 <form ref={formRef} id="submissionForm" action={submitUrl} method="POST" encType="multipart/form-data" className="p-6 space-y-5">
                     <input type="hidden" name="_token" value={csrfToken} />
+                    <input type="hidden" name="document_type" value={documentType} />
 
                     <div>
                         <label className="text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider block mb-2">
@@ -157,15 +153,6 @@ export default function SubmitRequirementModal({ open, isResubmit, onClose, csrf
                                 </div>
                             )}
                         </div>
-                    </div>
-
-                    <div>
-                        <label className="text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider block mb-2">Document Type</label>
-                        <select name="document_type" className="w-full bg-lightBg/50 dark:bg-slate-900/40 text-brandNavy dark:text-slate-200 text-xs font-medium px-4 py-3 rounded-xl border border-brandNavy/10 dark:border-slate-700 focus:outline-none focus:border-brandGreen dark:focus:border-brandGold/50 transition-colors">
-                            {DOCUMENT_TYPES.map((opt) => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
                     </div>
 
                     <div>

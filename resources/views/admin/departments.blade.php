@@ -30,9 +30,6 @@
                 <a href="{{ route('admin.students.index') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
                     <span>Student Registry</span>
                 </a>
-                <a href="{{ route('admin.curriculum') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>Curriculum</span>
-                </a>
                 <a href="{{ route('admin.departments') }}" class="flex items-center px-3 py-2.5 border-l-2 border-brandGreen text-brandGreen dark:text-emerald-400 font-bold text-sm transition-colors">
                     <span>Departments</span>
                 </a>

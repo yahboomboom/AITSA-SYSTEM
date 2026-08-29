@@ -11,30 +11,25 @@ class ClearancePageDocumentsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_sees_own_submissions_with_status_and_remarks(): void
+    public function test_clearance_page_no_longer_carries_the_full_submission_history(): void
     {
         $student = User::factory()->create(['role' => 'student']);
+        // Two submissions: only the latest's filename should surface (via the
+        // single `submission` field the registrar-hold banner still reads),
+        // never a full history list — that now lives on the /documents page.
         DocumentSubmission::factory()->create([
-            'user_id' => $student->id, 'original_name' => 'my-form137.pdf',
-            'status' => 'rejected', 'remarks' => 'Scan is blurry.',
+            'user_id' => $student->id, 'original_name' => 'older-upload.pdf', 'created_at' => now()->subDay(),
         ]);
-        DocumentSubmission::factory()->create(['original_name' => 'someone-elses.pdf']);
+        DocumentSubmission::factory()->create([
+            'user_id' => $student->id, 'original_name' => 'latest-upload.pdf',
+        ]);
 
         $response = $this->actingAs($student)->get('/clearance');
 
         $response->assertOk()
             ->assertSee('id="clearance-root"', false)
-            ->assertSee('"originalName":"my-form137.pdf"')
-            ->assertSee('"remarks":"Scan is blurry."')
-            ->assertDontSee('someone-elses.pdf');
-    }
-
-    public function test_page_hides_history_section_when_no_submissions(): void
-    {
-        $student = User::factory()->create(['role' => 'student']);
-
-        $this->actingAs($student)->get('/clearance')
-            ->assertOk()
-            ->assertSee('"submissions":[]');
+            ->assertDontSee('older-upload.pdf')
+            ->assertDontSee('&quot;submissions&quot;', false)
+            ->assertSee('&quot;documentsUrl&quot;', false);
     }
 }

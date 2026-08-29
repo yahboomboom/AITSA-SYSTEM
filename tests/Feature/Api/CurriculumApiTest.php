@@ -19,13 +19,21 @@ class CurriculumApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        // Curriculum editing moved from Admin to the Registrar workspace — the
+        // property is kept as $admin only to minimize churn across this file.
+        $this->admin = User::factory()->create(['role' => 'registrar']);
     }
 
     public function test_students_are_forbidden(): void
     {
         $student = User::factory()->create(['role' => 'student']);
         $this->actingAs($student)->getJson('/api/admin/programs')->assertForbidden();
+    }
+
+    public function test_admin_role_is_forbidden(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->getJson('/api/admin/programs')->assertForbidden();
     }
 
     public function test_admin_lists_programs_and_subjects(): void

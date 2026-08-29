@@ -13,7 +13,7 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                     <h3 className="text-sm font-bold text-brandNavy dark:text-white">Pending Admission Applications</h3>
                     <span className="px-2 py-0.5 text-[9px] font-black bg-amber-500 text-white rounded-full">{applicants.length} new</span>
                 </div>
-                <p className="text-[10px] text-brandNavy/50 dark:text-slate-400">Review each application before forwarding to Admin for account creation.</p>
+                <p className="text-[10px] text-brandNavy/50 dark:text-slate-400">A student account is created automatically once the reservation fee is confirmed paid.</p>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -26,7 +26,6 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                             <th className="py-3.5 px-6">Last School</th>
                             <th className="py-3.5 px-6 text-center">Reservation</th>/** the resrvation fee check boxs*/
                             <th className="py-3.5 px-6 text-center">Date Applied</th>
-                            <th className="py-3.5 px-6 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
@@ -98,40 +97,6 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                     </div>
                                 </td>
                                 <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>
-                                <td className="py-4 px-6 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                        <form
-                                            action={applicant.verifyUrl}
-                                            method="POST"
-                                            className="inline"
-                                            onSubmit={(e) => {
-                                                if (!window.confirm(`Verify application for ${applicant.name} and forward to Admin?`)) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                        >
-                                            <input type="hidden" name="_token" value={csrfToken} />
-                                            <button type="submit" className="px-3 py-1.5 text-[11px] font-black text-white bg-brandGreen hover:bg-emerald-700 rounded transition-colors">
-                                                <i className="fa-solid fa-circle-check mr-1" />Verify
-                                            </button>
-                                        </form>
-                                        <form
-                                            action={applicant.declineUrl}
-                                            method="POST"
-                                            className="inline"
-                                            onSubmit={(e) => {
-                                                if (!window.confirm(`Decline and remove the application for ${applicant.name}?`)) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                        >
-                                            <input type="hidden" name="_token" value={csrfToken} />
-                                            <button type="submit" className="px-3 py-1.5 text-[11px] font-black text-red-500 border border-red-500/30 hover:bg-red-500/10 rounded transition-colors">
-                                                <i className="fa-solid fa-xmark mr-1" />Decline
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
                             </tr>
                         ))}
                     </tbody>

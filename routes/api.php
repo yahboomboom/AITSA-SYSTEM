@@ -22,7 +22,10 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
     Route::post('/matriculation', [MatriculationController::class, 'store']);
 });
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+// Curriculum-editing API — moved from Admin to Registrar (per Admin doing too
+// much; Dept Chair was considered but not included). URL prefix kept as
+// 'admin' to avoid churning every frontend call site in curriculum-app.jsx.
+Route::middleware(['auth:sanctum', 'role:registrar,admission'])->prefix('admin')->group(function () {
     Route::get('/programs', [ProgramController::class, 'index']);
     Route::get('/programs/{program}/subjects', [ProgramController::class, 'subjects']);
     Route::post('/settings/change-matriculation', [SettingController::class, 'changeMatriculation']);

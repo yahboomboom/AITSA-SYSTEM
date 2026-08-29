@@ -15,6 +15,7 @@ class PaymentService
     public function __construct(
         private PayMongoService $gateway,
         private FeeAssessmentService $fees,
+        private AdmissionService $admissions,
     ) {
     }
 
@@ -174,9 +175,12 @@ private function settleRow(TransactionLedger $row): array
     $row->update(['status' => 'Settled', 'paid_at' => now()]);
 
     // Step 2: reservation payments unlock the reservation fee line item
-    // in FeeAssessmentService::breakdownFor() for future assessments.
+    // in FeeAssessmentService::breakdownFor() for future assessments, and —
+    // for an applicant — immediately activate their student account (no
+    // Registrar verify/decline step).
     if ($row->fee_type === 'reservation') {
         $row->user->update(['is_reserved' => true]);
+        $this->admissions->activateStudentAccount($row->user);
     }
 
     $user = $row->user;

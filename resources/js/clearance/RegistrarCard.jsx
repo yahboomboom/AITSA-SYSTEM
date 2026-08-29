@@ -1,4 +1,4 @@
-export default function RegistrarCard({ registrarCleared, submission, onOpenModal }) {
+export default function RegistrarCard({ registrarCleared, submission, documentsUrl }) {
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
             <div className="bg-lightBg dark:bg-slate-800/60 px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center text-xs">
@@ -41,9 +41,9 @@ export default function RegistrarCard({ registrarCleared, submission, onOpenModa
                                         </div>
                                     )}
                                 </div>
-                                <button onClick={() => onOpenModal(true)} className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0 underline-offset-2">
+                                <a href={documentsUrl} className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0 underline-offset-2">
                                     Resubmit
-                                </button>
+                                </a>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-brandNavy/3 dark:bg-slate-800/40 border border-brandNavy/8 dark:border-slate-700/40">
@@ -51,12 +51,12 @@ export default function RegistrarCard({ registrarCleared, submission, onOpenModa
                                     <p className="text-xs font-bold text-brandNavy dark:text-slate-200">Resolve this hold</p>
                                     <p className="text-[11px] text-brandNavy/60 dark:text-slate-500 mt-0.5">Upload a scanned copy of your Form 137 or equivalent document directly to the Registrar.</p>
                                 </div>
-                                <button
-                                    onClick={() => onOpenModal(false)}
+                                <a
+                                    href={documentsUrl}
                                     className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-bold rounded-xl transition-all shadow-sm hover:shadow-brandGreen/20 hover:-translate-y-0.5 active:translate-y-0 uppercase tracking-wider whitespace-nowrap"
                                 >
                                     <i className="fa-solid fa-upload" />Submit Documents
-                                </button>
+                                </a>
                             </div>
                         )}
                     </div>

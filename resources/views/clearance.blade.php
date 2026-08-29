@@ -52,6 +52,8 @@
             <p class="px-4 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
             <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('dashboard') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Dashboard</span>
             </a>
+            <a href="{{ route('documents') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('documents') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Documents</span>
+            </a>
             <a href="{{ route('clearance') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('clearance') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Clearance Routing</span>
             </a>
             <a href="{{ route('enrollment') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('enrollment') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Enrollment System</span>
@@ -135,21 +137,12 @@
                         'createdAt' => $hasSubmission ? (isset($submission->created_at) ? $submission->created_at->format('M d, Y g:i A') : 'recently') : null,
                         'originalName' => $hasSubmission ? ($submission->original_name ?? null) : null,
                     ],
-                    'submissions' => $submissions->map(fn ($doc) => [
-                        'typeLabel' => $doc->typeLabel(),
-                        'documentsShowUrl' => route('documents.show', $doc),
-                        'originalName' => $doc->original_name,
-                        'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
-                        'status' => $doc->status,
-                        'remarks' => $doc->remarks,
-                    ])->all(),
+                    'documentsUrl' => route('documents'),
                 ];
             @endphp
 
             <div id="clearance-root"
-                 data-context="{{ json_encode($clearanceContext) }}"
-                 data-csrf-token="{{ csrf_token() }}"
-                 data-submit-url="{{ route('clearance.submitRequirement') }}">
+                 data-context="{{ json_encode($clearanceContext) }}">
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
         </div>

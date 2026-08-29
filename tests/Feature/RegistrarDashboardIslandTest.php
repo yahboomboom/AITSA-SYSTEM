@@ -50,7 +50,8 @@ class RegistrarDashboardIslandTest extends TestCase
         $response = $this->actingAs($registrar)->get('/registrar/dashboard');
 
         $response->assertOk();
-        $response->assertSee('&quot;declineUrl&quot;', false);
+        $response->assertDontSee('&quot;declineUrl&quot;', false);
+        $response->assertDontSee('&quot;verifyUrl&quot;', false);
         $response->assertSee('&quot;applicantType&quot;:&quot;NEW&quot;', false);
         $response->assertSee('&quot;isApproved&quot;:false', false);
         $response->assertSee('&quot;studentName&quot;:&quot;' . $student->name . '&quot;', false);

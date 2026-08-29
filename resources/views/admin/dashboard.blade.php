@@ -33,10 +33,6 @@
                     <span>Student Registry</span>
                 </a>
 
-                <a href="{{ route('admin.curriculum') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent {{ Route::is('admin.curriculum') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
-                    <span>Curriculum</span>
-                </a>
-
                 <a href="{{ route('admin.departments') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent {{ Route::is('admin.departments') ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }} text-sm transition-colors">
                     <span>Departments</span>
                 </a>
@@ -106,59 +102,6 @@
                         <p class="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">All database links connected</p>
                     </div>
                 </div>
-
-                {{-- VERIFIED APPLICANTS — Create Account Queue --}}
-                @if(isset($verifiedApplicants) && $verifiedApplicants->count() > 0)
-                <div class="bg-white dark:bg-panelDark rounded-lg border border-brandGreen/25 dark:border-emerald-500/20 overflow-hidden mb-5">
-                    <div class="px-5 py-3.5 border-b border-brandGreen/15 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <h4 class="text-sm font-bold text-brandNavy dark:text-white">Registrar-Verified Applicants</h4>
-                            <span class="px-2 py-0.5 text-[9px] font-black bg-brandGreen text-white rounded-full">{{ $verifiedApplicants->count() }} ready</span>
-                        </div>
-                        <p class="text-[10px] text-brandNavy/40 dark:text-slate-400">Create a student account for each verified applicant.</p>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-lightBg dark:bg-slate-800/40 text-brandNavy/40 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-brandNavy/8 dark:border-slate-800">
-                                    <th class="py-3 px-5">Applicant</th>
-                                    <th class="py-3 px-5">Program</th>
-                                    <th class="py-3 px-5">Type</th>
-                                    <th class="py-3 px-5">Contact</th>
-                                    <th class="py-3 px-5 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/60 text-xs">
-                                @foreach($verifiedApplicants as $applicant)
-                                <tr class="hover:bg-lightBg/60 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td class="py-3.5 px-5">
-                                        <p class="font-bold text-brandNavy dark:text-white">{{ $applicant->name }}</p>
-                                        <p class="text-brandNavy/40 dark:text-slate-500 text-[11px]">{{ $applicant->email }}</p>
-                                    </td>
-                                    <td class="py-3.5 px-5">
-                                        <p class="font-semibold text-brandNavy dark:text-slate-200">{{ $applicant->major ?? '—' }}</p>
-                                        <p class="text-[10px] text-brandNavy/40 dark:text-slate-500">{{ $applicant->program_level ?? '' }}</p>
-                                    </td>
-                                    <td class="py-3.5 px-5">
-                                        @php $typeColors = ['NEW'=>'bg-brandGreen/10 text-brandGreen','TRANSFEREE'=>'bg-blue-500/10 text-blue-600','RETURNEE'=>'bg-amber-500/10 text-amber-600']; @endphp
-                                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide {{ $typeColors[$applicant->applicant_type ?? ''] ?? 'bg-brandNavy/5 dark:bg-slate-800 text-brandNavy/50' }}">
-                                            {{ $applicant->applicant_type ?? '—' }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3.5 px-5 text-brandNavy/50 dark:text-slate-400">{{ $applicant->contact_number ?? '—' }}</td>
-                                    <td class="py-3.5 px-5 text-right">
-                                        <a href="{{ route('admin.students.create', ['from' => $applicant->id]) }}"
-                                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-bold text-white bg-brandGreen hover:bg-emerald-700 rounded transition-colors">
-                                            <i class="fa-solid fa-user-plus"></i>Create Account
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                @endif
 
                 @if(session('success'))
                 <div class="p-3.5 rounded-lg bg-brandGreen/8 border border-brandGreen/20 text-brandGreen font-bold text-xs mb-4">
