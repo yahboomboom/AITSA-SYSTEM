@@ -178,7 +178,13 @@ class AuthController extends Controller
             }
 
             // Redirect the applicant off-site to PayMongo's hosted checkout page.
-            return redirect()->away($checkoutUrl);
+            // Shown through a brief branded "pop out" screen first so the jump
+            // from our form to PayMongo's page doesn't feel abrupt.
+            return view('auth.redirecting-to-payment', [
+                'checkoutUrl' => $checkoutUrl,
+                'programName' => $request->input('program_name'),
+                'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
+            ]);
         }
 
         return redirect()->route('apply')

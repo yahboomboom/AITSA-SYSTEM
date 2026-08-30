@@ -46,7 +46,7 @@
 
 
 {{-- ═══ SUCCESS BANNER ═══ --}}
-@if(session('success'))
+@if(session('success') && !session('receipt'))
 <div class="bg-brandGreen/10 border-b border-brandGreen/20 px-6 lg:px-16 py-5 flex items-start gap-4">
     <i class="fa-solid fa-circle-check text-brandGreen text-2xl mt-0.5"></i>
     <div>
@@ -386,5 +386,81 @@ function clearProgram() {
 selectProgram('{{ old('program_key') }}', '{{ old('program_level') }}', '{{ old('program_name') }}');
 @endif
 </script>
+
+{{-- ═══ RECEIPT / SUCCESSFUL PAYMENT POPUP ═══
+     Shown right after the applicant returns from a successfully paid
+     reservation fee — doubles as their proof of payment (statement of
+     account) and the "application submitted" confirmation. --}}
+@if(session('receipt'))
+@php $receipt = session('receipt'); @endphp
+<div id="receiptModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60">
+    <div class="receipt-modal-enter bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+
+        {{-- Success header --}}
+        <div class="bg-gradient-to-r from-brandGreen to-emerald-500 px-6 pt-7 pb-9 text-center relative">
+            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto text-3xl text-brandGreen shadow-lg">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+        </div>
+
+        <div class="px-6 pb-6 -mt-5">
+            <div class="bg-white rounded-xl pt-2 text-center mb-5">
+                <h3 class="text-lg font-extrabold text-brandNavy mb-1">Application Successfully Submitted!</h3>
+                <p class="text-xs text-brandNavy/60">Your reservation fee payment was successful and your slot is now reserved.</p>
+            </div>
+
+            {{-- Receipt / Statement of Account --}}
+            <div class="border border-dashed border-brandNavy/20 rounded-xl p-4 mb-5" id="printableReceipt">
+                <div class="flex items-center justify-between mb-3 pb-3 border-b border-brandNavy/10">
+                    <div>
+                        <p class="text-[10px] font-black text-brandNavy uppercase tracking-widest">Official Receipt</p>
+                        <p class="text-[9px] text-brandNavy/40">AITSA · Slot Reservation Fee</p>
+                    </div>
+                    <span class="text-[9px] font-black text-brandGreen bg-brandGreen/10 px-2 py-1 rounded-full">PAID</span>
+                </div>
+
+                <dl class="space-y-2 text-xs">
+                    <div class="flex justify-between"><dt class="text-brandNavy/50">Reference No.</dt><dd class="font-bold text-brandNavy font-mono">{{ $receipt['reference_no'] ?? '—' }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-brandNavy/50">Applicant</dt><dd class="font-bold text-brandNavy text-right">{{ $receipt['applicant_name'] ?? '—' }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-brandNavy/50">Program</dt><dd class="font-bold text-brandNavy text-right">{{ $receipt['program_name'] ?? '—' }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-brandNavy/50">Date Paid</dt><dd class="font-bold text-brandNavy text-right">{{ $receipt['paid_at'] ?? '—' }}</dd></div>
+                    <div class="flex justify-between pt-2 border-t border-brandNavy/10"><dt class="text-brandNavy/70 font-bold">Amount Paid</dt><dd class="font-black text-brandGreen text-sm">₱{{ number_format((float) ($receipt['amount'] ?? 0), 2) }}</dd></div>
+                </dl>
+            </div>
+
+            <div class="bg-brandGold/10 border border-brandGold/20 rounded-xl p-3 mb-5 flex gap-2.5">
+                <i class="fa-solid fa-envelope-open-text text-brandGold mt-0.5 text-sm"></i>
+                <p class="text-[11px] text-brandNavy/70 leading-relaxed">
+                    Your student account is ready! Your Student ID and password were sent to
+                    <span class="font-bold">{{ $receipt['email'] ?? 'your email' }}</span>.
+                </p>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="flex-1 py-2.5 rounded-xl border border-brandNavy/15 text-brandNavy font-bold text-xs hover:bg-brandNavy/5 transition-colors">
+                    <i class="fa-solid fa-print mr-1.5"></i>Print Receipt
+                </button>
+                <a href="{{ route('login') }}" class="flex-1 py-2.5 rounded-xl bg-brandNavy text-white font-bold text-xs text-center hover:opacity-90 transition-opacity">
+                    Go to Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .receipt-modal-enter { animation: receiptModalIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes receiptModalIn {
+        from { opacity: 0; transform: scale(0.95) translateY(12px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @media print {
+        body > *:not(#receiptModal) { display: none !important; }
+        #receiptModal { position: static !important; background: none !important; }
+        #receiptModal > div { box-shadow: none !important; }
+    }
+</style>
+@endif
+
 </body>
 </html>

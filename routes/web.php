@@ -45,7 +45,7 @@ Route::post('/apply', [AuthController::class, 'processApplication'])->name('appl
 // These use Laravel's signed-URL middleware so the links can't be tampered
 // with or reused for a different applicant.
 Route::middleware('signed')->group(function () {
-    Route::get('/apply/reservation/{user}/return', function (User $user, PaymentService $payments) {
+        Route::get('/apply/reservation/{user}/return', function (User $user, PaymentService $payments) {
         abort_unless($user->role === 'applicant', 404);
 
         try {
@@ -54,12 +54,30 @@ Route::middleware('signed')->group(function () {
             return redirect()->route('apply')->with('error', $e->getMessage());
         }
 
-        return redirect()->route('apply')->with(
-            $result['ok'] ? 'success' : 'error',
-            $result['ok']
-                ? 'Reservation fee received — your slot is now reserved! Our admin team will send your login credentials to your email within 1–3 business days.'
-                : $result['message']
-        );
+        if (! $result['ok']) {
+            return redirect()->route('apply')->with('error', $result['message']);
+        }
+
+        // Payment confirmed — PaymentService already auto-created the student
+        // account (see AdmissionService::activateStudentAccount, called from
+        // PaymentService::settleRow). Pull the fresh record + the settled
+        // transaction so we can show a proper receipt / statement of account.
+        $user->refresh();
+        $txn = TransactionLedger::where('user_id', $user->id)
+            ->where('fee_type', 'reservation')
+            ->where('status', 'Settled')
+            ->latest('paid_at')
+            ->first();
+
+        return redirect()->route('apply')->with('success', 'Application successfully submitted and reservation fee paid.')->with('receipt', [
+            'reference_no'    => $txn?->reference_no,
+            'amount'          => $txn?->amount,
+            'paid_at'         => optional($txn?->paid_at)->format('M d, Y g:i A'),
+            'applicant_name'  => $user->name,
+            'program_name'    => $user->major,
+            'login_id'        => $user->login_id,
+            'email'           => $user->email,
+        ]);
     })->name('apply.reservation.return');
 
     Route::get('/apply/reservation/{user}/cancel', function (User $user, PaymentService $payments) {
@@ -145,7 +163,7 @@ Route::middleware('auth')->group(function () {
         return view('documents', compact('requirements', 'submissions'));
     })->name('documents');
 
-    Route::post('/documents/submit-requirement', function (Request $request) {
+    Route::post('/documents/submit-requirement', function (Request $request, \App\Services\DocumentVerificationService $docVerifier) {
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
@@ -162,6 +180,12 @@ Route::middleware('auth')->group(function () {
         ]);
 
         $file = $request->file('document');
+
+        // Verify the uploaded file actually shows the submitting student's own name
+        // (OCR-read and compared against their account name) before accepting it.
+        if (!$docVerifier->verifyNameOnDocument($file, $user->name)) {
+            return redirect()->route('clearance')->with('error', 'Mismatch document. Please resubmit the required file.');
+        }
 
         $submission = DocumentSubmission::create([
             'user_id' => $user->id,

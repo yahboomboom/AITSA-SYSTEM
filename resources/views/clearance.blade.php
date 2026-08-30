@@ -98,9 +98,9 @@
                 </div>
             @endif
 
-            @if ($errors->any())
+            @if(session('error') && session('error') !== 'Mismatch document. Please resubmit the required file.')
                 <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
-                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first() }}
+                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
                 </div>
             @endif
 
@@ -150,6 +150,32 @@
 </div>
 
 @include('partials.notif-script')
+
+{{-- Document Mismatch popup: shown instead of the inline banner so it can't be missed. --}}
+@if(session('error') === 'Mismatch document. Please resubmit the required file.')
+<div id="mismatchModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70">
+    <div class="modal-enter bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border-2 border-red-500">
+        <div class="bg-gradient-to-r from-red-600 to-red-500 px-6 pt-6 pb-8 text-center relative">
+            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto text-3xl text-red-600 shadow-lg animate-pulse">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+        </div>
+        <div class="px-6 pb-6 -mt-4 text-center">
+            <div class="bg-white dark:bg-panelDark rounded-xl pt-2">
+                <h3 class="text-lg font-extrabold text-red-600 mb-2">Mismatch Document</h3>
+                <p class="text-sm text-brandNavy/70 dark:text-slate-300 mb-6">
+                    The uploaded file doesn't appear to show your name. Please resubmit the required file.
+                </p>
+                <button onclick="document.getElementById('mismatchModal').remove()"
+                        class="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors shadow-lg shadow-red-600/30">
+                    Okay, I'll Resubmit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @viteReactRefresh
 @vite('resources/js/clearance-app.jsx')
 </body>
