@@ -32,6 +32,30 @@ class AdminWalkInStudentCreateTest extends TestCase
         $this->assertNotNull(Clearance::where('user_id', $student->id)->first());
     }
 
+    public function test_the_new_students_clearance_is_tagged_with_the_current_term(): void
+    {
+        \App\Models\Setting::put('school_year', '2027-2028');
+        \App\Models\Setting::put('semester', '1');
+        \App\Models\Setting::clearCache();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post('/admin/students/create', [
+            'name' => 'Walk In Student',
+            'email' => 'walkin-term-test@example.com',
+            'login_id' => '2027-11111',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'major' => 'BSIT',
+            'year_level' => '1st Year',
+        ]);
+
+        $student = User::where('login_id', '2027-11111')->firstOrFail();
+        $clearance = Clearance::where('user_id', $student->id)->first();
+        $this->assertSame('2027-2028', $clearance->school_year);
+        $this->assertSame(1, $clearance->semester);
+    }
+
     public function test_admin_dashboard_no_longer_lists_a_verified_applicants_queue(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

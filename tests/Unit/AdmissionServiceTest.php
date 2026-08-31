@@ -77,4 +77,20 @@ class AdmissionServiceTest extends TestCase
 
         $this->assertSame($loginIds, array_unique($loginIds));
     }
+
+    public function test_the_new_clearance_is_tagged_with_the_current_term(): void
+    {
+        Mail::fake();
+        \App\Models\Setting::put('school_year', '2027-2028');
+        \App\Models\Setting::put('semester', '2');
+        \App\Models\Setting::clearCache();
+
+        $applicant = User::factory()->create(['role' => 'applicant']);
+
+        (new AdmissionService())->activateStudentAccount($applicant);
+
+        $clearance = Clearance::where('user_id', $applicant->id)->first();
+        $this->assertSame('2027-2028', $clearance->school_year);
+        $this->assertSame(2, $clearance->semester);
+    }
 }

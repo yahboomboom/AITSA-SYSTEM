@@ -12,6 +12,7 @@ use App\Models\Enrollment;
 use App\Models\MatriculationChange;
 use App\Models\Program;
 use App\Models\Section;
+use App\Models\Setting;
 use App\Models\StudentGrade;
 use App\Models\TransactionLedger;
 use App\Models\User;
@@ -760,10 +761,12 @@ Route::middleware('auth')->group(function () {
             'program_level'  => $request->input('program_level'),
         ]);
 
-        Clearance::initializeFor($student->id, [
-            'admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
-            'registrar_status' => 'Pending',
-        ]);
+        Clearance::initializeFor(
+            $student->id,
+            Setting::get('school_year', '2026-2027'),
+            (int) Setting::get('semester', '1'),
+            ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending', 'registrar_status' => 'Pending']
+        );
 
         AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
 

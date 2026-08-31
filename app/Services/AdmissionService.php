@@ -39,12 +39,17 @@ class AdmissionService
             'year_level' => $applicant->year_level ?? '1st Year',
         ]);
 
-        Clearance::initializeFor($applicant->id, [
-            'admission_status' => 'Approved',
-            'chair_status' => 'Pending',
-            'cashier_status' => 'Pending',
-            'registrar_status' => 'Pending',
-        ]);
+        Clearance::initializeFor(
+            $applicant->id,
+            \App\Models\Setting::get('school_year', '2026-2027'),
+            (int) \App\Models\Setting::get('semester', '1'),
+            [
+                'admission_status' => 'Approved',
+                'chair_status' => 'Pending',
+                'cashier_status' => 'Pending',
+                'registrar_status' => 'Pending',
+            ]
+        );
 
         AuditLog::record(
             'Student Account Auto-Created',
