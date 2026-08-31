@@ -105,12 +105,17 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login')->with('error', 'Session validation failure.');
         }
 
-        $clearance = Clearance::initializeFor($user->id, [
-            'admission_status'   => 'Pending',
-            'chair_status'       => 'Pending',
-            'cashier_status'     => 'Pending',
-            'registrar_status'   => 'Pending',
-        ]);
+        $clearance = Clearance::initializeFor(
+            $user->id,
+            Setting::get('school_year', '2026-2027'),
+            (int) Setting::get('semester', '1'),
+            [
+                'admission_status'   => 'Pending',
+                'chair_status'       => 'Pending',
+                'cashier_status'     => 'Pending',
+                'registrar_status'   => 'Pending',
+            ]
+        );
 
         return view('dashboard', compact('clearance'));
     })->name('dashboard');
@@ -123,12 +128,17 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login');
         }
 
-        $clearance = Clearance::initializeFor($user->id, [
-            'admission_status'   => 'Pending',
-            'chair_status'       => 'Pending',
-            'cashier_status'     => 'Pending',
-            'registrar_status'   => 'Pending',
-        ])->load('items.department');
+        $clearance = Clearance::initializeFor(
+            $user->id,
+            Setting::get('school_year', '2026-2027'),
+            (int) Setting::get('semester', '1'),
+            [
+                'admission_status'   => 'Pending',
+                'chair_status'       => 'Pending',
+                'cashier_status'     => 'Pending',
+                'registrar_status'   => 'Pending',
+            ]
+        )->load('items.department');
 
         // Only the latest submission (any type) is needed here, to show the
         // registrar hold banner's pending/awaiting-review state. The full
@@ -216,7 +226,7 @@ Route::middleware('auth')->group(function () {
     // 3. Enrollment Hub Module
     Route::get('/enrollment', function () {
         $user = Auth::user();
-        $clearance = Clearance::where('user_id', $user?->id)->first();
+        $clearance = $user ? Clearance::currentFor($user) : null;
 
         $grades      = StudentGrade::where('user_id', $user->id)->get();
         $passedCodes = $grades->where('status', 'Passed')->pluck('subject_code')->values()->toArray();
@@ -232,7 +242,7 @@ Route::middleware('auth')->group(function () {
     // 5. Ledger Workspace Module (view renamed to `payment`)
     Route::get('/ledger', function (FeeAssessmentService $fees) {
         $user = Auth::user();
-        $clearance = Clearance::where('user_id', $user?->id)->first();
+        $clearance = $user ? Clearance::currentFor($user) : null;
         $breakdown = $fees->breakdownFor($user);
         $history = TransactionLedger::where('user_id', $user->id)->latest()->get();
         $hasPendingGateway = $history->contains(fn ($row) => $row->gateway === 'paymongo' && $row->status === 'Pending');
