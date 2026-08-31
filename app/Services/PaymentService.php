@@ -193,7 +193,7 @@ private function settleRow(TransactionLedger $row): array
     // auto-approve their cashier clearance so registrar/cashier don't
     // need to manually check and approve it.
     if ($this->fees->breakdownFor($user)['fully_paid']) {
-        $clearance = Clearance::where('user_id', $user->id)->first();
+        $clearance = Clearance::currentFor($user);
         if ($clearance && $clearance->cashier_status !== 'Approved') {
             $clearance->update(['cashier_status' => 'Approved']);
             AuditLog::record('Cashier Cleared (Gateway)', 'Cashier clearance auto-approved for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') after gateway-verified full payment.', 'Clearance', $clearance->id);

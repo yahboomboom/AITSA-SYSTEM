@@ -25,7 +25,10 @@ class EnrollmentService
 
     public function clearanceComplete(User $user): bool
     {
-        $clearance = Clearance::with('items')->where('user_id', $user->id)->first();
+        $clearance = Clearance::currentFor($user);
+        if ($clearance) {
+            $clearance->loadMissing('items');
+        }
 
         return $clearance !== null
             && $clearance->chair_status === 'Approved'
