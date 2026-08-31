@@ -67,4 +67,30 @@ class RegistrarDashboardIslandTest extends TestCase
         $response->assertOk();
         $response->assertSee('&quot;activateApplicantUrl&quot;:&quot;' . str_replace('/', '\/', route('registrar.activate-applicant', $applicant->id)) . '&quot;', false);
     }
+
+    public function test_dashboard_does_not_list_a_students_clearance_from_a_past_term(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = User::factory()->create(['role' => 'student']);
+
+        \App\Models\Setting::put('school_year', '2026-2027');
+        \App\Models\Setting::put('semester', '1');
+        \App\Models\Setting::clearCache();
+        \App\Models\Clearance::initializeFor($student->id, '2026-2027', 1);
+
+        \App\Models\Setting::put('semester', '2');
+        \App\Models\Setting::clearCache();
+        \App\Models\Clearance::initializeFor($student->id, '2026-2027', 2);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        // The student's name should appear exactly once in the clearances
+        // list, not twice (once per term) — count occurrences inside the
+        // JSON blob the island receives, not anywhere else on the page
+        // (the sidebar/header may legitimately repeat the logged-in
+        // registrar's own name).
+        $json = $response->getContent();
+        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $this->assertSame(1, $occurrences);
+    }
 }

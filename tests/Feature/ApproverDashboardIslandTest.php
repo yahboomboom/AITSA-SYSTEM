@@ -80,4 +80,27 @@ class ApproverDashboardIslandTest extends TestCase
         $response->assertSee('&quot;room&quot;:&quot;CL-204&quot;', false);
         $response->assertSee('&quot;scheduleLabel&quot;:&quot;T\/Th 10:00\u201311:30&quot;', false);
     }
+
+    public function test_dashboard_does_not_list_a_students_clearance_from_a_past_term(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $student = User::factory()->create(['role' => 'student']);
+
+        \App\Models\Setting::put('school_year', '2026-2027');
+        \App\Models\Setting::put('semester', '1');
+        \App\Models\Setting::clearCache();
+        Clearance::initializeFor($student->id, '2026-2027', 1);
+
+        \App\Models\Setting::put('semester', '2');
+        \App\Models\Setting::clearCache();
+        Clearance::initializeFor($student->id, '2026-2027', 2);
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        // The student's name should appear exactly once in the clearances
+        // list, not twice (once per term).
+        $json = $response->getContent();
+        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $this->assertSame(1, $occurrences);
+    }
 }

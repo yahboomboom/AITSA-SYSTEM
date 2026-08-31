@@ -325,7 +325,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/dashboard', function () {
         $user       = Auth::user();
-        $clearances = Clearance::has('user')->with('user')->get();
+        $clearances = Clearance::has('user')->with('user')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->get();
         $applicants = User::where('role', 'applicant')->orderByDesc('created_at')->get();
 
         $documentSubmissions = DocumentSubmission::with('user')->latest()->get();
@@ -454,7 +457,10 @@ Route::middleware('auth')->group(function () {
     // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
     Route::middleware('role:chair')->group(function () {
     Route::get('/approver/dashboard', function () {
-        $clearances = Clearance::has('user')->with('user')->get();
+        $clearances = Clearance::has('user')->with('user')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->get();
         $pendingEnrollments = Enrollment::with(['user', 'sections.subject'])
             ->where('status', 'pending')
             ->latest()
@@ -828,7 +834,10 @@ Route::middleware('auth')->group(function () {
     })->name('admin.audit');
 
     Route::get('/admin/reports', function () {
-        $clearances         = Clearance::has('user')->with('user')->get();
+        $clearances         = Clearance::has('user')->with('user')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->get();
         $pendingApplicants  = User::where('role', 'applicant')->count();
         $verifiedApplicants = User::where('role', 'verified_applicant')->count();
         $totalStudents      = User::where('role', 'student')->count();
@@ -931,7 +940,10 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students.grades.store');
 
     Route::get('/registrar/reports', function () {
-        $clearances        = Clearance::has('user')->with('user')->get();
+        $clearances        = Clearance::has('user')->with('user')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
         return view('registrar.reports', compact('clearances', 'pendingApplicants'));
     })->name('registrar.reports');
