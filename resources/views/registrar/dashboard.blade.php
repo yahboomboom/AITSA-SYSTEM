@@ -92,6 +92,7 @@
                             'wantsReservation' => (bool) $a->wants_reservation, // did they check the box on the application form?
                             'isReserved' => (bool) $a->is_reserved, // have they actually paid the fee?
                             'toggleReservationUrl' => route('registrar.toggle-reservation', $a->id),
+                            'activateApplicantUrl' => route('registrar.activate-applicant', $a->id),
                         ])->values(),
                         'stats' => [
                             'total' => $clearances->count(),

@@ -94,6 +94,28 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                                 {applicant.isReserved ? 'Unmark Paid' : 'Mark as Paid'}
                                             </button>
                                         </form>
+
+                                        {/* For applicants who never opted into an online/counter reservation
+                                            payment at all — the only path left to give them a student account. */}
+                                        {!applicant.isReserved && !applicant.wantsReservation && (
+                                            <form
+                                                action={applicant.activateApplicantUrl}
+                                                method="POST"
+                                                onSubmit={(e) => {
+                                                    if (!window.confirm(`Create a student account for ${applicant.name} now?`)) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
+                                            >
+                                                <input type="hidden" name="_token" value={csrfToken} />
+                                                <button
+                                                    type="submit"
+                                                    className="text-[9px] font-black text-brandGreen hover:text-emerald-700 underline underline-offset-2 transition-colors"
+                                                >
+                                                    Activate Account
+                                                </button>
+                                            </form>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>

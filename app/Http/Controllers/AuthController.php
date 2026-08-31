@@ -117,6 +117,7 @@ class AuthController extends Controller
             'last_school'    => ['required', 'string', 'max:255'],
             'year_graduated' => ['required', 'string', 'max:10'],
             'applicant_type' => ['required', 'string', Rule::in(['NEW', 'TRANSFEREE', 'RETURNEE'])],
+            'year_level'     => ['required_if:applicant_type,TRANSFEREE,RETURNEE', 'nullable', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
             'program_key'    => ['required', 'string', Rule::in(collect(config('curricula'))->pluck('id')->all())],
             'program_name'   => ['required', 'string'],
             'program_level'  => ['required', 'string'],
@@ -151,6 +152,7 @@ class AuthController extends Controller
             'last_school'       => $request->input('last_school'),
             'year_graduated'    => $request->input('year_graduated'),
             'applicant_type'    => $request->input('applicant_type'),
+            'year_level'        => $request->input('year_level'),
             'program_level'     => $request->input('program_level'),
             'applicant_remarks' => $request->input('remarks'),
             'wants_reservation' => $request->boolean('wants_reservation'), // checkbox intent from the application form

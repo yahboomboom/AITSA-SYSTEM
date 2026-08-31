@@ -56,4 +56,15 @@ class RegistrarDashboardIslandTest extends TestCase
         $response->assertSee('&quot;isApproved&quot;:false', false);
         $response->assertSee('&quot;studentName&quot;:&quot;' . $student->name . '&quot;', false);
     }
+
+    public function test_dashboard_context_includes_a_direct_activation_url_per_applicant(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $applicant = User::factory()->create(['role' => 'applicant']);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;activateApplicantUrl&quot;:&quot;' . str_replace('/', '\/', route('registrar.activate-applicant', $applicant->id)) . '&quot;', false);
+    }
 }

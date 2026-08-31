@@ -147,8 +147,17 @@ Route::middleware('auth')->group(function () {
 
         $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
 
+        // Transcript of Records / Honorable Dismissal are only asked of
+        // students who transferred or returned from another school — a NEW
+        // applicant has no prior institution to request them from.
+        $isTransfereeOrReturnee = in_array($user->applicant_type, ['TRANSFEREE', 'RETURNEE'], true);
+        $types = collect(DocumentSubmission::TYPES);
+        if (! $isTransfereeOrReturnee) {
+            $types = $types->except(['transcript_of_records', 'honorable_dismissal']);
+        }
+
         // One row per known requirement type, showing its latest submission (if any).
-        $requirements = collect(DocumentSubmission::TYPES)->map(function ($label, $type) use ($submissions) {
+        $requirements = $types->map(function ($label, $type) use ($submissions) {
             $latest = $submissions->firstWhere('document_type', $type);
             return [
                 'type' => $type,
@@ -924,6 +933,28 @@ Route::middleware('auth')->group(function () {
      * slot-reservation fee. Used when it's collected in person at the
      * counter rather than through the online PayMongo checkout.
      */
+        /**
+         * Directly activate an applicant's student account without touching
+         * reservation status — for applicants who never opted to pay a
+         * reservation fee online or at the counter. Restores the "registrar
+         * reviews, one click creates the account" path the old verify/decline
+         * flow used to cover, without reintroducing manual verify/reject.
+         */
+        Route::post('/registrar/activate-applicant/{id}', function ($id, \App\Services\AdmissionService $admissions) {
+            $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+
+            $admissions->activateStudentAccount($applicant);
+
+            AuditLog::record(
+                'Applicant Activated by Registrar',
+                'Registrar activated the student account for ' . $applicant->name . ' (' . $applicant->email . ') without a reservation payment.',
+                'User',
+                $applicant->id
+            );
+
+            return redirect()->back()->with('success', $applicant->name . '\'s student account has been created.');
+        })->name('registrar.activate-applicant');
+
         Route::post('/registrar/toggle-reservation/{id}', function ($id, \App\Services\AdmissionService $admissions) {
             $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
 

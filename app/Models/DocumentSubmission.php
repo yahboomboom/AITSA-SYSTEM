@@ -16,6 +16,8 @@ class DocumentSubmission extends Model
         'birth_cert' => 'PSA Birth Certificate',
         'good_moral' => 'Certificate of Good Moral Character',
         'id_photo_2x2' => '2x2 ID Photo',
+        'transcript_of_records' => 'Transcript of Records',
+        'honorable_dismissal' => 'Honorable Dismissal',
         'other' => 'Other Supporting Document',
     ];
 

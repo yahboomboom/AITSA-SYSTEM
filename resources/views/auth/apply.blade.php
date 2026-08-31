@@ -95,9 +95,9 @@
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 @foreach([
-                    ['id'=>'bk3',  'name'=>'Bookkeeping NC III',       'icon'=>'fa-book-bookmark', 'duration'=>'6 months'],
-                    ['id'=>'em3',  'name'=>'Events Management NC III',  'icon'=>'fa-calendar-star', 'duration'=>'6 months'],
-                    ['id'=>'fb3',  'name'=>'Food & Beverages NC III',   'icon'=>'fa-utensils',      'duration'=>'6 months'],
+                    ['id'=>'bk3',  'name'=>'Bookkeeping NC III',       'icon'=>'fa-book-bookmark', 'duration'=>'292 training hours'],
+                    ['id'=>'em3',  'name'=>'Events Management NC III',  'icon'=>'fa-calendar-star', 'duration'=>'108 training hours'],
+                    ['id'=>'fb3',  'name'=>'Food & Beverages NC III',   'icon'=>'fa-utensils',      'duration'=>'230 training hours'],
                 ] as $prog)
                 @php $slot = $slots[$prog['id']] ?? null; @endphp
                 <div class="prog-card bg-white border border-amber-200 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
@@ -275,12 +275,22 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Applicant Type <span class="text-red-500">*</span></label>
-                            <select name="applicant_type" required class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy focus:outline-none focus:border-brandGreen transition-colors">
-                                <option value="" disabled selected>Select type</option>
-                                <option value="NEW">New Student</option>
-                                <option value="TRANSFEREE">Transferee</option>
-                                <option value="RETURNEE">Returnee</option>
+                            <select name="applicant_type" id="applicantTypeInput" required onchange="toggleYearLevelField()" class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy focus:outline-none focus:border-brandGreen transition-colors">
+                                <option value="" disabled {{ old('applicant_type') ? '' : 'selected' }}>Select type</option>
+                                <option value="NEW" {{ old('applicant_type') === 'NEW' ? 'selected' : '' }}>New Student</option>
+                                <option value="TRANSFEREE" {{ old('applicant_type') === 'TRANSFEREE' ? 'selected' : '' }}>Transferee</option>
+                                <option value="RETURNEE" {{ old('applicant_type') === 'RETURNEE' ? 'selected' : '' }}>Returnee</option>
                             </select>
+                        </div>
+                        <div id="yearLevelField" class="hidden">
+                            <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Year Level You're Applying For <span class="text-red-500">*</span></label>
+                            <select name="year_level" class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy focus:outline-none focus:border-brandGreen transition-colors">
+                                <option value="" disabled {{ old('year_level') ? '' : 'selected' }}>Select year level</option>
+                                @foreach(['1st Year', '2nd Year', '3rd Year', '4th Year'] as $yl)
+                                    <option value="{{ $yl }}" {{ old('year_level') === $yl ? 'selected' : '' }}>{{ $yl }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-[10px] text-brandNavy/40 mt-1.5">Used to place you at the right standing while your prior credentials are evaluated.</p>
                         </div>
                     </div>
                 </div>
@@ -371,6 +381,12 @@ function selectProgram(id, level, name) {
     // Scroll to form
     setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
 }
+
+function toggleYearLevelField() {
+    const type = document.getElementById('applicantTypeInput').value;
+    document.getElementById('yearLevelField').classList.toggle('hidden', !['TRANSFEREE', 'RETURNEE'].includes(type));
+}
+toggleYearLevelField();
 
 function clearProgram() {
     selectedProg = null;

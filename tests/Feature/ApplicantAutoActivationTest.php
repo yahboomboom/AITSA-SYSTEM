@@ -123,4 +123,30 @@ class ApplicantAutoActivationTest extends TestCase
         $this->actingAs($registrar)->post("/registrar/verify-applicant/{$applicant->id}")->assertNotFound();
         $this->actingAs($registrar)->post("/registrar/decline-applicant/{$applicant->id}")->assertNotFound();
     }
+
+    public function test_registrar_can_activate_an_applicant_who_never_reserved_a_slot(): void
+    {
+        Mail::fake();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $applicant = User::factory()->create([
+            'role' => 'applicant', 'is_reserved' => false, 'wants_reservation' => false,
+        ]);
+
+        $response = $this->actingAs($registrar)->post("/registrar/activate-applicant/{$applicant->id}");
+
+        $response->assertRedirect();
+        $applicant->refresh();
+        $this->assertSame('student', $applicant->role);
+        $this->assertFalse($applicant->is_reserved);
+        Mail::assertSent(ApplicantAccountCreated::class);
+    }
+
+    public function test_activate_applicant_route_404s_for_a_user_who_is_not_an_applicant(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($registrar)->post("/registrar/activate-applicant/{$student->id}")->assertNotFound();
+    }
 }

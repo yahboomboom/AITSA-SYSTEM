@@ -16,6 +16,8 @@ class DocumentsPageTest extends TestCase
         $this->get('/documents')->assertRedirect();
     }
 
+    private const TRANSFEREE_ONLY_TYPES = ['transcript_of_records', 'honorable_dismissal'];
+
     public function test_page_lists_every_requirement_type_as_missing_by_default(): void
     {
         $student = User::factory()->create(['role' => 'student']);
@@ -25,10 +27,46 @@ class DocumentsPageTest extends TestCase
         $response->assertOk()
             ->assertSee('id="documents-root"', false);
 
-        foreach (array_keys(DocumentSubmission::TYPES) as $type) {
+        foreach (array_diff(array_keys(DocumentSubmission::TYPES), self::TRANSFEREE_ONLY_TYPES) as $type) {
             $response->assertSee('&quot;type&quot;:&quot;' . $type . '&quot;', false);
         }
         $response->assertSee('&quot;status&quot;:&quot;missing&quot;', false);
+    }
+
+    public function test_transcript_and_honorable_dismissal_are_hidden_for_a_new_student(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'applicant_type' => 'NEW']);
+
+        $response = $this->actingAs($student)->get('/documents');
+
+        $response->assertOk();
+        foreach (self::TRANSFEREE_ONLY_TYPES as $type) {
+            $response->assertDontSee('&quot;type&quot;:&quot;' . $type . '&quot;', false);
+        }
+    }
+
+    public function test_transcript_and_honorable_dismissal_show_for_a_transferee(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'applicant_type' => 'TRANSFEREE']);
+
+        $response = $this->actingAs($student)->get('/documents');
+
+        $response->assertOk();
+        foreach (self::TRANSFEREE_ONLY_TYPES as $type) {
+            $response->assertSee('&quot;type&quot;:&quot;' . $type . '&quot;', false);
+        }
+    }
+
+    public function test_transcript_and_honorable_dismissal_show_for_a_returnee(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'applicant_type' => 'RETURNEE']);
+
+        $response = $this->actingAs($student)->get('/documents');
+
+        $response->assertOk();
+        foreach (self::TRANSFEREE_ONLY_TYPES as $type) {
+            $response->assertSee('&quot;type&quot;:&quot;' . $type . '&quot;', false);
+        }
     }
 
     public function test_2x2_id_photo_is_a_selectable_requirement_type(): void
