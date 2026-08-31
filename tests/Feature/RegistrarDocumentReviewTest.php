@@ -96,6 +96,28 @@ class RegistrarDocumentReviewTest extends TestCase
         $this->assertSame('accepted', $sub->fresh()->status);
     }
 
+    public function test_accepting_a_document_approves_only_the_current_terms_registrar_status(): void
+    {
+        $registrar = \App\Models\User::factory()->create(['role' => 'registrar']);
+        $student = \App\Models\User::factory()->create(['role' => 'student']);
+
+        \App\Models\Setting::put('school_year', '2026-2027');
+        \App\Models\Setting::put('semester', '1');
+        \App\Models\Setting::clearCache();
+        $past = \App\Models\Clearance::initializeFor($student->id, '2026-2027', 1, ['registrar_status' => 'Pending']);
+
+        \App\Models\Setting::put('semester', '2');
+        \App\Models\Setting::clearCache();
+        $current = \App\Models\Clearance::initializeFor($student->id, '2026-2027', 2, ['registrar_status' => 'Pending']);
+
+        $submission = \App\Models\DocumentSubmission::factory()->create(['user_id' => $student->id]);
+
+        $this->actingAs($registrar)->post("/registrar/documents/{$submission->id}/accept");
+
+        $this->assertSame('Pending', $past->fresh()->registrar_status);
+        $this->assertSame('Approved', $current->fresh()->registrar_status);
+    }
+
     public function test_students_cannot_review(): void
     {
         $sub = DocumentSubmission::factory()->create();

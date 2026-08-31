@@ -404,9 +404,10 @@ class AuthController extends Controller
             'amount'       => ['required', 'string']
             ]);
             
-            $cleanAmount = (float) str_replace(['₱', ',', ' '], '', 
-            $request->input('amount'));$clearance = Clearance::where('user_id', 
-            $request->input('user_id'))->firstOrFail();$user = User::findOrFail($request->input('user_id'));
+            $cleanAmount = (float) str_replace(['₱', ',', ' '], '', $request->input('amount'));
+            $user = User::findOrFail($request->input('user_id'));
+            $clearance = Clearance::currentFor($user);
+            abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
             DB::beginTransaction();
 
             try {

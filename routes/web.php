@@ -429,7 +429,7 @@ Route::middleware('auth')->group(function () {
         $submission->update(['status' => 'accepted', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
         AuditLog::record('Document Reviewed', 'Registrar accepted ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
 
-        if ($clearance = Clearance::where('user_id', $submission->user_id)->first()) {
+        if ($clearance = Clearance::currentFor($submission->user)) {
             $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
         }
 
@@ -645,7 +645,8 @@ Route::middleware('auth')->group(function () {
             'user_id' => ['required', 'integer'],
             'remarks' => ['required', 'string', 'max:500'],
         ]);
-        $clearance = Clearance::where('user_id', $data['user_id'])->firstOrFail();
+        $clearance = Clearance::currentFor(User::findOrFail($data['user_id']));
+        abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
         $clearance->update(['cashier_status' => 'Hold', 'remarks' => $data['remarks']]);
         AuditLog::record('Clearance Held', 'Cashier held clearance for student ID ' . $data['user_id'] . ': ' . $data['remarks'], 'Clearance', $clearance->id);
 
