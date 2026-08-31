@@ -106,17 +106,23 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login')->with('error', 'Session validation failure.');
         }
 
-        $clearance = Clearance::initializeFor(
-            $user->id,
-            Setting::get('school_year', '2026-2027'),
-            (int) Setting::get('semester', '1'),
-            [
-                'admission_status'   => 'Pending',
-                'chair_status'       => 'Pending',
-                'cashier_status'     => 'Pending',
-                'registrar_status'   => 'Pending',
-            ]
-        );
+        $clearance = strtoupper((string) $user->program_level) === 'TESDA'
+            ? Clearance::currentFor($user)
+            : null;
+
+        if (! $clearance) {
+            $clearance = Clearance::initializeFor(
+                $user->id,
+                Setting::get('school_year', '2026-2027'),
+                (int) Setting::get('semester', '1'),
+                [
+                    'admission_status'   => 'Pending',
+                    'chair_status'       => 'Pending',
+                    'cashier_status'     => 'Pending',
+                    'registrar_status'   => 'Pending',
+                ]
+            );
+        }
 
         return view('dashboard', compact('clearance'));
     })->name('dashboard');
@@ -129,17 +135,25 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login');
         }
 
-        $clearance = Clearance::initializeFor(
-            $user->id,
-            Setting::get('school_year', '2026-2027'),
-            (int) Setting::get('semester', '1'),
-            [
-                'admission_status'   => 'Pending',
-                'chair_status'       => 'Pending',
-                'cashier_status'     => 'Pending',
-                'registrar_status'   => 'Pending',
-            ]
-        )->load('items.department');
+        $clearance = strtoupper((string) $user->program_level) === 'TESDA'
+            ? Clearance::currentFor($user)
+            : null;
+
+        if (! $clearance) {
+            $clearance = Clearance::initializeFor(
+                $user->id,
+                Setting::get('school_year', '2026-2027'),
+                (int) Setting::get('semester', '1'),
+                [
+                    'admission_status'   => 'Pending',
+                    'chair_status'       => 'Pending',
+                    'cashier_status'     => 'Pending',
+                    'registrar_status'   => 'Pending',
+                ]
+            );
+        }
+
+        $clearance->load('items.department');
 
         // Only the latest submission (any type) is needed here, to show the
         // registrar hold banner's pending/awaiting-review state. The full

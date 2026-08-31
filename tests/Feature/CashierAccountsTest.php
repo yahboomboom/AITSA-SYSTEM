@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Clearance;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,5 +30,28 @@ class CashierAccountsTest extends TestCase
         $response->assertDontSee('name="amount"', false);
         $response->assertSee('Review in Cashier Hub');
         $response->assertSee(route('cashier.dashboard'), false);
+    }
+
+    public function test_accounts_page_does_not_list_a_students_clearance_from_a_past_term(): void
+    {
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        $student = User::factory()->create(['role' => 'student']);
+
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '1');
+        Setting::clearCache();
+        $past = Clearance::initializeFor($student->id, '2026-2027', 1);
+
+        Setting::put('semester', '2');
+        Setting::clearCache();
+        $current = Clearance::initializeFor($student->id, '2026-2027', 2);
+
+        $response = $this->actingAs($cashier)->get('/cashier/accounts');
+
+        $response->assertOk();
+        $response->assertDontSee('#' . sprintf('%04d', $past->id));
+        $response->assertSee('#' . sprintf('%04d', $current->id));
+        $occurrences = substr_count($response->getContent(), $student->name);
+        $this->assertSame(1, $occurrences);
     }
 }

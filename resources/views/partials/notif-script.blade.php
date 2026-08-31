@@ -11,7 +11,7 @@
 
     // ── STUDENT ──────────────────────────────────────────────────────────────
     if ($authRole === 'student') {
-        $cl = ($clearance ?? Clearance::where('user_id', $authId)->first())?->loadMissing('items.department');
+        $cl = ($clearance ?? ($authUser ? Clearance::currentFor($authUser) : null))?->loadMissing('items.department');
 
         if ($cl) {
             if ($cl->chair_status === 'Approved') {
@@ -105,9 +105,17 @@
     // ── REGISTRAR / ADMISSION ─────────────────────────────────────────────────
     } elseif (in_array($authRole, ['registrar', 'admission'])) {
         $pendingApplicants = User::where('role', 'applicant')->count();
-        $pendingClearances = Clearance::where('registrar_status', 'Pending')->count();
-        $totalClearances   = Clearance::count();
-        $clearedCount      = Clearance::where('registrar_status', 'Approved')->count();
+        $pendingClearances = Clearance::where('registrar_status', 'Pending')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
+        $totalClearances   = Clearance::where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
+        $clearedCount      = Clearance::where('registrar_status', 'Approved')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
 
         if ($pendingApplicants > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-user-clock',     'color' => '#E2A700', 'title' => 'New Applications Waiting',
@@ -150,8 +158,14 @@
 
     // ── CASHIER ───────────────────────────────────────────────────────────────
     } elseif ($authRole === 'cashier') {
-        $pendingPayments = Clearance::where('cashier_status', 'Pending')->count();
-        $settledPayments = Clearance::where('cashier_status', 'Approved')->count();
+        $pendingPayments = Clearance::where('cashier_status', 'Pending')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
+        $settledPayments = Clearance::where('cashier_status', 'Approved')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
         $onlineToday = \App\Models\TransactionLedger::where('gateway', 'paymongo')->where('status', 'Settled')->whereDate('paid_at', today())->count();
         if ($onlineToday > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-money-bill-wave', 'color' => '#1D7A46', 'title' => 'Online Payments Received',
@@ -170,8 +184,14 @@
 
     // ── DEPT CHAIR / APPROVER ─────────────────────────────────────────────────
     } elseif ($authRole === 'chair') {
-        $pendingSign = Clearance::where('chair_status', 'Pending')->count();
-        $signedCount = Clearance::where('chair_status', 'Approved')->count();
+        $pendingSign = Clearance::where('chair_status', 'Pending')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
+        $signedCount = Clearance::where('chair_status', 'Approved')
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) \App\Models\Setting::get('semester', '1'))
+            ->count();
 
         if ($pendingSign > 0) {
             $notifs[] = ['id' => $nid++, 'icon' => 'fa-pen-to-square',  'color' => '#7C3AED', 'title' => 'Clearances Pending Your Approval',

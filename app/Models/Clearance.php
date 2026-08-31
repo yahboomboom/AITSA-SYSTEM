@@ -97,9 +97,24 @@ class Clearance extends Model
 
     public static function currentFor(User $user): ?self
     {
-        return static::where('user_id', $user->id)
+        $current = static::where('user_id', $user->id)
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->first();
+
+        if ($current) {
+            return $current;
+        }
+
+        // TESDA students are never rolled forward by the Registrar's
+        // College-only term-rollover action, so they'd otherwise have no
+        // "current term" row at all after a rollover — fall back to their
+        // most recent clearance instead of null, so staff actions/queues
+        // keep working for them.
+        if (strtoupper((string) $user->program_level) === 'TESDA') {
+            return static::where('user_id', $user->id)->latest('id')->first();
+        }
+
+        return null;
     }
 }

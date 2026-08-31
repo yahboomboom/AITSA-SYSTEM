@@ -16,8 +16,18 @@ class FixIncorrectClearances extends Command
     public function handle(FeeAssessmentService $fees): int
     {
         // Only look at clearances currently marked Approved — these are
-        // the only ones that could be wrongly cleared.
-        $approvedClearances = Clearance::where('cashier_status', 'Approved')->get();
+        // the only ones that could be wrongly cleared. Scope to the CURRENT
+        // term only: a past-term row's "Approved" status reflects that term's
+        // balance at the time, and a student may owe money for a later term
+        // without that retroactively un-approving history from a term that
+        // was already settled.
+        $schoolYear = \App\Models\Setting::get('school_year', '2026-2027');
+        $semester = (int) \App\Models\Setting::get('semester', '1');
+
+        $approvedClearances = Clearance::where('cashier_status', 'Approved')
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
+            ->get();
 
         $fixedCount = 0;
 

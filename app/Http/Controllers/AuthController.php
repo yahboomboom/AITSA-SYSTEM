@@ -300,10 +300,15 @@ class AuthController extends Controller
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
         $clearances = Clearance::with('user.discountType')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
             ->get();
 
-        $totalOutstandingDocs = Clearance::where('cashier_status', 'Pending')->count();
+        $totalOutstandingDocs = Clearance::where('cashier_status', 'Pending')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->count();
 
         $latestSettledByUser = TransactionLedger::where('status', 'Settled')
             ->orderByDesc('created_at')
@@ -355,7 +360,11 @@ class AuthController extends Controller
      */
     public function showCashierAccounts()
     {
-        $accounts = Clearance::with('user')->orderBy('created_at', 'desc')->get();
+        $accounts = Clearance::with('user')
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->orderBy('created_at', 'desc')
+            ->get();
         return view('cashier.accounts', compact('accounts'));
     }
 
