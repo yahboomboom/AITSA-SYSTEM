@@ -75,23 +75,37 @@ class SectionController extends Controller
         ]);
     }
 
-    private function validated(Request $request, ?Section $section = null): array
+        private function validated(Request $request, ?Section $section = null): array
     {
         $required = $section ? 'sometimes' : 'required';
 
-        return $request->validate([
+        // A room is only meaningful when the block actually meets face-to-face;
+        // an Online block doesn't need a physical room assigned to it.
+        $isOnline = $request->input('delivery_mode', $section?->delivery_mode) === 'Online';
+
+        $data = $request->validate([
             'subject_id' => [$required, 'integer', 'exists:subjects,id'],
             'block_label' => [$required, 'string', 'max:10'],
             'days' => [$required, 'array', 'min:1'],
             'days.*' => ['in:M,T,W,Th,F,Sat,Sun'],
             'start_time' => [$required, 'date_format:H:i'],
             'end_time' => [$required, 'date_format:H:i', 'after:start_time'],
-            'room' => [$required, 'string', 'max:50'],
+            'room' => [$isOnline ? 'nullable' : $required, 'string', 'max:50'],
             'professor' => [$required, 'string', 'max:100'],
             'capacity' => [$required, 'integer', 'between:1,500'],
             'school_year' => [$required, 'string', 'max:20'],
             'faculty_id' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('role', 'faculty')],
             'room_id' => ['sometimes', 'nullable', 'integer', Rule::exists('rooms', 'id')],
+            'delivery_mode' => [$required, 'in:Face-to-Face,Online'],
         ]);
+
+        // Never persist a physical room against an Online block, even if the
+        // client sent one along (e.g. a leftover value from switching modes).
+        if ($isOnline) {
+            $data['room'] = $data['room'] ?? 'Online';
+            $data['room_id'] = null;
+        }
+
+        return $data;
     }
 }

@@ -109,9 +109,11 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
                                                                     : full ? 'border-slate-200 text-slate-400 cursor-not-allowed'
                                                                     : 'border-slate-300 dark:border-slate-600 hover:border-brandNavy'}`}>
                                                             <span className="font-semibold">Block {section.block_label}</span>{' '}
-                                                            {section.days.join('/')} {section.start_time}–{section.end_time} · {section.room}
+                                                            {section.days.join('/')} {section.start_time}–{section.end_time} ·{' '}
+                                                            {section.delivery_mode === 'Online' ? 'Online' : section.room}
                                                             <span className="block text-[10px] opacity-70">
                                                                 {full ? 'Section full' : `${section.seats_left} seats left`} · {section.professor}
+                                                                {' '}· {section.delivery_mode === 'Online' ? 'Online class' : 'Face-to-Face'}
                                                             </span>
                                                         </button>
                                                     );

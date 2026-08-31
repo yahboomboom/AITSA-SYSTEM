@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Notifications\ClearanceApprovalNeededNotification;
+use App\Notifications\ClearancePendingNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -89,8 +91,18 @@ class Clearance extends Model
         ));
 
         foreach (Department::where('is_active', true)->get() as $department) {
-            $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
+            $item = $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
+
+            // Let every officer of this department (not students who happen to share
+            // the same department_id) know a new item just landed in their queue.
+            foreach ($department->officers()->where('role', 'department_officer')->get() as $officer) {
+                $officer->notify(new ClearanceApprovalNeededNotification($item, 'Department Clearance Queue'));
+            }
         }
+
+        // Let the student know their clearance process has started.
+        $clearance->load('user');
+        $clearance->user?->notify(new ClearancePendingNotification($clearance));
 
         return $clearance;
     }

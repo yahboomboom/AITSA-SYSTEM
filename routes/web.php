@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Models\StudentGrade;
 use App\Models\TransactionLedger;
 use App\Models\User;
+use App\Notifications\ClearanceStatusUpdatedNotification;
 use App\Services\FeeAssessmentService;
 use App\Services\MatriculationChangeService;
 use App\Services\PaymentService;
@@ -88,6 +89,14 @@ Route::middleware('signed')->group(function () {
 
         return redirect()->route('apply')->with('error', 'Reservation payment cancelled. Your application was still submitted — you can settle the reservation fee at the cashier window instead.');
     })->name('apply.reservation.cancel');
+
+    // DocuSign redirects the applicant's browser back here after the embedded
+    // signing ceremony. Deliberately NOT inside the 'signed' middleware group —
+    // DocuSign appends its own "?event=..." query param to whatever return URL
+    // we give it, which would otherwise break Laravel's signed-URL validation.
+    // AgreementController verifies the request itself via the "token" param.
+    Route::get('/agreement/{user}/return', [\App\Http\Controllers\AgreementController::class, 'returning'])
+    ->name('agreement.return');
 });
 
 /*
@@ -415,7 +424,7 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('registrar.dashboard')->with('error', 'Clearance profile row lookup failed.');
     })->name('admission.approve');
 
-    Route::post('/registrar/sign/{id}', function ($id) {
+        Route::post('/registrar/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
             $clearance->update([ 'registrar_status' => 'Approved',
@@ -423,6 +432,7 @@ Route::middleware('auth')->group(function () {
                 'registrar_signed_at' => now(),
                 'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
+            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Approved'));
         }
         return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
     })->name('registrar.sign');
@@ -433,6 +443,7 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['registrar_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Registrar held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Hold', $data['remarks']));
             return redirect()->route('registrar.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('registrar.dashboard')->with('error', 'Record not found.');
@@ -557,7 +568,7 @@ Route::middleware('auth')->group(function () {
         return back()->with('success', 'Change request returned to the student with remarks.');
     })->name('approver.matriculation.reject');
 
-    Route::post('/approver/sign/{id}', function ($id) {
+        Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
             $clearance->update([ 'chair_status' => 'Approved',
@@ -565,6 +576,7 @@ Route::middleware('auth')->group(function () {
                 'chair_signed_at' => now(),
                 'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
+            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Approved'));
             return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -576,6 +588,7 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['chair_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Department Chair held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Hold', $data['remarks']));
             return redirect()->route('approver.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -634,6 +647,7 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Approved', 'remarks' => null, 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Signed', Auth::user()->name . ' approved ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . '.', 'ClearanceItem', $item->id);
+        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Approved'));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item approved.');
     })->name('department.items.approve');
@@ -644,6 +658,7 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Hold', 'remarks' => $data['remarks'], 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Held', Auth::user()->name . ' held ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . ': ' . $data['remarks'], 'ClearanceItem', $item->id);
+        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Hold', $data['remarks']));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item held with remarks.');
     })->name('department.items.hold');
@@ -674,6 +689,7 @@ Route::middleware('auth')->group(function () {
         abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
         $clearance->update(['cashier_status' => 'Hold', 'remarks' => $data['remarks']]);
         AuditLog::record('Clearance Held', 'Cashier held clearance for student ID ' . $data['user_id'] . ': ' . $data['remarks'], 'Clearance', $clearance->id);
+        $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Cashier', 'Hold', $data['remarks']));
 
         return redirect()->back()->with('success', 'Clearance held with remarks.');
     })->name('cashier.hold');

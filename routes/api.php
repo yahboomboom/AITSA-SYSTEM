@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\MatriculationController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PaymongoWebhookController;
+use App\Http\Controllers\Api\DocuSignWebhookController;
 
 // Public — no login required, since this is called by PayMongo's own
 // servers, not by a logged-in user. The verifySignature() check inside
@@ -21,6 +22,10 @@ Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
     Route::get('/matriculation/context', [MatriculationController::class, 'context']);
     Route::post('/matriculation', [MatriculationController::class, 'store']);
 });
+
+// Same idea, but for DocuSign Connect — fired by DocuSign's servers whenever
+// an envelope's status changes (e.g. the student finishes signing).
+Route::post('/webhooks/docusign', [DocuSignWebhookController::class, 'handle']);
 
 // Curriculum-editing API — moved from Admin to Registrar (per Admin doing too
 // much; Dept Chair was considered but not included). URL prefix kept as

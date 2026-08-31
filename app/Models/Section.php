@@ -14,6 +14,7 @@ class Section extends Model
     protected $fillable = [
         'subject_id', 'block_label', 'days', 'start_time', 'end_time',
         'room', 'professor', 'capacity', 'school_year', 'faculty_id', 'room_id',
+        'delivery_mode', // 'Face-to-Face' or 'Online' — set per section/block.
     ];
 
     protected $casts = ['days' => 'array'];
@@ -70,5 +71,17 @@ class Section extends Model
         }
 
         return $this->start_time < $other->end_time && $other->start_time < $this->end_time;
+    }
+    
+    // True when this specific block is held online (no physical room needed).
+    public function isOnline(): bool
+    {
+        return $this->delivery_mode === 'Online';
+    }
+
+    // True when this specific block meets face-to-face (a physical room applies).
+    public function isFaceToFace(): bool
+    {
+        return $this->delivery_mode !== 'Online';
     }
 }

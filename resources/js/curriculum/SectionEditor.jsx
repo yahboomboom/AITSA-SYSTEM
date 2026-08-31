@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import api from '../lib/api';
 
-const EMPTY = { block_label: 'A', days: ['M', 'W'], start_time: '08:00', end_time: '09:30', room: 'TBA', professor: 'TBA', capacity: 40, faculty_id: null, room_id: null };
+const EMPTY = { block_label: 'A', days: ['M', 'W'], start_time: '08:00', end_time: '09:30', room: 'TBA', professor: 'TBA', capacity: 40, faculty_id: null, room_id: null, delivery_mode: 'Face-to-Face' };
 const DAY_OPTIONS = ['M', 'T', 'W', 'Th', 'F', 'Sat', 'Sun'];
 
 export default function SectionEditor({ subject, schoolYear, faculty, rooms, onChanged, onListsChanged }) {
@@ -61,7 +61,11 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
             {subject.sections.map((s) => (
                 <div key={s.id} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 dark:border-slate-800">
                     <span>
-                        <span className="font-semibold">Block {s.block_label}</span> · {s.days.join('/')} {s.start_time}–{s.end_time} · {s.room_label ?? s.room} · {s.faculty_name ?? s.professor}
+                        <span className="font-semibold">Block {s.block_label}</span> · {s.days.join('/')} {s.start_time}–{s.end_time} ·{' '}
+                        {s.delivery_mode === 'Online' ? 'Online' : (s.room_label ?? s.room)} · {s.faculty_name ?? s.professor}
+                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${s.delivery_mode === 'Online' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                            {s.delivery_mode === 'Online' ? 'Online' : 'F2F'}
+                        </span>
                         <span className="text-slate-400"> · {s.enrolled_count}/{s.capacity} enrolled</span>
                     </span>
                     <span className="flex gap-2">
@@ -84,13 +88,25 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                             placeholder="Cap" className="w-16 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                        <select value={draft.room_id ?? ''} onChange={(e) => setDraft({ ...draft, room_id: e.target.value || null })}
+                        {/* Delivery mode: switches whether this specific block meets face-to-face or online.
+                            Independent from the subject's own default "mode" so one subject can offer both. */}
+                        <select value={draft.delivery_mode ?? 'Face-to-Face'}
+                            onChange={(e) => setDraft({ ...draft, delivery_mode: e.target.value, room_id: e.target.value === 'Online' ? null : draft.room_id })}
                             className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
-                            <option value="">— room unassigned —</option>
-                            {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}{r.type === 'virtual' ? ' (online)' : ''}</option>)}
+                            <option value="Face-to-Face">Face-to-Face</option>
+                            <option value="Online">Online</option>
                         </select>
-                        <button onClick={() => setNewRoom(newRoom ? null : { name: '', type: 'physical' })}
-                            className="text-brandGreen font-semibold hover:underline">+ Add room</button>
+                        {draft.delivery_mode !== 'Online' && (
+                            <>
+                                <select value={draft.room_id ?? ''} onChange={(e) => setDraft({ ...draft, room_id: e.target.value || null })}
+                                    className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
+                                    <option value="">— room unassigned —</option>
+                                    {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}{r.type === 'virtual' ? ' (online)' : ''}</option>)}
+                                </select>
+                                <button onClick={() => setNewRoom(newRoom ? null : { name: '', type: 'physical' })}
+                                    className="text-brandGreen font-semibold hover:underline">+ Add room</button>
+                            </>
+                        )}
                         <select value={draft.faculty_id ?? ''} onChange={(e) => setDraft({ ...draft, faculty_id: e.target.value || null })}
                             className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
                             <option value="">— professor unassigned —</option>

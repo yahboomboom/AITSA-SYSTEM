@@ -169,6 +169,7 @@ class EnrollmentService
                         'room' => $s->room,
                         'professor' => $s->professor,
                         'seats_left' => $s->seatsLeft(),
+                        'delivery_mode' => $s->delivery_mode, // 'Face-to-Face' or 'Online' — shown to the student per block.
                     ])->values()->all(),
                 ];
             })

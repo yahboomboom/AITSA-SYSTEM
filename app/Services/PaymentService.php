@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\TransactionLedger;
 use App\Models\User;
+use App\Notifications\ClearanceStatusUpdatedNotification;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
@@ -106,6 +107,20 @@ public function startReservationCheckout(User $user, ?string $successUrl = null,
         throw new PaymentGatewayException('You have already reserved your slot.');
     }
 
+    // NEW — DocuSign gate: if DocuSign is enabled (config/services.php,
+    // DOCUSIGN_ENABLED in .env) and this applicant hasn't e-signed their
+    // enrollment agreement yet, don't go to PayMongo yet — send them to
+    // DocuSign's signing ceremony first. Once DocuSign redirects them back
+    // (AgreementController::returning), this same method runs again, this
+    // time with hasSigned() === true, and falls through to PayMongo below.
+    // With DOCUSIGN_ENABLED left off, this block is skipped entirely and
+    // the flow behaves exactly as it did before — no DocuSign account needed.
+    if (config('services.docusign.enabled') && ! $this->docusign->hasSigned($user)) {
+        $agreementReturnUrl = route('agreement.return', ['user' => $user->id]);
+
+        return $this->docusign->createEnvelopeForUser($user, $agreementReturnUrl)['signingUrl'];
+    }
+
     // Create the actual PayMongo checkout session (amount is in centavos).
     // Custom success/cancel URLs let applicants (who aren't logged in yet)
     // get routed back to a signed applicant-facing page instead of /ledger.
@@ -198,6 +213,7 @@ private function settleRow(TransactionLedger $row): array
             $clearance->update(['cashier_status' => 'Approved']);
             AuditLog::record('Cashier Cleared (Gateway)', 'Cashier clearance auto-approved for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') after gateway-verified full payment.', 'Clearance', $clearance->id);
                 $message .= ' Your cashier clearance has been approved.';
+                $user->notify(new ClearanceStatusUpdatedNotification('Cashier', 'Approved'));
             }
     }
 
