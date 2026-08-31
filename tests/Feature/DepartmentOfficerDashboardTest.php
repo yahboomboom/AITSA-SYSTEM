@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Clearance;
 use App\Models\Department;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -11,6 +12,27 @@ use Tests\TestCase;
 class DepartmentOfficerDashboardTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_dashboard_only_lists_items_for_the_current_terms_clearance(): void
+    {
+        $department = Department::factory()->create(['is_active' => true]);
+        $officer = User::factory()->create(['role' => 'department_officer', 'department_id' => $department->id]);
+        $student = User::factory()->create(['role' => 'student']);
+
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '1');
+        Setting::clearCache();
+        Clearance::initializeFor($student->id, '2026-2027', 1);
+
+        Setting::put('semester', '2');
+        Setting::clearCache();
+        Clearance::initializeFor($student->id, '2026-2027', 2);
+
+        $response = $this->actingAs($officer)->get('/department/dashboard');
+
+        $response->assertOk();
+        $response->assertViewHas('items', fn ($items) => $items->where('clearance.user_id', $student->id)->count() === 1);
+    }
 
     public function test_officer_sees_only_their_own_department_queue(): void
     {

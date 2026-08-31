@@ -604,6 +604,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/department/dashboard', function () {
         $officer = Auth::user();
         $items = ClearanceItem::where('department_id', $officer->department_id)
+            ->whereHas('clearance', function ($query) {
+                $query->where('school_year', Setting::get('school_year', '2026-2027'))
+                    ->where('semester', (int) Setting::get('semester', '1'));
+            })
             ->with('clearance.user')
             ->get();
 
