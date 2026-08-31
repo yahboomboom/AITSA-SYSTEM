@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /*
 |--------------------------------------------------------------------------
@@ -1008,4 +1009,56 @@ Route::middleware('auth')->group(function () {
         })->name('registrar.toggle-reservation');
 
     }); // end role:registrar,admission
+
+    // --- REGISTRAR-ONLY: term rollover (higher blast-radius than the
+    // shared registrar,admission workspace above, so it gets its own,
+    // tighter role gate). ---
+    Route::middleware('role:registrar')->group(function () {
+        Route::post('/registrar/start-new-term', function (Request $request) {
+            $data = $request->validate([
+                'school_year' => ['required', 'string', 'max:20'],
+                'semester' => ['required', 'integer', Rule::in([1, 2])],
+            ]);
+
+            $currentSchoolYear = Setting::get('school_year', '2026-2027');
+            $currentSemester = (int) Setting::get('semester', '1');
+
+            if ($data['school_year'] === $currentSchoolYear && (int) $data['semester'] === $currentSemester) {
+                return redirect()->back()->withErrors(['semester' => 'That is already the current term.']);
+            }
+
+            $created = 0;
+
+            DB::transaction(function () use ($data, &$created) {
+                $collegeProgramCodes = Program::whereIn('level', ['associate', 'bachelor'])->pluck('code');
+
+                User::where('role', 'student')
+                    ->whereIn('major', $collegeProgramCodes)
+                    ->chunkById(100, function ($students) use ($data, &$created) {
+                        foreach ($students as $student) {
+                            Clearance::initializeFor($student->id, $data['school_year'], (int) $data['semester'], [
+                                'admission_status' => 'Approved',
+                                'chair_status' => 'Pending',
+                                'cashier_status' => 'Pending',
+                                'registrar_status' => 'Pending',
+                            ]);
+                            $created++;
+                        }
+                    });
+
+                Setting::put('school_year', $data['school_year']);
+                Setting::put('semester', (string) $data['semester']);
+            });
+
+            AuditLog::record(
+                'New Term Started',
+                Auth::user()->name . ' started ' . $data['school_year'] . ' Semester ' . $data['semester'] .
+                    ' — created ' . $created . ' College clearance record(s).',
+                'Clearance',
+                null
+            );
+
+            return redirect()->route('registrar.slots')->with('success', 'Started ' . $data['school_year'] . ' Semester ' . $data['semester'] . ' for ' . $created . ' College student(s).');
+        })->name('registrar.start-new-term');
+    }); // end role:registrar (start-new-term)
 });
