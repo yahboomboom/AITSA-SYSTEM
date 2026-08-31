@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\Clearance;
+use App\Models\Setting;
 use Database\Seeders\ShsStrandsSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -129,7 +130,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Demo Clearance Student', 'email' => 'clearance.demo@aitsa.test', 'password' => Hash::make('password'),
              'role' => 'student', 'major' => 'BSOA', 'year_level' => '1st Year']
         );
-        Clearance::initializeFor($clearanceDemo->id, [
+        Clearance::initializeFor($clearanceDemo->id, Setting::get('school_year', '2026-2027'), (int) Setting::get('semester', '1'), [
             'chair_status' => 'Approved',
             'cashier_status' => 'Pending',
             'registrar_status' => 'Pending',

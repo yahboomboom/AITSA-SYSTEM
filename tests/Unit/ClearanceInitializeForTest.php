@@ -18,7 +18,7 @@ class ClearanceInitializeForTest extends TestCase
         $inactive = Department::factory()->create(['is_active' => false]);
         $student = User::factory()->create(['role' => 'student']);
 
-        $clearance = Clearance::initializeFor($student->id, ['chair_status' => 'Pending']);
+        $clearance = Clearance::initializeFor($student->id, '2026-2027', 1, ['chair_status' => 'Pending']);
 
         $this->assertSame(1, $clearance->items()->count());
         $this->assertTrue($clearance->items()->where('department_id', $active->id)->exists());
@@ -28,10 +28,10 @@ class ClearanceInitializeForTest extends TestCase
     public function test_returns_existing_clearance_without_creating_new_items(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        $first = Clearance::initializeFor($student->id);
+        $first = Clearance::initializeFor($student->id, '2026-2027', 1);
 
         Department::factory()->create(['is_active' => true]);
-        $second = Clearance::initializeFor($student->id);
+        $second = Clearance::initializeFor($student->id, '2026-2027', 1);
 
         $this->assertSame($first->id, $second->id);
         $this->assertSame(0, $second->items()->count());
