@@ -17,6 +17,7 @@ class PaymentService
         private PayMongoService $gateway,
         private FeeAssessmentService $fees,
         private AdmissionService $admissions,
+        private DocuSignService $docusign,
     ) {
     }
 
