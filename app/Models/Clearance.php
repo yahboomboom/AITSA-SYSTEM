@@ -18,6 +18,8 @@ class Clearance extends Model
      */
     protected $fillable = [
         'user_id',
+        'school_year',
+        'semester',
         'admission_status',
         'chair_status',
         'cashier_status',
@@ -71,19 +73,33 @@ class Clearance extends Model
         return $this->belongsTo(User::class, 'registrar_signed_by');
     }
 
-    public static function initializeFor(int $userId, array $attributes = []): self
+    public static function initializeFor(int $userId, string $schoolYear, int $semester, array $attributes = []): self
     {
-        $existing = static::where('user_id', $userId)->first();
+        $existing = static::where('user_id', $userId)
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
+            ->first();
         if ($existing) {
             return $existing;
         }
 
-        $clearance = static::create(array_merge(['user_id' => $userId], $attributes));
+        $clearance = static::create(array_merge(
+            ['user_id' => $userId, 'school_year' => $schoolYear, 'semester' => $semester],
+            $attributes
+        ));
 
         foreach (Department::where('is_active', true)->get() as $department) {
             $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
         }
 
         return $clearance;
+    }
+
+    public static function currentFor(User $user): ?self
+    {
+        return static::where('user_id', $user->id)
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->first();
     }
 }
