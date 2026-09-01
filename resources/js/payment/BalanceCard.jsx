@@ -1,5 +1,15 @@
 import { peso } from '../utils/format';
 
+// Disables the submit button on click so a slow gateway round-trip can't be
+// double-clicked into a second checkout session / pending ledger row.
+function disableSubmit(e, busyLabel) {
+    const btn = e.currentTarget.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = busyLabel;
+    }
+}
+
 export default function BalanceCard({ settled, breakdown, hasPendingGateway, checkoutUrl, verifyUrl, csrfToken }) {
     const b = breakdown ?? {};
     const hasDiscount = (b.discount_amount ?? 0) > 0;
@@ -69,9 +79,9 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                         </button>
                     ) : (
                         !hasPendingGateway && (
-                            <form action={checkoutUrl} method="POST">
+                            <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
                                 <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0">
+                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none">
                                     <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
                                 </button>
                             </form>
@@ -79,9 +89,9 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                     )}
                     {hasPendingGateway && (
                         <>
-                            <form action={verifyUrl} method="POST">
+                            <form action={verifyUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Verifying…')}>
                                 <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-brandGold/10 hover:bg-brandGold text-brandGold hover:text-white border border-brandGold/30 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">
+                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-brandGold/10 hover:bg-brandGold text-brandGold hover:text-white border border-brandGold/30 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                                     <i className="fa-solid fa-rotate" />Verify Payment
                                 </button>
                             </form>

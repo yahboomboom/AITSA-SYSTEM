@@ -12,40 +12,17 @@
 
     <div class="flex h-screen overflow-hidden">
 
-        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
-            <div class="h-16 flex items-center px-6 border-b border-brandNavy/10 dark:border-slate-800">
-                <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-7 h-7 rounded object-cover mr-3">
-                <h1 class="text-base font-black tracking-tight text-brandNavy dark:text-white">AITSA HQ</h1>
-            </div>
-
-            <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
-                <p class="px-3 text-[10px] font-bold text-brandNavy/40 dark:text-slate-500 uppercase tracking-widest mb-3">Core Control</p>
-
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>System Overview</span>
-                </a>
-                <a href="{{ route('admin.students.create') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>Create Student Account</span>
-                </a>
-                <a href="{{ route('admin.students.index') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>Student Registry</span>
-                </a>
-                <a href="{{ route('admin.departments') }}" class="flex items-center px-3 py-2.5 border-l-2 border-brandGreen text-brandGreen dark:text-emerald-400 font-bold text-sm transition-colors">
-                    <span>Departments</span>
-                </a>
-                <a href="{{ route('admin.audit') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>Audit Trail</span>
-                </a>
-                <a href="{{ route('admin.reports') }}" class="flex items-center px-3 py-2.5 border-l-2 border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors">
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        @include('partials.admin-sidebar')
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
 
             <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
-                <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Departments</h2>
+                <div class="flex items-center">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white mr-4">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Departments</h2>
+                </div>
                 <div class="flex items-center space-x-3 border-l border-brandNavy/10 dark:border-slate-700 pl-4">
                     @include('partials.notif-bell')
                     <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
@@ -114,7 +91,8 @@
                                             </form>
                                         </td>
                                         <td class="p-4 text-right">
-                                            <form action="{{ route('admin.departments.toggle', $department) }}" method="POST">
+                                            <form action="{{ route('admin.departments.toggle', $department) }}" method="POST"
+                                                onsubmit="return confirmDepartmentToggle(this, {{ Illuminate\Support\Js::from((bool) $department->is_active) }}, {{ Illuminate\Support\Js::from($department->name) }})">
                                                 @csrf
                                                 <button type="submit" class="px-3 py-1.5 bg-lightBg dark:bg-slate-800 hover:bg-brandNavy/10 text-brandNavy dark:text-slate-300 text-[11px] font-bold rounded border border-brandNavy/10 dark:border-slate-700">
                                                     {{ $department->is_active ? 'Deactivate' : 'Activate' }}
@@ -134,6 +112,18 @@
             </div>
         </main>
     </div>
+<script>
+    function confirmDepartmentToggle(form, isActive, name) {
+        var msg = isActive
+            ? 'Deactivate "' + name + '"? New clearance routing will no longer include this department until it is reactivated.'
+            : 'Activate "' + name + '" again?';
+        if (!confirm(msg)) return false;
+        var btn = form.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.textContent = 'Please wait…';
+        return true;
+    }
+</script>
 @include('partials.notif-script')
 </body>
 </html>

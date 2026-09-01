@@ -4,6 +4,16 @@ const APPLICANT_TYPE_STYLES = {
     RETURNEE: 'bg-amber-500/10 text-amber-600',
 };
 
+// Disables the submit button right after a confirmed action so a slow
+// request can't be triggered twice by an impatient double-click.
+function disableSubmit(form, busyLabel) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = busyLabel;
+    }
+}
+
 export default function ApplicantQueueTable({ applicants, csrfToken }) {
     return (
         <div className="bg-white dark:bg-panelDark/40 border border-brandGold/30 dark:border-amber-500/20 rounded-lg overflow-hidden">
@@ -85,7 +95,9 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                                 const action = applicant.isReserved ? 'Unmark' : 'Mark';
                                                 if (!window.confirm(`${action} ${applicant.name} as having paid the ₱500 reservation fee?`)) {
                                                     e.preventDefault();
+                                                    return;
                                                 }
+                                                disableSubmit(e.currentTarget, 'Please wait…');
                                             }}
                                         >
                                             <input type="hidden" name="_token" value={csrfToken} />
@@ -98,21 +110,26 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                         </form>
 
                                         {/* For applicants who never opted into an online/counter reservation
-                                            payment at all — the only path left to give them a student account. */}
+                                            payment at all — the only path left to give them a student account.
+                                            Styled as a solid button (not an underlined text link) since this is
+                                            an irreversible action that creates real login credentials and emails
+                                            them out — it should not read the same as the cleanup actions nearby. */}
                                         {!applicant.isReserved && !applicant.wantsReservation && (
                                             <form
                                                 action={applicant.activateApplicantUrl}
                                                 method="POST"
                                                 onSubmit={(e) => {
-                                                    if (!window.confirm(`Create a student account for ${applicant.name} now?`)) {
+                                                    if (!window.confirm(`Create a student account for ${applicant.name} now? This immediately generates login credentials and emails them to the applicant.`)) {
                                                         e.preventDefault();
+                                                        return;
                                                     }
+                                                    disableSubmit(e.currentTarget, 'Activating…');
                                                 }}
                                             >
                                                 <input type="hidden" name="_token" value={csrfToken} />
                                                 <button
                                                     type="submit"
-                                                    className="text-[9px] font-black text-brandGreen hover:text-emerald-700 underline underline-offset-2 transition-colors"
+                                                    className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wide text-white bg-brandGreen hover:bg-emerald-700 transition-colors"
                                                 >
                                                     Activate Account
                                                 </button>
@@ -145,7 +162,9 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                         onSubmit={(e) => {
                                             if (!window.confirm(`Archive ${applicant.name}'s application? This removes them from the pending queue.`)) {
                                                 e.preventDefault();
+                                                return;
                                             }
+                                            disableSubmit(e.currentTarget, 'Archiving…');
                                         }}
                                     >
                                         <input type="hidden" name="_token" value={csrfToken} />

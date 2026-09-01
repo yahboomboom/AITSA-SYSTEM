@@ -111,17 +111,19 @@ class AdminStudentRegistryTest extends TestCase
 
         $response->assertOk();
 
-        // The old broken pattern (`confirm('Delete {{ $student->name }}\'s account...')`)
-        // would let the attacker's `');` close the confirm() call and start executing
-        // arbitrary JS right inside the onsubmit attribute. Assert that raw breakout
-        // sequence is not present in the rendered HTML.
-        $response->assertDontSee("confirm('Delete Mallory');window.__xssFired=1;", false);
+        // An unescaped name would let the attacker's `');` close the JS call early and
+        // start executing arbitrary JS right inside the onclick attribute. Assert that
+        // raw breakout sequence is not present in the rendered HTML.
+        $response->assertDontSee("Mallory');window.__xssFired=1;", false);
 
-        // The fixed pattern wraps the whole confirm message in Illuminate\Support\Js::from(),
-        // which produces a single properly-escaped JS string literal that is also safe as
-        // an HTML attribute value. Assert that escaped literal is what actually renders.
-        $expected = Js::from('Delete '.$maliciousName."'s account? This cannot be undone from this page.");
-        $response->assertSee('onsubmit="return confirm('.$expected.');"', false);
+        // Deleting a student opens a typed-name confirmation modal instead of a native
+        // confirm() popup (so an accidental click can't nuke an account outright), but
+        // the student's name is still passed into an inline onclick via
+        // Illuminate\Support\Js::from(), which produces a single properly-escaped JS
+        // string literal that is also safe as an HTML attribute value. Assert that
+        // escaped literal is what actually renders.
+        $expected = Js::from($maliciousName);
+        $response->assertSee('openDeleteStudentModal('.Js::from(route('admin.students.destroy', $student)).', '.$expected.')', false);
     }
 
     public function test_non_admin_cannot_delete_a_student(): void

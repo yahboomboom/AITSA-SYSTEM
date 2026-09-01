@@ -12,40 +12,16 @@
 
 <div class="flex h-screen overflow-hidden">
 
-    {{-- SIDEBAR --}}
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
-        <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
-            <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover mr-3">
-            <h1 class="text-xl font-black tracking-tight text-brandNavy dark:text-white">AITSA HQ</h1>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-            <p class="px-4 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Core Control</p>
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
-                <span>System Overview</span>
-            </a>
-            <a href="{{ route('admin.students.create') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
-                <span>Create Student Account</span>
-            </a>
-            <a href="{{ route('admin.students.index') }}" class="flex items-center space-x-3 px-4 py-3 bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 rounded-xl font-bold text-sm">
-                <span>Student Registry</span>
-            </a>
-            <a href="{{ route('admin.departments') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
-                <span>Departments</span>
-            </a>
-            <a href="{{ route('admin.audit') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
-                <span>Audit Trail</span>
-            </a>
-            <a href="{{ route('admin.reports') }}" class="flex items-center space-x-3 px-4 py-3 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white rounded-xl font-medium text-sm transition-colors">
-                <span>Reports</span>
-            </a>
-        </nav>
-    </aside>
+    @include('partials.admin-sidebar')
 
     {{-- MAIN --}}
     <main class="flex-1 flex flex-col overflow-hidden">
 
         <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
             <div class="flex items-center gap-3">
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
                 <a href="{{ route('admin.dashboard') }}" class="text-brandNavy/50 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white transition-colors text-sm">
                     <i class="fa-solid fa-chevron-left mr-1"></i>Dashboard
                 </a>
@@ -130,14 +106,11 @@
                                     <td class="px-6 py-3 text-brandNavy/70 dark:text-slate-300">{{ $student->year_level ?? '—' }}</td>
                                     <td class="px-6 py-3 text-brandNavy/70 dark:text-slate-300">{{ $student->program_level ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right">
-                                        <form action="{{ route('admin.students.destroy', $student) }}" method="POST"
-                                            onsubmit="return confirm({{ Illuminate\Support\Js::from('Delete '.$student->name.'\'s account? This cannot be undone from this page.') }});">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs">
-                                                <i class="fa-solid fa-trash mr-1"></i>Delete
-                                            </button>
-                                        </form>
+                                        <button type="button"
+                                            onclick="openDeleteStudentModal({{ Illuminate\Support\Js::from(route('admin.students.destroy', $student)) }}, {{ Illuminate\Support\Js::from($student->name) }})"
+                                            class="text-red-500 hover:text-red-700 font-bold text-xs">
+                                            <i class="fa-solid fa-trash mr-1"></i>Delete
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
@@ -155,6 +128,63 @@
         </div>
     </main>
 </div>
+
+{{-- Permanent delete requires typing the student's name — no accidental single-click deletes. --}}
+<div id="delete-student-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full p-6">
+        <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-4">
+            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+        </div>
+        <h3 class="text-base font-black text-brandNavy dark:text-white mb-1">Delete student account?</h3>
+        <p class="text-xs text-brandNavy/60 dark:text-slate-400 mb-4">
+            This permanently deletes <strong id="delete-student-target-name" class="text-brandNavy dark:text-white"></strong>'s
+            account and cannot be undone. Type the student's name to confirm.
+        </p>
+        <input type="hidden" id="delete-student-expected-name">
+        <input type="text" id="delete-student-confirm-input" oninput="checkDeleteStudentInput()"
+            placeholder="Type the student's full name"
+            class="w-full border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-slate-900/60 rounded-xl px-4 py-2.5 text-sm text-brandNavy dark:text-slate-200 focus:outline-none focus:border-red-500 transition-colors mb-4">
+        <div class="flex gap-3">
+            <button type="button" onclick="closeDeleteStudentModal()"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold text-brandNavy/70 dark:text-slate-300 bg-brandNavy/5 dark:bg-slate-800 hover:bg-brandNavy/10 transition-colors">
+                Cancel
+            </button>
+            <button type="button" id="delete-student-confirm-btn" disabled onclick="submitDeleteStudent()"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+<form id="delete-student-form" method="POST" class="hidden">
+    @csrf
+    @method('DELETE')
+</form>
+<script>
+    function openDeleteStudentModal(url, name) {
+        document.getElementById('delete-student-form').action = url;
+        document.getElementById('delete-student-target-name').textContent = name;
+        document.getElementById('delete-student-expected-name').value = name;
+        document.getElementById('delete-student-confirm-input').value = '';
+        document.getElementById('delete-student-confirm-btn').disabled = true;
+        document.getElementById('delete-student-modal').classList.remove('hidden');
+    }
+    function closeDeleteStudentModal() {
+        document.getElementById('delete-student-modal').classList.add('hidden');
+    }
+    function checkDeleteStudentInput() {
+        var expected = document.getElementById('delete-student-expected-name').value.trim();
+        var typed = document.getElementById('delete-student-confirm-input').value.trim();
+        document.getElementById('delete-student-confirm-btn').disabled = (typed !== expected);
+    }
+    function submitDeleteStudent() {
+        var btn = document.getElementById('delete-student-confirm-btn');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = 'Deleting…';
+        document.getElementById('delete-student-form').submit();
+    }
+</script>
 
 @include('partials.notif-script')
 </body>

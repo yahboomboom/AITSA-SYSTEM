@@ -1,5 +1,20 @@
 import { peso } from '../utils/format';
 
+// Locks every button in the modal (both forms + Cancel) the moment either
+// action is submitted, so a slow request can't be double-clicked into two
+// ledger rows / audit entries for the same payment.
+function lockReviewModal(form, busyLabel) {
+    const modal = form.closest('.space-y-5');
+    modal?.querySelectorAll('button').forEach((btn) => { btn.disabled = true; });
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.replaceChildren();
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-spinner fa-spin mr-2';
+        submitBtn.append(icon, document.createTextNode(busyLabel));
+    }
+}
+
 export default function ClearanceReviewModal({ open, student, onClose, csrfToken, approveUrl, holdUrl }) {
     if (!open || !student) return null;
 
@@ -28,7 +43,12 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                         </div>
                     </div>
 
-                    <form action={approveUrl} method="POST" className="grid grid-cols-1 gap-2">
+                    <form
+                        action={approveUrl}
+                        method="POST"
+                        className="grid grid-cols-1 gap-2"
+                        onSubmit={(e) => lockReviewModal(e.currentTarget, 'Processing…')}
+                    >
                         <input type="hidden" name="_token" value={csrfToken} />
                         <input type="hidden" name="user_id" value={student.userId} />
                         <input type="hidden" name="amount" value={peso(student.balance)} />
@@ -40,12 +60,17 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                             placeholder="OR / Receipt number"
                             className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-xs text-brandNavy dark:text-slate-200 outline-none"
                         />
-                        <button type="submit" className="w-full py-3 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
+                        <button type="submit" className="w-full py-3 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
                             <i className="fa-solid fa-circle-check mr-2" />Approve &amp; Sign Off
                         </button>
                     </form>
 
-                    <form action={holdUrl} method="POST" className="grid grid-cols-1 gap-2 mt-2">
+                    <form
+                        action={holdUrl}
+                        method="POST"
+                        className="grid grid-cols-1 gap-2 mt-2"
+                        onSubmit={(e) => lockReviewModal(e.currentTarget, 'Processing…')}
+                    >
                         <input type="hidden" name="_token" value={csrfToken} />
                         <input type="hidden" name="user_id" value={student.userId} />
                         <input
@@ -56,7 +81,7 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                             placeholder="Reason for hold"
                             className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-xs text-brandNavy dark:text-slate-200 outline-none"
                         />
-                        <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors">
+                        <button type="submit" className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
                             <i className="fa-solid fa-circle-pause mr-2" />Hold with Remarks
                         </button>
                     </form>

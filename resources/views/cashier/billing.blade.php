@@ -12,39 +12,16 @@
 
     <div class="flex h-screen overflow-hidden">
 
-        <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
-            <div class="h-16 flex items-center px-6 border-b border-brandNavy/10 dark:border-slate-800">
-                <h1 class="text-base font-black text-brandNavy dark:text-white">AITSA <span class="text-xs text-brandGreen font-mono px-1.5 py-0.5 bg-brandGreen/10 rounded ml-1">Staff</span></h1>
-            </div>
-
-            <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
-                <p class="px-3 text-[10px] font-bold text-brandNavy/40 dark:text-slate-500 uppercase tracking-widest mb-3">Management</p>
-
-                <a href="{{ route('cashier.dashboard') }}"
-                   class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium">
-                    <span>Cashier Hub</span>
-                </a>
-
-                <a href="{{ route('cashier.transactions') }}"
-                   class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium">
-                    <span>Transactions</span>
-                </a>
-
-                <a href="{{ route('cashier.accounts') }}"
-                   class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium">
-                    <span>Student Accounts</span>
-                </a>
-
-                <a href="{{ route('cashier.billing') }}"
-                   class="flex items-center px-3 py-2.5 border-l-2 text-sm transition-colors border-brandGreen text-brandGreen dark:text-emerald-400 font-bold">
-                    <span>Billing Setup</span>
-                </a>
-            </nav>
-        </aside>
+        @include('partials.cashier-sidebar')
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
             <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 flex-shrink-0 z-10 transition-colors duration-300">
-                <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
+                </div>
                 <div class="flex items-center gap-3">
                     @include('partials.notif-bell')
                     <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">

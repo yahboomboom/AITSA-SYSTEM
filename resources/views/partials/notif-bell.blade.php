@@ -34,7 +34,7 @@
 
         {{-- Footer --}}
         <div id="notif-footer" class="px-4 py-2.5 border-t border-brandNavy/8 dark:border-slate-700 text-center bg-lightBg/50 dark:bg-slate-800/30">
-            <span class="text-[10px] text-brandNavy/40 dark:text-slate-500">You're all caught up</span>
+            <span id="notif-footer-text" class="text-[10px] text-brandNavy/40 dark:text-slate-500">You're all caught up</span>
         </div>
     </div>
 </div>

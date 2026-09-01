@@ -267,9 +267,11 @@ function renderNotifs() {
     const badge    = document.getElementById('notif-badge');
     const countLbl = document.getElementById('notif-count-label');
     const list     = document.getElementById('notif-list');
+    const footer   = document.getElementById('notif-footer-text');
 
     if (badge)    { badge.textContent = unread.length; badge.classList.toggle('hidden', unread.length === 0); }
     if (countLbl) { countLbl.textContent = unread.length + ' new'; countLbl.classList.toggle('hidden', unread.length === 0); }
+    if (footer)   { footer.textContent = unread.length === 0 ? "You're all caught up" : `${unread.length} unread notification${unread.length === 1 ? '' : 's'}`; }
 
     if (!list) return;
 

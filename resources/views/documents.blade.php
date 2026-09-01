@@ -19,7 +19,7 @@
             {{-- HEADER --}}
             <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
                 <div class="flex items-center">
-                    <button class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white mr-4">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white mr-4">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
                     <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Documents</h2>
