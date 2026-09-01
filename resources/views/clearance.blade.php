@@ -127,14 +127,7 @@
                         'createdAt' => $hasSubmission ? (isset($submission->created_at) ? $submission->created_at->format('M d, Y g:i A') : 'recently') : null,
                         'originalName' => $hasSubmission ? ($submission->original_name ?? null) : null,
                     ],
-                    'submissions' => $submissions->map(fn ($doc) => [
-                        'typeLabel' => $doc->typeLabel(),
-                        'documentsShowUrl' => route('documents.show', $doc),
-                        'originalName' => $doc->original_name,
-                        'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
-                        'status' => $doc->status,
-                        'remarks' => $doc->remarks,
-                    ])->all(),
+                    'documentsUrl' => route('documents'),
                 ];
             @endphp
             {{-- Render the clearance React component, passing the prepared context data, CSRF token, and submission URL as props for dynamic interaction and state management --}}
