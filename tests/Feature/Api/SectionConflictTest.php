@@ -38,6 +38,7 @@ class SectionConflictTest extends TestCase
             'professor' => 'Legacy Prof',
             'capacity' => 40,
             'school_year' => '2026-2027',
+            'delivery_mode' => 'Face-to-Face',
         ], $overrides);
     }
 

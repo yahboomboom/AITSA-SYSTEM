@@ -96,8 +96,11 @@ class ClearanceHoldTest extends TestCase
         $clearance = $this->makeClearance();
         $clearance->update(['cashier_status' => 'Hold', 'remarks' => 'Old remark']);
 
+        // Full assessment for a freshly-factoried student with no enrolled units is
+        // ₱1,500 (misc fee only, no tuition) — must pay the full balance for the
+        // cashier clearance to actually flip to Approved.
         $this->actingAs($cashier)->post('/cashier/approve', [
-            'user_id' => $clearance->user_id, 'reference_no' => 'TXN-1', 'amount' => '1000',
+            'user_id' => $clearance->user_id, 'reference_no' => 'TXN-1', 'amount' => '1500',
         ]);
 
         $clearance->refresh();

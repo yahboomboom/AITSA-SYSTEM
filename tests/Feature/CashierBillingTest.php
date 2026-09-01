@@ -36,7 +36,12 @@ class CashierBillingTest extends TestCase
     public function test_cashier_can_update_fees(): void
     {
         $this->actingAs($this->cashier)
-            ->post('/cashier/billing/fees', ['tuition_per_unit' => 450, 'misc_fee' => 2000])
+            ->post('/cashier/billing/fees', [
+                'tuition_per_unit' => 450,
+                'misc_fee' => 2000,
+                'reservation_fee' => 500,
+                'tesda_tuition_fee' => 1500,
+            ])
             ->assertRedirect(route('cashier.billing'));
 
         $this->assertSame('450', Setting::get('tuition_per_unit'));
@@ -60,7 +65,7 @@ class CashierBillingTest extends TestCase
 
         $type = DiscountType::where('name', 'Sibling Discount')->first();
         $this->assertNotNull($type);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Created']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Added']);
 
         $student = User::factory()->create(['role' => 'student', 'discount_type_id' => $type->id]);
 
@@ -70,7 +75,7 @@ class CashierBillingTest extends TestCase
 
         $this->assertNull(DiscountType::find($type->id));
         $this->assertNull($student->fresh()->discount_type_id);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Deleted']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Removed']);
     }
 
     public function test_invalid_percent_and_duplicate_name_are_rejected(): void
@@ -92,13 +97,13 @@ class CashierBillingTest extends TestCase
         $student = User::factory()->create(['role' => 'student']);
 
         $this->actingAs($this->cashier)
-            ->post("/cashier/billing/students/{$student->id}/discount", ['discount_type_id' => $type->id])
+            ->post("/cashier/billing/assign/{$student->id}", ['discount_type_id' => $type->id])
             ->assertRedirect(route('cashier.billing'));
         $this->assertSame($type->id, $student->fresh()->discount_type_id);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Assigned']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Student Discount Updated']);
 
         $this->actingAs($this->cashier)
-            ->post("/cashier/billing/students/{$student->id}/discount", ['discount_type_id' => null])
+            ->post("/cashier/billing/assign/{$student->id}", ['discount_type_id' => null])
             ->assertRedirect(route('cashier.billing'));
         $this->assertNull($student->fresh()->discount_type_id);
     }

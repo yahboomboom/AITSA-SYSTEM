@@ -87,6 +87,7 @@ class CurriculumApiTest extends TestCase
             'subject_id' => $subject->id, 'block_label' => 'A', 'days' => ['M', 'W'],
             'start_time' => '08:00', 'end_time' => '09:30', 'room' => 'Rm 101',
             'professor' => 'J. Dela Cruz', 'capacity' => 40, 'school_year' => '2026-2027',
+            'delivery_mode' => 'Face-to-Face',
         ]);
         $create->assertCreated();
         $sectionId = $create->json('section.id');
