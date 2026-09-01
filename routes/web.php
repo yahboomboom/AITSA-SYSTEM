@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\PaymentGatewayException;
+use App\Http\Controllers\AgreementController;
 use App\Http\Controllers\AuthController;
 use App\Models\AuditLog;
 use App\Models\Clearance;
@@ -16,7 +17,6 @@ use App\Models\Setting;
 use App\Models\StudentGrade;
 use App\Models\TransactionLedger;
 use App\Models\User;
-use App\Notifications\ClearanceStatusUpdatedNotification;
 use App\Services\FeeAssessmentService;
 use App\Services\MatriculationChangeService;
 use App\Services\PaymentService;
@@ -50,61 +50,33 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('
 Route::get('/apply', [AuthController::class, 'showApplicationForm'])->name('apply');
 Route::post('/apply', [AuthController::class, 'processApplication'])->name('apply.store');
 
-// Applicant slot-reservation fee — paid immediately after submitting the
-// application form, before the applicant has an account to log into.
-// These use Laravel's signed-URL middleware so the links can't be tampered
-// with or reused for a different applicant.
-Route::middleware('signed')->group(function () {
-        Route::get('/apply/reservation/{user}/return', function (User $user, PaymentService $payments) {
-        abort_unless($user->role === 'applicant', 404);
+// Reservation-fee checkout return endpoints for applicants — used instead of
+// the /ledger/payment/* routes because applicants aren't logged in yet.
+// Referenced (via URL::signedRoute) from AuthController::processApplication
+// and AgreementController::returning, so they must stay named exactly this.
+Route::get('/apply/reservation/return/{user}', function (User $user, PaymentService $payments) {
+    try {
+        $result = $payments->verifyLatestPending($user);
+    } catch (PaymentGatewayException $e) {
+        return redirect()->route('apply')->with('error', $e->getMessage());
+    }
 
-        try {
-            $result = $payments->verifyLatestPending($user);
-        } catch (PaymentGatewayException $e) {
-            return redirect()->route('apply')->with('error', $e->getMessage());
-        }
+    return redirect()->route('apply')->with($result['ok'] ? 'success' : 'error', $result['message']);
+})->name('apply.reservation.return')->middleware('signed');
 
-        if (! $result['ok']) {
-            return redirect()->route('apply')->with('error', $result['message']);
-        }
+Route::get('/apply/reservation/cancel/{user}', function (User $user, PaymentService $payments) {
+    $payments->cancelLatestPending($user);
 
-        // Payment confirmed — PaymentService already auto-created the student
-        // account (see AdmissionService::activateStudentAccount, called from
-        // PaymentService::settleRow). Pull the fresh record + the settled
-        // transaction so we can show a proper receipt / statement of account.
-        $user->refresh();
-        $txn = TransactionLedger::where('user_id', $user->id)
-            ->where('fee_type', 'reservation')
-            ->where('status', 'Settled')
-            ->latest('paid_at')
-            ->first();
+    return redirect()->route('apply')->with('error', 'Payment cancelled. Your reservation was not completed.');
+})->name('apply.reservation.cancel')->middleware('signed');
 
-        return redirect()->route('apply')->with('success', 'Application successfully submitted and reservation fee paid.')->with('receipt', [
-            'reference_no'    => $txn?->reference_no,
-            'amount'          => $txn?->amount,
-            'paid_at'         => optional($txn?->paid_at)->format('M d, Y g:i A'),
-            'applicant_name'  => $user->name,
-            'program_name'    => $user->major,
-            'login_id'        => $user->login_id,
-            'email'           => $user->email,
-        ]);
-    })->name('apply.reservation.return');
+// DocuSign redirects the applicant/student's browser here once they finish
+// (or decline) the embedded signing ceremony. Not signed-URL protected —
+// AgreementController identifies the session via its own return_token
+// instead, since DocuSign appends its own "?event=..." param that would
+// otherwise break Laravel's signed-URL validation.
+Route::get('/agreement/return/{user}', [AgreementController::class, 'returning'])->name('agreement.return');
 
-    Route::get('/apply/reservation/{user}/cancel', function (User $user, PaymentService $payments) {
-        abort_unless($user->role === 'applicant', 404);
-        $payments->cancelLatestPending($user);
-
-        return redirect()->route('apply')->with('error', 'Reservation payment cancelled. Your application was still submitted — you can settle the reservation fee at the cashier window instead.');
-    })->name('apply.reservation.cancel');
-
-    // DocuSign redirects the applicant's browser back here after the embedded
-    // signing ceremony. Deliberately NOT inside the 'signed' middleware group —
-    // DocuSign appends its own "?event=..." query param to whatever return URL
-    // we give it, which would otherwise break Laravel's signed-URL validation.
-    // AgreementController verifies the request itself via the "token" param.
-    Route::get('/agreement/{user}/return', [\App\Http\Controllers\AgreementController::class, 'returning'])
-    ->name('agreement.return');
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -112,6 +84,7 @@ Route::middleware('signed')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+    // Signature Management Endpoints
      Route::get('/my-signature', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('signature.edit');
      Route::post('/my-signature', [\App\Http\Controllers\SignatureController::class, 'update'])->name('signature.update');
 
@@ -134,8 +107,8 @@ Route::middleware('auth')->group(function () {
         if (! $clearance) {
             $clearance = Clearance::initializeFor(
                 $user->id,
-                Setting::get('school_year', '2026-2027'),
-                (int) Setting::get('semester', '1'),
+                \App\Models\Setting::get('school_year', '2026-2027'),
+                (int) \App\Models\Setting::get('semester', '1'),
                 [
                     'admission_status'   => 'Pending',
                     'chair_status'       => 'Pending',
@@ -163,8 +136,8 @@ Route::middleware('auth')->group(function () {
         if (! $clearance) {
             $clearance = Clearance::initializeFor(
                 $user->id,
-                Setting::get('school_year', '2026-2027'),
-                (int) Setting::get('semester', '1'),
+                \App\Models\Setting::get('school_year', '2026-2027'),
+                (int) \App\Models\Setting::get('semester', '1'),
                 [
                     'admission_status'   => 'Pending',
                     'chair_status'       => 'Pending',
@@ -176,73 +149,76 @@ Route::middleware('auth')->group(function () {
 
         $clearance->load('items.department');
 
-        // Only the latest submission (any type) is needed here, to show the
-        // registrar hold banner's pending/awaiting-review state. The full
-        // upload UI and submission history now live on the /documents page.
-        $submission = DocumentSubmission::where('user_id', $user->id)->latest()->first();
+        $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
+        $submission = $submissions->first();
         $breakdown = $fees->breakdownFor($user);
         $agreement = $user->agreements()->where('status', 'completed')->latest()->first();
-        return view('clearance', compact('clearance', 'submission', 'breakdown', 'agreement'));
+        return view('clearance', compact('clearance', 'submission', 'submissions', 'breakdown', 'agreement'));
     })->name('clearance');
-
-    // 2.1. Documents Module — submit & track institutional requirements,
-    // separate from Clearance (matches the paper's distinct Fig 55 vs Fig 56 pages).
-    Route::get('/documents', function () {
+    // Handle document submission for clearance requirements
+    Route::post('/clearance/submit-requirement', function (Request $request) {
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
         }
+        // Validate the uploaded document and its associated data
+        $request->validate([
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'document_type' => ['required', 'in:form137,form138,birth_cert,good_moral,other'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $file = $request->file('document');
+        // Create a new document submission record in the database with the uploaded file's details
+        $submission = DocumentSubmission::create([
+            'user_id' => $user->id,
+            'document_type' => $request->input('document_type'),
+            'notes' => $request->input('notes'),
+            'file_path' => $file->store('documents', 'local'),
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+        ]);
+
+        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . '.', 'DocumentSubmission', $submission->id);
+
+        return redirect()->route('clearance')->with('success', 'Your document has been submitted to the Registrar for review.');
+    })->name('clearance.submitRequirement');
+
+    // 2b. Documents Module — one row per required document type (see
+    // DocumentSubmission::TYPES), each showing that requirement's latest
+    // submission status, plus a running list of everything submitted so far.
+    Route::get('/documents', function () {
+        $user = Auth::user();
 
         $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
+        $latestByType = $submissions->groupBy('document_type')->map(fn ($group) => $group->first());
 
-        // Transcript of Records / Honorable Dismissal are only asked of
-        // students who transferred or returned from another school — a NEW
-        // applicant has no prior institution to request them from.
-        $isTransfereeOrReturnee = in_array($user->applicant_type, ['TRANSFEREE', 'RETURNEE'], true);
-        $types = collect(DocumentSubmission::TYPES);
-        if (! $isTransfereeOrReturnee) {
-            $types = $types->except(['transcript_of_records', 'honorable_dismissal']);
-        }
+        $requirements = collect(\App\Models\DocumentSubmission::TYPES)->map(function ($label, $type) use ($latestByType) {
+            $latest = $latestByType->get($type);
 
-        // One row per known requirement type, showing its latest submission (if any).
-        $requirements = $types->map(function ($label, $type) use ($submissions) {
-            $latest = $submissions->firstWhere('document_type', $type);
             return [
                 'type' => $type,
                 'label' => $label,
-                'status' => $latest->status ?? 'missing',
-                'remarks' => $latest->remarks ?? null,
-                'originalName' => $latest->original_name ?? null,
-                'createdAt' => $latest ? $latest->created_at->format('M d, Y') : null,
+                'status' => $latest?->status ?? 'missing',
+                'originalName' => $latest?->original_name,
+                'createdAt' => $latest?->created_at?->format('M d, Y g:i A'),
+                'remarks' => $latest?->remarks,
             ];
         })->values();
 
         return view('documents', compact('requirements', 'submissions'));
     })->name('documents');
 
-    Route::post('/documents/submit-requirement', function (Request $request, \App\Services\DocumentVerificationService $docVerifier) {
-        $user = Auth::user();
-        if (!$user) {
-            return redirect()->route('login');
-        }
-
-        if (!$user->signature_path) {
-            return redirect()->route('documents')->with('error', 'Please set up your e-signature before submitting documents. Go to "My Signature" in your profile menu.');
-        }
-
+    Route::post('/documents/submit-requirement', function (Request $request) {
         $request->validate([
             'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'document_type' => ['required', 'in:' . implode(',', array_keys(DocumentSubmission::TYPES))],
+            'document_type' => ['required', 'in:' . implode(',', array_keys(\App\Models\DocumentSubmission::TYPES))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $user = Auth::user();
         $file = $request->file('document');
-
-        // Verify the uploaded file actually shows the submitting student's own name
-        // (OCR-read and compared against their account name) before accepting it.
-        if (!$docVerifier->verifyNameOnDocument($file, $user->name)) {
-            return redirect()->route('clearance')->with('error', 'Mismatch document. Please resubmit the required file.');
-        }
 
         $submission = DocumentSubmission::create([
             'user_id' => $user->id,
@@ -252,19 +228,27 @@ Route::middleware('auth')->group(function () {
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
-            'signed_at' => now(),
         ]);
 
-        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . ' and e-signed the submission.', 'DocumentSubmission', $submission->id);
+        AuditLog::record('Document Submitted', 'Student ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') submitted ' . $submission->typeLabel() . '.', 'DocumentSubmission', $submission->id);
 
         return redirect()->route('documents')->with('success', 'Your document has been submitted to the Registrar for review.');
     })->name('documents.submitRequirement');
 
+    // Printable certificate of clearance — only the owning student can print their own.
+    Route::get('/clearance/{clearance}/print', function (Clearance $clearance) {
+        abort_unless($clearance->user_id === Auth::id(), 403);
+
+        $clearance->load(['user', 'items.department', 'cashierSignedBy', 'registrarSignedBy', 'chairSignedBy']);
+
+        return view('clearance.print', compact('clearance'));
+    })->name('clearance.print');
+
     // 3. Enrollment Hub Module
     Route::get('/enrollment', function () {
         $user = Auth::user();
-        $clearance = $user ? Clearance::currentFor($user) : null;
-
+        $clearance = Clearance::where('user_id', $user?->id)->first();
+        // Retrieve the student's grades and determine which subjects have been passed or failed, as well as whether the student is considered irregular based on failed subjects
         $grades      = StudentGrade::where('user_id', $user->id)->get();
         $passedCodes = $grades->where('status', 'Passed')->pluck('subject_code')->values()->toArray();
         $failedCodes = $grades->where('status', 'Failed')->pluck('subject_code')->values()->toArray();
@@ -286,7 +270,7 @@ Route::middleware('auth')->group(function () {
     // 5. Ledger Workspace Module (view renamed to `payment`)
     Route::get('/ledger', function (FeeAssessmentService $fees) {
         $user = Auth::user();
-        $clearance = $user ? Clearance::currentFor($user) : null;
+        $clearance = Clearance::where('user_id', $user?->id)->first();
         $breakdown = $fees->breakdownFor($user);
         $history = TransactionLedger::where('user_id', $user->id)->latest()->get();
         $hasPendingGateway = $history->contains(fn ($row) => $row->gateway === 'paymongo' && $row->status === 'Pending');
@@ -339,24 +323,6 @@ Route::middleware('auth')->group(function () {
 
     // 5. Certificate of Registration (COR) View
     Route::get('/cor', [AuthController::class, 'showCor'])->name('cor');
-    Route::get('/clearance/{id}/print', function ($id) {
-        $clearance = Clearance::with(['user', 'items.department', 'chairSignedBy', 'cashierSignedBy', 'registrarSignedBy'])
-            ->findOrFail($id);
-
-        $user = Auth::user();
-        abort_unless($user->id === $clearance->user_id || in_array($user->role, ['admin', 'registrar']), 403);
-
-        $isCleared = $clearance->admission_status === 'Approved'
-            && $clearance->chair_status === 'Approved'
-            && $clearance->cashier_status === 'Approved'
-            && $clearance->registrar_status === 'Approved'
-            && $clearance->allItemsApproved();
-
-        abort_unless($isCleared, 403, 'Clearance is not yet fully approved.');
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('clearance.print', compact('clearance'));
-        return $pdf->stream('clearance-' . $clearance->user->login_id . '.pdf');
-    })->name('clearance.print');	
 
     /*
     |--------------------------------------------------------------------------
@@ -447,15 +413,11 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('registrar.dashboard')->with('error', 'Clearance profile row lookup failed.');
     })->name('admission.approve');
 
-        Route::post('/registrar/sign/{id}', function ($id) {
+    Route::post('/registrar/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update([ 'registrar_status' => 'Approved',
-                'registrar_signed_by' => Auth::id(),
-                'registrar_signed_at' => now(),
-                'remarks' => null,]);
+            $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
             AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Approved'));
         }
         return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
     })->name('registrar.sign');
@@ -466,11 +428,26 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['registrar_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Registrar held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Hold', $data['remarks']));
             return redirect()->route('registrar.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('registrar.dashboard')->with('error', 'Record not found.');
     })->name('registrar.hold');
+
+    // Registrar verifies a new applicant → forwards to Admin for account creation
+    Route::post('/registrar/verify-applicant/{id}', function ($id) {
+        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+        $applicant->update(['role' => 'verified_applicant']);
+        AuditLog::record('Applicant Verified', 'Registrar verified application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '. Forwarded to Admin for account creation.', 'User', $applicant->id);
+        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $applicant->name . ' verified and forwarded to Admin.');
+    })->name('registrar.verify-applicant');
+
+    Route::post('/registrar/decline-applicant/{id}', function ($id) {
+        $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+        AuditLog::record('Applicant Declined', 'Registrar declined and removed application for ' . $applicant->name . ' (' . $applicant->email . '), program: ' . ($applicant->major ?? 'N/A') . '.', 'User', $applicant->id);
+        $name = $applicant->name;
+        $applicant->delete();
+        return redirect()->route('registrar.dashboard')->with('success', 'Application for ' . $name . ' has been declined and removed.');
+    })->name('registrar.decline-applicant');
 
     // Document submission review
     Route::post('/registrar/documents/{submission}/accept', function (DocumentSubmission $submission) {
@@ -481,7 +458,7 @@ Route::middleware('auth')->group(function () {
         $submission->update(['status' => 'accepted', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
         AuditLog::record('Document Reviewed', 'Registrar accepted ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
 
-        if ($clearance = Clearance::currentFor($submission->user)) {
+        if ($clearance = Clearance::where('user_id', $submission->user_id)->first()) {
             $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
         }
 
@@ -506,10 +483,7 @@ Route::middleware('auth')->group(function () {
     // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
     Route::middleware('role:chair')->group(function () {
     Route::get('/approver/dashboard', function () {
-        $clearances = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
-            ->get();
+        $clearances = Clearance::has('user')->with('user')->get();
         $pendingEnrollments = Enrollment::with(['user', 'sections.subject'])
             ->where('status', 'pending')
             ->latest()
@@ -591,15 +565,11 @@ Route::middleware('auth')->group(function () {
         return back()->with('success', 'Change request returned to the student with remarks.');
     })->name('approver.matriculation.reject');
 
-        Route::post('/approver/sign/{id}', function ($id) {
+    Route::post('/approver/sign/{id}', function ($id) {
         $clearance = Clearance::find($id);
         if ($clearance) {
-            $clearance->update([ 'chair_status' => 'Approved',
-                'chair_signed_by' => Auth::id(),
-                'chair_signed_at' => now(),
-                'remarks' => null,]);
+            $clearance->update(['chair_status' => 'Approved', 'remarks' => null]);
             AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Approved'));
             return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -611,7 +581,6 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['chair_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Department Chair held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Hold', $data['remarks']));
             return redirect()->route('approver.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -732,10 +701,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/department/dashboard', function () {
         $officer = Auth::user();
         $items = ClearanceItem::where('department_id', $officer->department_id)
-            ->whereHas('clearance', function ($query) {
-                $query->where('school_year', Setting::get('school_year', '2026-2027'))
-                    ->where('semester', (int) Setting::get('semester', '1'));
-            })
             ->with('clearance.user')
             ->get();
 
@@ -747,7 +712,6 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Approved', 'remarks' => null, 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Signed', Auth::user()->name . ' approved ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . '.', 'ClearanceItem', $item->id);
-        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Approved'));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item approved.');
     })->name('department.items.approve');
@@ -758,7 +722,6 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Hold', 'remarks' => $data['remarks'], 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Held', Auth::user()->name . ' held ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . ': ' . $data['remarks'], 'ClearanceItem', $item->id);
-        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Hold', $data['remarks']));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item held with remarks.');
     })->name('department.items.hold');
@@ -785,26 +748,20 @@ Route::middleware('auth')->group(function () {
             'user_id' => ['required', 'integer'],
             'remarks' => ['required', 'string', 'max:500'],
         ]);
-        $clearance = Clearance::currentFor(User::findOrFail($data['user_id']));
-        abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
+        $clearance = Clearance::where('user_id', $data['user_id'])->firstOrFail();
         $clearance->update(['cashier_status' => 'Hold', 'remarks' => $data['remarks']]);
         AuditLog::record('Clearance Held', 'Cashier held clearance for student ID ' . $data['user_id'] . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-        $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Cashier', 'Hold', $data['remarks']));
 
         return redirect()->back()->with('success', 'Clearance held with remarks.');
     })->name('cashier.hold');
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
 
-        // Billing configuration: fee rates, discount types, student assignment
+    // Billing configuration: fee rates, discount types, student assignment
     Route::get('/cashier/billing', function () {
         return view('cashier.billing', [
             'tuitionPerUnit' => (int) \App\Models\Setting::get('tuition_per_unit', '300'),
             'miscFee' => (int) \App\Models\Setting::get('misc_fee', '1500'),
-            // NEW: reservation fee is now editable here instead of being a hidden default.
-            'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
-            // NEW: flat tuition specifically for TESDA Short-Term Programs.
-            'tesdaTuitionFee' => (int) \App\Models\Setting::get('tesda_tuition_fee', '1500'),
             'discountTypes' => DiscountType::withCount('students')->orderBy('name')->get(),
             'students' => User::where('role', 'student')->with('discountType')->orderBy('name')->get(),
         ]);
@@ -814,48 +771,41 @@ Route::middleware('auth')->group(function () {
         $request->validate([
             'tuition_per_unit' => ['required', 'integer', 'min:0'],
             'misc_fee' => ['required', 'integer', 'min:0'],
-            'reservation_fee' => ['required', 'integer', 'min:0'],
-            'tesda_tuition_fee' => ['required', 'integer', 'min:0'],
         ]);
 
         \App\Models\Setting::put('tuition_per_unit', (string) $request->integer('tuition_per_unit'));
         \App\Models\Setting::put('misc_fee', (string) $request->integer('misc_fee'));
-        \App\Models\Setting::put('reservation_fee', (string) $request->integer('reservation_fee'));
-        \App\Models\Setting::put('tesda_tuition_fee', (string) $request->integer('tesda_tuition_fee'));
-        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit, misc fee to ₱' . $request->integer('misc_fee') . ', reservation fee to ₱' . $request->integer('reservation_fee') . ', and TESDA flat tuition to ₱' . $request->integer('tesda_tuition_fee') . '.', 'Setting', null);
+        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit and misc fee to ₱' . $request->integer('misc_fee') . '.', 'Setting', null);
 
-                return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
+        return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
     })->name('cashier.billing.fees');
 
     Route::post('/cashier/billing/discounts', function (Request $request) {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
+        $request->validate([
+            'name' => ['required', 'string', 'max:100', 'unique:discount_types,name'],
             'percent' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $type = DiscountType::create($data);
-        AuditLog::record('Discount Type Added', 'Cashier added discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
+        $type = DiscountType::create($request->only('name', 'percent'));
+        AuditLog::record('Discount Type Created', 'Cashier created discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
 
         return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
     })->name('cashier.billing.discounts');
 
-    Route::post('/cashier/billing/discounts/{discountType}/delete', function (DiscountType $discountType) {
-        $name = $discountType->name;
-        // Detach the discount from any students before deleting the type.
-        User::where('discount_type_id', $discountType->id)->update(['discount_type_id' => null]);
-        $discountType->delete();
-        AuditLog::record('Discount Type Removed', 'Cashier removed discount type "' . $name . '".', 'DiscountType', null);
+    Route::post('/cashier/billing/discounts/{type}/delete', function (DiscountType $type) {
+        AuditLog::record('Discount Type Deleted', 'Cashier deleted discount type "' . $type->name . '" (' . $type->percent . '%).', 'DiscountType', $type->id);
+        $type->delete();
 
         return redirect()->route('cashier.billing')->with('success', 'Discount type removed.');
     })->name('cashier.billing.discounts.delete');
 
-    Route::post('/cashier/billing/assign/{student}', function (Request $request, User $student) {
-        $data = $request->validate([
-            'discount_type_id' => ['nullable', 'exists:discount_types,id'],
-        ]);
+    Route::post('/cashier/billing/students/{user}/discount', function (Request $request, User $user) {
+        abort_unless($user->role === 'student', 404);
+        $request->validate(['discount_type_id' => ['nullable', 'exists:discount_types,id']]);
 
-        $student->update(['discount_type_id' => $data['discount_type_id'] ?? null]);
-        AuditLog::record('Student Discount Updated', 'Cashier updated discount assignment for student ID ' . $student->id . '.', 'User', $student->id);
+        $user->update(['discount_type_id' => $request->input('discount_type_id') ?: null]);
+        $label = $user->discountType->name ?? 'none';
+        AuditLog::record('Discount Assigned', 'Cashier set discount for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') to ' . $label . '.', 'User', $user->id);
 
         return redirect()->route('cashier.billing')->with('success', 'Student discount updated.');
     })->name('cashier.billing.assign');
@@ -864,23 +814,42 @@ Route::middleware('auth')->group(function () {
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
     Route::middleware('role:admin')->group(function () {
     Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
+        $verifiedApplicants = User::where('role', 'verified_applicant')->orderByDesc('created_at')->get();
+        return view('admin.dashboard', compact('verifiedApplicants'));
     })->name('admin.dashboard');
 
-    // Walk-in registration — for staff to manually register a student who never
-    // went through the online /apply pipeline. Applicants who did apply are now
-    // converted to student accounts automatically once their reservation fee is
-    // confirmed paid (see AdmissionService), so no admin step is needed for them.
-    Route::get('/admin/students/create', function () {
+    // Single create-student page — handles both walk-in and admission queue (pass ?from={id} for pre-fill)
+    Route::get('/admin/students/create', function (Request $request) {
+        $applicant = null;
+        if ($request->query('from')) {
+            $applicant = User::where('id', $request->query('from'))
+                ->where('role', 'verified_applicant')->first();
+        }
         $programs = Program::orderBy('level')->orderBy('code')->get();
-        return view('admin.create-student', ['applicant' => null, 'programs' => $programs]);
+        return view('admin.create-student', compact('applicant', 'programs'));
     })->name('admin.students.create');
 
     Route::post('/admin/students/create', function (Request $request) {
+        $applicantId = $request->input('applicant_id');
+
+        // If no explicit applicant_id but the email matches an existing applicant, auto-resolve it
+        // so the walk-in form can still convert applicants without requiring the ?from= flow
+        if (!$applicantId && $request->filled('email')) {
+            $existing = User::where('email', $request->input('email'))
+                ->whereIn('role', ['applicant', 'verified_applicant'])->first();
+            if ($existing) {
+                $applicantId = $existing->id;
+            }
+        }
+
+        // Email/login_id uniqueness: if converting an existing applicant, exclude their own record
+        $emailRule    = ['required', 'string', 'email', 'max:255', 'unique:users,email' . ($applicantId ? ',' . $applicantId : '')];
+        $loginIdRule  = ['required', 'string', 'max:50',           'unique:users,login_id'];
+
         $request->validate([
             'name'           => ['required', 'string', 'max:255'],
-            'email'          => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'login_id'       => ['required', 'string', 'max:50', 'unique:users,login_id'],
+            'email'          => $emailRule,
+            'login_id'       => $loginIdRule,
             'password'       => ['required', 'string', 'min:8', 'confirmed'],
             'major'          => ['required', 'string'],
             'year_level'     => ['required', 'string'],
@@ -896,9 +865,7 @@ Route::middleware('auth')->group(function () {
             'password.confirmed' => 'Password and confirmation do not match.',
         ]);
 
-        $student = User::create([
-            'name'           => $request->input('name'),
-            'email'          => $request->input('email'),
+        $fields = [
             'login_id'       => $request->input('login_id'),
             'password'       => $request->input('password'),
             'role'           => 'student',
@@ -911,13 +878,27 @@ Route::middleware('auth')->group(function () {
             'address'        => $request->input('address'),
             'applicant_type' => $request->input('applicant_type'),
             'program_level'  => $request->input('program_level'),
-        ]);
+        ];
+
+        if ($applicantId) {
+            // Converting a verified applicant — update in place
+            $student = User::where('id', $applicantId)->where('role', 'verified_applicant')->firstOrFail();
+            $student->update($fields);
+        } else {
+            // Walk-in / manual registration — create fresh
+            $fields['name']  = $request->input('name');
+            $fields['email'] = $request->input('email');
+            $student = User::create($fields);
+        }
 
         Clearance::initializeFor(
             $student->id,
-            Setting::get('school_year', '2026-2027'),
-            (int) Setting::get('semester', '1'),
-            ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending', 'registrar_status' => 'Pending']
+            \App\Models\Setting::get('school_year', '2026-2027'),
+            (int) \App\Models\Setting::get('semester', '1'),
+            [
+                'admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending',
+                'registrar_status' => 'Pending',
+            ]
         );
 
         AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
@@ -969,10 +950,7 @@ Route::middleware('auth')->group(function () {
     })->name('admin.audit');
 
     Route::get('/admin/reports', function () {
-        $clearances         = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
-            ->get();
+        $clearances         = Clearance::has('user')->with('user')->get();
         $pendingApplicants  = User::where('role', 'applicant')->count();
         $verifiedApplicants = User::where('role', 'verified_applicant')->count();
         $totalStudents      = User::where('role', 'student')->count();
@@ -982,6 +960,10 @@ Route::middleware('auth')->group(function () {
             ->groupBy('major')->orderByDesc('count')->get();
         return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown'));
     })->name('admin.reports');
+
+    Route::get('/admin/curriculum', function () {
+        return view('admin.curriculum');
+    })->name('admin.curriculum');
 
     Route::get('/admin/departments', function () {
         return view('admin.departments', [
@@ -1075,10 +1057,7 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students.grades.store');
 
     Route::get('/registrar/reports', function () {
-        $clearances        = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
-            ->get();
+        $clearances        = Clearance::has('user')->with('user')->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
         return view('registrar.reports', compact('clearances', 'pendingApplicants'));
     })->name('registrar.reports');

@@ -20,6 +20,7 @@ class SignatureController extends Controller
             'admission' => 'registrar.dashboard',
             'department_officer' => 'department.dashboard',
             'admin' => 'admin.dashboard',
+            'faculty' => 'faculty.schedule',
         ];
 
         $homeRoute = $homeRoutes[$user->role] ?? 'dashboard';
