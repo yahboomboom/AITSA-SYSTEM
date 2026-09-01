@@ -9,9 +9,12 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
     const [error, setError] = useState(null);
     const [newFaculty, setNewFaculty] = useState(null); // null | {name, login_id}
     const [newRoom, setNewRoom] = useState(null); // null | {name, type}
+    const [saving, setSaving] = useState(false);
+    const [removingId, setRemovingId] = useState(null);
 
     const save = () => {
         setError(null);
+        setSaving(true);
         const payload = {
             ...draft, subject_id: subject.id, school_year: schoolYear, capacity: Number(draft.capacity),
             faculty_id: draft.faculty_id ? Number(draft.faculty_id) : null,
@@ -19,36 +22,47 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
         };
         const req = draft.id ? api.put(`/admin/sections/${draft.id}`, payload) : api.post('/admin/sections', payload);
         req.then(() => { setDraft(null); onChanged(); })
-            .catch((err) => setError(err.response?.data?.message ?? 'Check the section fields and try again.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Check the section fields and try again.'))
+            .finally(() => setSaving(false));
     };
 
-    const remove = (id) => {
+    const remove = (section) => {
         setError(null);
-        api.delete(`/admin/sections/${id}`)
+        const warning = section.enrolled_count > 0
+            ? `Block ${section.block_label} has ${section.enrolled_count} student(s) enrolled. Deleting it removes their schedule for this subject entirely. Delete anyway?`
+            : `Delete Block ${section.block_label}? This cannot be undone.`;
+        if (!window.confirm(warning)) return;
+        setRemovingId(section.id);
+        api.delete(`/admin/sections/${section.id}`)
             .then(onChanged)
-            .catch((err) => setError(err.response?.data?.message ?? 'Delete failed.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Delete failed.'))
+            .finally(() => setRemovingId(null));
     };
 
     const addFaculty = () => {
         setError(null);
+        setSaving(true);
         api.post('/admin/faculty', newFaculty)
             .then((res) => {
                 setNewFaculty(null);
                 setDraft((d) => ({ ...d, faculty_id: res.data.faculty.id }));
                 onListsChanged();
             })
-            .catch((err) => setError(err.response?.data?.message ?? 'Could not add faculty.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Could not add faculty.'))
+            .finally(() => setSaving(false));
     };
 
     const addRoom = () => {
         setError(null);
+        setSaving(true);
         api.post('/admin/rooms', newRoom)
             .then((res) => {
                 setNewRoom(null);
                 setDraft((d) => ({ ...d, room_id: res.data.room.id }));
                 onListsChanged();
             })
-            .catch((err) => setError(err.response?.data?.message ?? 'Could not add room.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Could not add room.'))
+            .finally(() => setSaving(false));
     };
 
     const toggleDay = (day) => setDraft((d) => ({
@@ -70,7 +84,10 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                     </span>
                     <span className="flex gap-2">
                         <button onClick={() => setDraft({ ...s })} className="text-brandNavy dark:text-slate-300 hover:underline">Edit</button>
-                        <button onClick={() => remove(s.id)} className="text-red-600 hover:underline">Delete</button>
+                        <button onClick={() => remove(s)} disabled={removingId === s.id}
+                            className="text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
+                            {removingId === s.id ? 'Deleting…' : 'Delete'}
+                        </button>
                     </span>
                 </div>
             ))}
@@ -123,7 +140,9 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                                 className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
                                 <option value="physical">Physical</option><option value="virtual">Virtual (online)</option>
                             </select>
-                            <button onClick={addRoom} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold">Save Room</button>
+                            <button onClick={addRoom} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                {saving ? 'Saving…' : 'Save Room'}
+                            </button>
                         </div>
                     )}
                     {newFaculty && (
@@ -132,7 +151,9 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                                 placeholder="Professor name" className="w-40 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
                             <input value={newFaculty.login_id} onChange={(e) => setNewFaculty({ ...newFaculty, login_id: e.target.value })}
                                 placeholder="Login ID" className="w-28 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
-                            <button onClick={addFaculty} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold">Save Faculty</button>
+                            <button onClick={addFaculty} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                {saving ? 'Saving…' : 'Save Faculty'}
+                            </button>
                         </div>
                     )}
                     <div className="flex gap-1">
@@ -143,10 +164,12 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                             </button>
                         ))}
                     </div>
-                    {error && <p className="text-red-600">{error}</p>}
+                    {error && <p className="text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1.5">{error}</p>}
                     <div className="flex gap-2">
-                        <button onClick={save} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold">Save Section</button>
-                        <button onClick={() => setDraft(null)} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700">Cancel</button>
+                        <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                            {saving ? 'Saving…' : 'Save Section'}
+                        </button>
+                        <button onClick={() => setDraft(null)} disabled={saving} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Cancel</button>
                     </div>
                 </div>
             ) : (

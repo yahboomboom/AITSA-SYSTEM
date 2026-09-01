@@ -7,6 +7,8 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(null);
     const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [removing, setRemoving] = useState(false);
 
     const startEdit = () => {
         setDraft({
@@ -19,16 +21,24 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
 
     const save = () => {
         setError(null);
+        setSaving(true);
         api.put(`/admin/subjects/${subject.id}`, { ...draft, units: Number(draft.units) })
             .then(() => { setEditing(false); onChanged(); })
-            .catch((err) => setError(err.response?.data?.message ?? 'Check the fields and try again.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Check the fields and try again.'))
+            .finally(() => setSaving(false));
     };
 
     const remove = () => {
         setError(null);
+        const sectionCount = subject.sections.length;
+        const warning = sectionCount > 0
+            ? `Delete ${subject.code} — ${subject.title}? This also deletes its ${sectionCount} section(s) and cannot be undone.`
+            : `Delete ${subject.code} — ${subject.title}? This cannot be undone.`;
+        if (!window.confirm(warning)) return;
+        setRemoving(true);
         api.delete(`/admin/subjects/${subject.id}`)
             .then(onChanged)
-            .catch((err) => setError(err.response?.data?.message ?? 'Delete failed.'));
+            .catch((err) => { setError(err.response?.data?.message ?? 'Delete failed.'); setRemoving(false); });
     };
 
     const prereqCodes = (subject.prerequisite_ids ?? [])
@@ -57,9 +67,11 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
                                 <option key={s.id} value={s.id}>{s.code} (prereq)</option>
                             ))}
                         </select>
-                        <button onClick={save} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold">Save</button>
-                        <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700">Cancel</button>
-                        {error && <p className="w-full text-red-600">{error}</p>}
+                        <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                            {saving ? 'Saving…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditing(false)} disabled={saving} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Cancel</button>
+                        {error && <p className="w-full text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1.5">{error}</p>}
                     </div>
                 ) : (
                     <>
@@ -75,9 +87,11 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
                                 {open ? 'Hide' : 'Show'} sections ({subject.sections.length})
                             </button>
                             <button onClick={startEdit} className="text-brandNavy dark:text-slate-300 hover:underline">Edit</button>
-                            <button onClick={remove} className="text-red-600 hover:underline">Delete</button>
+                            <button onClick={remove} disabled={removing} className="text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
+                                {removing ? 'Deleting…' : 'Delete'}
+                            </button>
                         </span>
-                        {error && <p className="w-full text-xs text-red-600">{error}</p>}
+                        {error && <p className="w-full text-xs text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1.5">{error}</p>}
                     </>
                 )}
             </div>

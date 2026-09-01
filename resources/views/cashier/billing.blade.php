@@ -42,11 +42,6 @@
                         <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                     </div>
                 @endif
-                @if ($errors->any())
-                    <div class="p-4 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
-                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first() }}
-                    </div>
-                @endif
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -55,33 +50,39 @@
                         <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800">
                             <h2 class="text-sm font-bold text-brandNavy dark:text-white"><i class="fa-solid fa-coins mr-2 text-brandGold"></i>Fee Rates</h2>
                         </div>
-                        <form action="{{ route('cashier.billing.fees') }}" method="POST" class="p-5 space-y-4 text-xs">
+                        <form action="{{ route('cashier.billing.fees') }}" method="POST" class="p-5 space-y-4 text-xs"
+                            onsubmit="return lockFormSubmit(this, 'Saving…')">
                             @csrf
+                            @if ($errors->hasAny(['tuition_per_unit', 'misc_fee', 'reservation_fee', 'tesda_tuition_fee']))
+                                <div class="p-3 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold">
+                                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first('tuition_per_unit') ?: $errors->first('misc_fee') ?: $errors->first('reservation_fee') ?: $errors->first('tesda_tuition_fee') }}
+                                </div>
+                            @endif
                             <div>
                                 <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Tuition per unit (₱)</label>
-                                <input type="number" name="tuition_per_unit" min="0" required value="{{ $tuitionPerUnit }}"
+                                <input type="number" name="tuition_per_unit" min="0" required value="{{ old('tuition_per_unit', $tuitionPerUnit) }}"
                                     class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                             </div>
                             <div>
                                 <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Miscellaneous fee per term (₱)</label>
-                                <input type="number" name="misc_fee" min="0" required value="{{ $miscFee }}"
+                                <input type="number" name="misc_fee" min="0" required value="{{ old('misc_fee', $miscFee) }}"
                                     class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                             </div>
                             {{-- NEW: Slot reservation fee, now editable here instead of a hidden default --}}
                             <div>
                                 <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Slot reservation fee (₱)</label>
-                                <input type="number" name="reservation_fee" min="0" required value="{{ $reservationFee }}"
+                                <input type="number" name="reservation_fee" min="0" required value="{{ old('reservation_fee', $reservationFee) }}"
                                     class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                                 <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Charged once, when a new applicant reserves their slot. Kept separate from tuition — never added on top of it.</p>
                             </div>
                             {{-- NEW: Flat tuition override for TESDA Short-Term Programs --}}
                             <div>
                                 <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">TESDA Short-Term Program tuition (₱, flat)</label>
-                                <input type="number" name="tesda_tuition_fee" min="0" required value="{{ $tesdaTuitionFee }}"
+                                <input type="number" name="tesda_tuition_fee" min="0" required value="{{ old('tesda_tuition_fee', $tesdaTuitionFee) }}"
                                     class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                                 <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Flat tuition for TESDA NC students (Bookkeeping, Events Management, Food & Beverages), used instead of the regular tuition above.</p>
                             </div>
-                            <button type="submit" class="px-5 py-2.5 bg-brandNavy hover:bg-brandGreen text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors">
+                            <button type="submit" class="px-5 py-2.5 bg-brandNavy hover:bg-brandGreen text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 Save Rates
                             </button>
                         </form>
@@ -93,19 +94,25 @@
                             <h2 class="text-sm font-bold text-brandNavy dark:text-white"><i class="fa-solid fa-percent mr-2 text-brandGreen"></i>Discount Types <span class="font-normal text-brandNavy/40 dark:text-slate-500">(applies to tuition only)</span></h2>
                         </div>
                         <div class="p-5 space-y-4 text-xs">
-                            <form action="{{ route('cashier.billing.discounts') }}" method="POST" class="flex flex-wrap items-end gap-2">
+                            <form action="{{ route('cashier.billing.discounts') }}" method="POST" class="flex flex-wrap items-end gap-2"
+                                onsubmit="return lockFormSubmit(this, 'Adding…')">
                                 @csrf
+                                @if ($errors->hasAny(['name', 'percent']))
+                                    <div class="w-full p-3 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold">
+                                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first('name') ?: $errors->first('percent') }}
+                                    </div>
+                                @endif
                                 <div class="flex-1 min-w-32">
                                     <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Name</label>
-                                    <input type="text" name="name" required maxlength="100" placeholder="e.g. Academic Scholar"
+                                    <input type="text" name="name" required maxlength="100" placeholder="e.g. Academic Scholar" value="{{ old('name') }}"
                                         class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                                 </div>
                                 <div class="w-20">
                                     <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">%</label>
-                                    <input type="number" name="percent" min="1" max="100" required
+                                    <input type="number" name="percent" min="1" max="100" required value="{{ old('percent') }}"
                                         class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
                                 </div>
-                                <button type="submit" class="px-4 py-2.5 bg-brandGreen hover:bg-emerald-600 text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors">
+                                <button type="submit" class="px-4 py-2.5 bg-brandGreen hover:bg-emerald-600 text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                     Add
                                 </button>
                             </form>
@@ -158,7 +165,8 @@
                                         </td>
                                         <td class="py-3.5 px-5 text-brandNavy/60 dark:text-slate-400">{{ $student->major ?? '—' }} · {{ $student->year_level ?? '—' }}</td>
                                         <td class="py-3.5 px-5" colspan="2">
-                                            <form action="{{ route('cashier.billing.assign', $student) }}" method="POST" class="flex items-center justify-between gap-2">
+                                            <form action="{{ route('cashier.billing.assign', $student) }}" method="POST" class="flex items-center justify-between gap-2"
+                                                onsubmit="return lockFormSubmit(this, 'Saving…')">
                                                 @csrf
                                                 <select name="discount_type_id"
                                                     class="bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen">
@@ -167,7 +175,7 @@
                                                         <option value="{{ $type->id }}" @selected($student->discount_type_id === $type->id)>{{ $type->name }} ({{ $type->percent }}%)</option>
                                                     @endforeach
                                                 </select>
-                                                <button type="submit" class="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                <button type="submit" class="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide disabled:opacity-50 disabled:cursor-not-allowed">
                                                     Save
                                                 </button>
                                             </form>
@@ -187,6 +195,16 @@
         </main>
     </div>
 
+<script>
+    function lockFormSubmit(form, busyLabel) {
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = busyLabel;
+        }
+        return true;
+    }
+</script>
 @include('partials.notif-script')
 </body>
 </html>

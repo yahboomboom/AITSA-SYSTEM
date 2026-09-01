@@ -14,6 +14,7 @@ function CurriculumApp() {
     const [adding, setAdding] = useState(false);
     const [draft, setDraft] = useState(null);
     const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
     const [yearFilter, setYearFilter] = useState(1);
     const [semFilter, setSemFilter] = useState(1);
     const [windowOpen, setWindowOpen] = useState(false);
@@ -47,11 +48,13 @@ function CurriculumApp() {
 
     const createSubject = () => {
         setError(null);
+        setSaving(true);
         api.post('/admin/subjects', {
             ...draft, program_id: active.id, units: Number(draft.units),
             year_level: yearFilter, semester: semFilter, prerequisite_ids: [],
         }).then(() => { setAdding(false); setDraft(null); loadSubjects(); })
-            .catch((err) => setError(err.response?.data?.message ?? 'Check the fields and try again.'));
+            .catch((err) => setError(err.response?.data?.message ?? 'Check the fields and try again.'))
+            .finally(() => setSaving(false));
     };
 
     const visible = subjects.filter((s) => s.year_level === yearFilter && s.semester === semFilter);
@@ -130,9 +133,11 @@ function CurriculumApp() {
                                 className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
                                 <option>F2F</option><option>Online</option>
                             </select>
-                            <button onClick={createSubject} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold">Add</button>
-                            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700">Cancel</button>
-                            {error && <p className="w-full text-red-600">{error}</p>}
+                            <button onClick={createSubject} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                {saving ? 'Saving…' : 'Add'}
+                            </button>
+                            <button onClick={() => setAdding(false)} disabled={saving} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Cancel</button>
+                            {error && <p className="w-full text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1.5">{error}</p>}
                         </div>
                     ) : (
                         <button onClick={() => { setAdding(true); setDraft({ code: '', title: '', units: 3, mode: 'F2F' }); }}
