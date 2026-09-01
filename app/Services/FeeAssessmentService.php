@@ -21,7 +21,7 @@ class FeeAssessmentService
     public function breakdownFor(User $user): array
     {
         $reservationFee = (int) Setting::get('reservation_fee', '500');/**reservation fee of student, set in Cashier > Billing Setup */
-        $flatTuition = (int) Setting::get('tuition_fee_flat', '15000');/**tuition fee of school */
+        $flatTuition = (int) Setting::get('tuition_fee_flat', '0');/**optional flat-tuition override; 0 = use units * tuition_per_unit */
         $tesdaTuition = (int) Setting::get('tesda_tuition_fee', '1500');/**flat tuition for TESDA Short-Term Programs, set in Cashier > Billing Setup */
         $rate = (int) Setting::get('tuition_per_unit', '300');
         $misc = (int) Setting::get('misc_fee', '1500');
