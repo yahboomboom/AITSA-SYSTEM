@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+    {{-- Character encoding and styles for the certificate of clearance --}}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AITSA Portal | Enrollment Clearance</title>
@@ -41,7 +42,6 @@
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
 
 <div class="flex h-screen overflow-hidden">
-
     {{-- SIDEBAR --}}
     <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
         <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
@@ -51,8 +51,6 @@
         <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
             <p class="px-4 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
             <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('dashboard') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Dashboard</span>
-            </a>
-            <a href="{{ route('documents') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('documents') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Documents</span>
             </a>
             <a href="{{ route('clearance') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('clearance') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Clearance Routing</span>
             </a>
@@ -64,7 +62,7 @@
             </a>
         </nav>
     </aside>
-
+    {{-- MAIN CONTENT --}}
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
         {{-- HEADER --}}
@@ -98,12 +96,12 @@
                 </div>
             @endif
 
-            @if(session('error') && session('error') !== 'Mismatch document. Please resubmit the required file.')
+            @if ($errors->any())
                 <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
-                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
+                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first() }}
                 </div>
             @endif
-
+            {{-- Prepare the context data for the clearance React component, including clearance status, submission details, and a list of submissions with their respective information --}}
             @php
                 $isCleared = isset($clearance) && (
                     $clearance->cashier_status === 'Approved' &&
@@ -137,12 +135,21 @@
                         'createdAt' => $hasSubmission ? (isset($submission->created_at) ? $submission->created_at->format('M d, Y g:i A') : 'recently') : null,
                         'originalName' => $hasSubmission ? ($submission->original_name ?? null) : null,
                     ],
-                    'documentsUrl' => route('documents'),
+                    'submissions' => $submissions->map(fn ($doc) => [
+                        'typeLabel' => $doc->typeLabel(),
+                        'documentsShowUrl' => route('documents.show', $doc),
+                        'originalName' => $doc->original_name,
+                        'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
+                        'status' => $doc->status,
+                        'remarks' => $doc->remarks,
+                    ])->all(),
                 ];
             @endphp
-
+            {{-- Render the clearance React component, passing the prepared context data, CSRF token, and submission URL as props for dynamic interaction and state management --}}
             <div id="clearance-root"
-                 data-context="{{ json_encode($clearanceContext) }}">
+                 data-context="{{ json_encode($clearanceContext) }}"
+                 data-csrf-token="{{ csrf_token() }}"
+                 data-submit-url="{{ route('clearance.submitRequirement') }}">
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
         </div>
@@ -150,32 +157,6 @@
 </div>
 
 @include('partials.notif-script')
-
-{{-- Document Mismatch popup: shown instead of the inline banner so it can't be missed. --}}
-@if(session('error') === 'Mismatch document. Please resubmit the required file.')
-<div id="mismatchModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70">
-    <div class="modal-enter bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border-2 border-red-500">
-        <div class="bg-gradient-to-r from-red-600 to-red-500 px-6 pt-6 pb-8 text-center relative">
-            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto text-3xl text-red-600 shadow-lg animate-pulse">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-        </div>
-        <div class="px-6 pb-6 -mt-4 text-center">
-            <div class="bg-white dark:bg-panelDark rounded-xl pt-2">
-                <h3 class="text-lg font-extrabold text-red-600 mb-2">Mismatch Document</h3>
-                <p class="text-sm text-brandNavy/70 dark:text-slate-300 mb-6">
-                    The uploaded file doesn't appear to show your name. Please resubmit the required file.
-                </p>
-                <button onclick="document.getElementById('mismatchModal').remove()"
-                        class="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors shadow-lg shadow-red-600/30">
-                    Okay, I'll Resubmit
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-
 @viteReactRefresh
 @vite('resources/js/clearance-app.jsx')
 </body>

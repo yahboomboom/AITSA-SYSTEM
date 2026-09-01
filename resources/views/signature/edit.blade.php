@@ -6,13 +6,13 @@
         <i class="fa-solid fa-arrow-left"></i> Back to Home
     </a>
     <h1 class="text-lg font-bold text-slate-800 mb-4">My Signature</h1>
-
+    {{-- Display a success message if the signature was successfully updated --}}
     @if (session('success'))
         <div class="mb-4 p-3 rounded bg-green-50 text-green-700 text-xs border border-green-200">
             {{ session('success') }}
         </div>
     @endif
-
+        {{-- Display the current signature if it exists, or a message prompting the user to upload one if it doesn't --}}
     @if ($user->signature_path)
         <div class="mb-4 p-4 border border-slate-200 rounded-xl bg-white">
             <p class="text-[10px] uppercase text-slate-400 mb-2 font-bold tracking-wider">Current Signature</p>
@@ -24,7 +24,7 @@
             You haven't uploaded a signature yet. Please upload one below.
         </div>
     @endif
-
+        {{-- Form to upload or re-upload the user's signature image, with a file input and a submit button. The form uses POST method and multipart/form-data encoding for file upload. --}}
     <form action="{{ route('signature.update') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
         @csrf
         <label class="block cursor-pointer">

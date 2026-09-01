@@ -1,7 +1,7 @@
 {{-- partials/profile-menu.blade.php --}}
 {{-- Props: $roleLabel, $avatarClass (opt), $avatarInitial (opt) --}}
 <div class="relative" id="profileMenuWrap">
-
+   {{-- Button to toggle the profile menu dropdown, displaying the user's name, role, and avatar --}}
     <button type="button" onclick="toggleProfileMenu()"
         class="flex items-center gap-3 cursor-pointer focus:outline-none select-none">
         <div class="hidden md:block text-right">
@@ -19,7 +19,7 @@
             </span>
         </div>
     </button>
-
+    {{-- Profile menu dropdown, initially hidden, containing links to the signature edit page and a logout button --}}
     <div id="profileMenuDropdown"
         class="hidden absolute right-0 top-14 w-60 bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 rounded-lg shadow-xl z-[200] overflow-hidden">
         <div class="px-4 py-3 bg-lightBg dark:bg-slate-800/60 border-b border-brandNavy/8 dark:border-slate-700">
@@ -29,7 +29,7 @@
             <p class="text-[10px] text-brandNavy/50 dark:text-slate-500 mt-0.5 truncate">
                 {{ $roleLabel ?? (Auth::user()->major ?? 'Staff') }}
             </p>
-        </div>
+        </div> {{-- Container for the profile menu links and logout button --}}
         <div class="p-2">
 		<a href="{{ route('signature.edit') }}"
                 class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-brandNavy/70 dark:text-slate-300 hover:bg-brandNavy/5 dark:hover:bg-slate-800 rounded transition-colors text-left">
