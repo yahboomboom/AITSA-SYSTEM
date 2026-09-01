@@ -214,7 +214,7 @@ private function settleRow(TransactionLedger $row): array
             $clearance->update(['cashier_status' => 'Approved']);
             AuditLog::record('Cashier Cleared (Gateway)', 'Cashier clearance auto-approved for ' . $user->name . ' (' . ($user->login_id ?? 'N/A') . ') after gateway-verified full payment.', 'Clearance', $clearance->id);
                 $message .= ' Your cashier clearance has been approved.';
-                $user->notify(new ClearanceStatusUpdatedNotification('Cashier', 'Approved'));
+                \App\Support\SafeNotify::send($user, new ClearanceStatusUpdatedNotification('Cashier', 'Approved'));
             }
     }
 

@@ -523,7 +523,7 @@ class AuthController extends Controller
                 // Only notify the student once the cashier clearance is actually Approved —
                 // a partial payment (still Pending) doesn't warrant a "cleared" email.
                 if ($breakdown['fully_paid']) {
-                    $user->notify(new \App\Notifications\ClearanceStatusUpdatedNotification('Cashier', 'Approved'));
+                    \App\Support\SafeNotify::send($user, new \App\Notifications\ClearanceStatusUpdatedNotification('Cashier', 'Approved'));
                 }
 
                 return redirect()->back()->with('success', $message);

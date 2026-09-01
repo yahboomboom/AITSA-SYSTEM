@@ -96,13 +96,13 @@ class Clearance extends Model
             // Let every officer of this department (not students who happen to share
             // the same department_id) know a new item just landed in their queue.
             foreach ($department->officers()->where('role', 'department_officer')->get() as $officer) {
-                $officer->notify(new ClearanceApprovalNeededNotification($item, 'Department Clearance Queue'));
+                \App\Support\SafeNotify::send($officer, new ClearanceApprovalNeededNotification($item, 'Department Clearance Queue'));
             }
         }
 
         // Let the student know their clearance process has started.
         $clearance->load('user');
-        $clearance->user?->notify(new ClearancePendingNotification($clearance));
+        \App\Support\SafeNotify::send($clearance->user, new ClearancePendingNotification($clearance));
 
         return $clearance;
     }

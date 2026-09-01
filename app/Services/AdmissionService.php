@@ -6,6 +6,7 @@ use App\Mail\ApplicantAccountCreated;
 use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -59,7 +60,16 @@ class AdmissionService
             $applicant->id
         );
 
-        Mail::to($applicant->email)->send(new ApplicantAccountCreated($applicant, $loginId, $password));
+        // The account must exist regardless of whether the notification email
+        // can be delivered — a broken/unconfigured mail server (very common
+        // on local dev setups) would otherwise throw here and abort the
+        // request after the DB writes above already committed, leaving the
+        // applicant flipped to "student" with no visible confirmation.
+        try {
+            Mail::to($applicant->email)->send(new ApplicantAccountCreated($applicant, $loginId, $password));
+        } catch (\Throwable $e) {
+            Log::error('Failed to email new student credentials to ' . $applicant->email . ': ' . $e->getMessage());
+        }
 
         return ['login_id' => $loginId, 'password' => $password];
     }

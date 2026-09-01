@@ -484,7 +484,7 @@ Route::middleware('auth')->group(function () {
                 'registrar_signed_at' => now(),
                 'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Registrar signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Approved'));
+            \App\Support\SafeNotify::send($clearance->user,new ClearanceStatusUpdatedNotification('Registrar', 'Approved'));
         }
         return redirect()->route('registrar.dashboard')->with('success', 'Student credentials verified successfully.');
     })->name('registrar.sign');
@@ -495,7 +495,7 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['registrar_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Registrar held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Registrar', 'Hold', $data['remarks']));
+            \App\Support\SafeNotify::send($clearance->user,new ClearanceStatusUpdatedNotification('Registrar', 'Hold', $data['remarks']));
             return redirect()->route('registrar.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('registrar.dashboard')->with('error', 'Record not found.');
@@ -628,7 +628,7 @@ Route::middleware('auth')->group(function () {
                 'chair_signed_at' => now(),
                 'remarks' => null,]);
             AuditLog::record('Clearance Signed', 'Department Chair signed clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . ').', 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Approved'));
+            \App\Support\SafeNotify::send($clearance->user,new ClearanceStatusUpdatedNotification('Department Chair', 'Approved'));
             return redirect()->route('approver.dashboard')->with('success', 'Department structural sign-off written successfully.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -640,7 +640,7 @@ Route::middleware('auth')->group(function () {
         if ($clearance) {
             $clearance->update(['chair_status' => 'Hold', 'remarks' => $data['remarks']]);
             AuditLog::record('Clearance Held', 'Department Chair held clearance for student ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-            $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Department Chair', 'Hold', $data['remarks']));
+            \App\Support\SafeNotify::send($clearance->user,new ClearanceStatusUpdatedNotification('Department Chair', 'Hold', $data['remarks']));
             return redirect()->route('approver.dashboard')->with('success', 'Clearance held with remarks.');
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
@@ -776,7 +776,7 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Approved', 'remarks' => null, 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Signed', Auth::user()->name . ' approved ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . '.', 'ClearanceItem', $item->id);
-        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Approved'));
+        \App\Support\SafeNotify::send($item->clearance->user,new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Approved'));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item approved.');
     })->name('department.items.approve');
@@ -787,7 +787,7 @@ Route::middleware('auth')->group(function () {
 
         $item->update(['status' => 'Hold', 'remarks' => $data['remarks'], 'signed_by' => Auth::id(), 'signed_at' => now()]);
         AuditLog::record('Clearance Held', Auth::user()->name . ' held ' . $item->department->name . ' clearance for ' . ($item->clearance->user->name ?? 'ID ' . $item->clearance->user_id) . ': ' . $data['remarks'], 'ClearanceItem', $item->id);
-        $item->clearance->user?->notify(new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Hold', $data['remarks']));
+        \App\Support\SafeNotify::send($item->clearance->user,new ClearanceStatusUpdatedNotification($item->department->name ?? 'Department Office', 'Hold', $data['remarks']));
 
         return redirect()->route('department.dashboard')->with('success', 'Clearance item held with remarks.');
     })->name('department.items.hold');
@@ -818,7 +818,7 @@ Route::middleware('auth')->group(function () {
         abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
         $clearance->update(['cashier_status' => 'Hold', 'remarks' => $data['remarks']]);
         AuditLog::record('Clearance Held', 'Cashier held clearance for student ID ' . $data['user_id'] . ': ' . $data['remarks'], 'Clearance', $clearance->id);
-        $clearance->user?->notify(new ClearanceStatusUpdatedNotification('Cashier', 'Hold', $data['remarks']));
+        \App\Support\SafeNotify::send($clearance->user,new ClearanceStatusUpdatedNotification('Cashier', 'Hold', $data['remarks']));
 
         return redirect()->back()->with('success', 'Clearance held with remarks.');
     })->name('cashier.hold');
@@ -1133,7 +1133,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/registrar/activate-applicant/{id}', function ($id, \App\Services\AdmissionService $admissions) {
             $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
 
-            $admissions->activateStudentAccount($applicant);
+            $credentials = $admissions->activateStudentAccount($applicant);
 
             AuditLog::record(
                 'Applicant Activated by Registrar',
@@ -1142,7 +1142,15 @@ Route::middleware('auth')->group(function () {
                 $applicant->id
             );
 
-            return redirect()->back()->with('success', $applicant->name . '\'s student account has been created.');
+            // Show the credentials here too — if the confirmation email failed
+            // to send (e.g. mail isn't configured on this environment), this
+            // is the only place the Registrar can see them.
+            $message = $applicant->name . '\'s student account has been created.';
+            if ($credentials) {
+                $message .= ' Login ID: ' . $credentials['login_id'] . ', Password: ' . $credentials['password'];
+            }
+
+            return redirect()->back()->with('success', $message);
         })->name('registrar.activate-applicant');
 
         Route::post('/registrar/toggle-reservation/{id}', function ($id, \App\Services\AdmissionService $admissions) {
@@ -1153,8 +1161,9 @@ Route::middleware('auth')->group(function () {
 
             // Marking as paid (a counter payment) activates the student account
             // immediately, same as the online PayMongo reservation flow.
+            $credentials = null;
             if ($applicant->is_reserved) {
-                $admissions->activateStudentAccount($applicant);
+                $credentials = $admissions->activateStudentAccount($applicant);
             }
 
             AuditLog::record(
@@ -1164,7 +1173,12 @@ Route::middleware('auth')->group(function () {
                 $applicant->id
             );
 
-            return redirect()->back()->with('success', $applicant->name . ' is now marked as ' . ($applicant->is_reserved ? 'Reserved' : 'Not Reserved') . '.');
+            $message = $applicant->name . ' is now marked as ' . ($applicant->is_reserved ? 'Reserved' : 'Not Reserved') . '.';
+            if ($credentials) {
+                $message .= ' Login ID: ' . $credentials['login_id'] . ', Password: ' . $credentials['password'];
+            }
+
+            return redirect()->back()->with('success', $message);
         })->name('registrar.toggle-reservation');
 
         /**
