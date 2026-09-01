@@ -25,7 +25,9 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                             <th className="py-3.5 px-6">Type</th>
                             <th className="py-3.5 px-6">Last School</th>
                             <th className="py-3.5 px-6 text-center">Reservation</th>/** the resrvation fee check boxs*/
+                            <th className="py-3.5 px-6 text-center">Agreement</th>
                             <th className="py-3.5 px-6 text-center">Date Applied</th>
+                            <th className="py-3.5 px-6 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
@@ -118,7 +120,43 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                         )}
                                     </div>
                                 </td>
+                                <td className="py-4 px-6 text-center">
+                                    {applicant.agreementSigned ? (
+                                        <a href={applicant.agreementViewUrl} target="_blank" rel="noopener noreferrer"
+                                           className="inline-flex flex-col items-center gap-0.5 text-brandGreen hover:text-emerald-700 transition-colors">
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGreen/10">
+                                                <i className="fa-solid fa-signature mr-1" />Signed
+                                            </span>
+                                            <span className="text-[9px] font-bold underline underline-offset-2">{applicant.agreementSignedAt}</span>
+                                        </a>
+                                    ) : (
+                                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-brandNavy/40 dark:text-slate-500">
+                                            Not Signed
+                                        </span>
+                                    )}
+                                </td>
                                 <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>
+                                <td className="py-4 px-6 text-center">
+                                    {/* Archives a stale application (never paid, never followed up) so it
+                                        stops cluttering the queue. Not a decline decision — just cleanup. */}
+                                    <form
+                                        action={applicant.archiveApplicantUrl}
+                                        method="POST"
+                                        onSubmit={(e) => {
+                                            if (!window.confirm(`Archive ${applicant.name}'s application? This removes them from the pending queue.`)) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                    >
+                                        <input type="hidden" name="_token" value={csrfToken} />
+                                        <button
+                                            type="submit"
+                                            className="text-[9px] font-bold text-red-500/70 hover:text-red-600 underline underline-offset-2 transition-colors"
+                                        >
+                                            Archive
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

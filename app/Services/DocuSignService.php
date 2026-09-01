@@ -186,6 +186,28 @@ class DocuSignService
         return $agreement->fresh();
     }
 
+    /**
+     * Fetch the final, signed document (combined with the certificate of
+     * completion) back from DocuSign — for staff/students to view proof of
+     * signing rather than just a "signed" status flag.
+     */
+    public function downloadSignedDocument(EnrollmentAgreement $agreement): string
+    {
+        if (! $agreement->envelope_id) {
+            throw new PaymentGatewayException('This agreement has no signed document on file yet.');
+        }
+
+        $response = $this->client()->get(
+            '/v2.1/accounts/' . config('services.docusign.account_id') . "/envelopes/{$agreement->envelope_id}/documents/combined"
+        );
+
+        if ($response->failed()) {
+            throw new PaymentGatewayException('Could not download the signed document from DocuSign: ' . $response->body());
+        }
+
+        return $response->body();
+    }
+
     /** Called by the webhook once DocuSign Connect confirms the envelope is done. */
     public function markCompletedByEnvelopeId(string $envelopeId): void
     {

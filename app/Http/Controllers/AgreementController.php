@@ -70,4 +70,35 @@ class AgreementController extends Controller
             'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
         ]);
     }
+
+    /** Stream the authenticated user's own signed enrollment agreement back from DocuSign. */
+    public function downloadMine(DocuSignService $docusign)
+    {
+        return $this->download(\Illuminate\Support\Facades\Auth::user(), $docusign);
+    }
+
+    /** Same, but for Registrar/Admission staff checking a given applicant's/student's agreement. */
+    public function downloadForUser(int $id, DocuSignService $docusign)
+    {
+        return $this->download(User::findOrFail($id), $docusign);
+    }
+
+    private function download(User $user, DocuSignService $docusign)
+    {
+        $agreement = $user->agreements()->where('status', 'completed')->latest()->first();
+
+        if (! $agreement) {
+            return back()->with('error', 'No signed enrollment agreement was found for this account.');
+        }
+
+        try {
+            $document = $docusign->downloadSignedDocument($agreement);
+        } catch (PaymentGatewayException $e) {
+            return back()->with('error', 'Could not retrieve the signed document: ' . $e->getMessage());
+        }
+
+        return response($document, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="enrollment-agreement.pdf"');
+    }
 }

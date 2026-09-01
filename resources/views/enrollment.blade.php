@@ -13,21 +13,7 @@
 
 <div class="flex h-screen overflow-hidden">
 
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
-        <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
-            <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover mr-3">
-            <h1 class="text-xl font-black text-brandNavy dark:text-white">AITSA</h1>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-            <p class="px-4 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
-            <a href="{{ route('dashboard') }}" class="flex items-center px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('dashboard') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}">Dashboard</a>
-            <a href="{{ route('documents') }}" class="flex items-center px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('documents') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}">Documents</a>
-            <a href="{{ route('clearance') }}" class="flex items-center px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('clearance') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}">Clearance Routing</a>
-            <a href="{{ route('enrollment') }}" class="flex items-center px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('enrollment') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}">Enrollment</a>
-            <a href="{{ route('ledger') }}" class="flex items-center px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('ledger') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}">Payments</a>
-            <a href="/cor" class="flex items-center px-4 py-3 rounded-xl text-sm text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium transition-colors duration-300">Schedule</a>
-        </nav>
-    </aside>
+    @include('partials.student-sidebar')
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
@@ -41,6 +27,7 @@
                 <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>
+                @include('partials.student-status-badge')
                 @include('partials.profile-menu', ['roleLabel' => Auth::user()->major ?? 'BSIT'])
             </div>
         </header>

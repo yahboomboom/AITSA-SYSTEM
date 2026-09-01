@@ -17,6 +17,10 @@
             <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">My Teaching Schedule</h2>
         </div>
         <div class="flex items-center gap-4">
+            <a href="{{ route('faculty.sections') }}"
+               class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-brandNavy hover:bg-brandGreen text-white transition-colors">
+                <i class="fa-solid fa-pen-to-square"></i>Enter Grades
+            </a>
             @include('partials.notif-bell')
             <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                 <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>

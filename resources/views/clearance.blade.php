@@ -42,28 +42,7 @@
 
 <div class="flex h-screen overflow-hidden">
 
-    {{-- SIDEBAR --}}
-    <aside class="hidden lg:flex flex-col w-64 bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-colors duration-300">
-        <div class="h-20 flex items-center px-8 border-b border-brandNavy/10 dark:border-slate-800">
-            <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover mr-3">
-            <h1 class="text-xl font-black tracking-tight text-brandNavy dark:text-white">AITSA</h1>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-            <p class="px-4 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Main Menu</p>
-            <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('dashboard') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Dashboard</span>
-            </a>
-            <a href="{{ route('documents') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('documents') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Documents</span>
-            </a>
-            <a href="{{ route('clearance') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('clearance') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Clearance Routing</span>
-            </a>
-            <a href="{{ route('enrollment') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('enrollment') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Enrollment System</span>
-            </a>
-            <a href="{{ route('ledger') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 {{ Route::is('ledger') ? 'bg-brandGreen/10 text-brandGreen dark:bg-brandGreen/20 dark:text-emerald-400 font-bold' : 'text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium' }}"><span>Ledger & Payments</span>
-            </a>
-            <a href="/cor" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-sm transition-colors duration-300 text-brandNavy/60 hover:bg-brandNavy/5 hover:text-brandNavy dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white font-medium"><span>Schedule</span>
-            </a>
-        </nav>
-    </aside>
+    @include('partials.student-sidebar')
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
@@ -74,7 +53,7 @@
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
                 <div>
-                    <h2 class="text-base font-bold text-brandNavy dark:text-slate-100 uppercase tracking-wider">{{ Auth::user()->name ?? 'Student' }}</h2>
+                    <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">Clearance Routing</h2>
                     <p class="text-[11px] font-mono text-brandNavy/60 dark:text-slate-400">Student No: {{ Auth::user()->login_id ?? '---' }}</p>
                 </div>
             </div>
@@ -85,7 +64,8 @@
                     <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                         <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                     </button>
-                    @include('partials.profile-menu', ['roleLabel' => Auth::user()->major ?? 'BSIT - Web Development'])
+                    @include('partials.student-status-badge')
+                    @include('partials.profile-menu', ['roleLabel' => Auth::user()->major ?? 'BSIT'])
                 </div>
             </div>
         </header>
@@ -101,6 +81,14 @@
             @if(session('error') && session('error') !== 'Mismatch document. Please resubmit the required file.')
                 <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
                     <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
+                </div>
+            @endif
+
+            @if($agreement)
+                <div class="p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs flex items-center justify-between gap-3">
+                    <span><i class="fa-solid fa-signature mr-2"></i>Enrollment Agreement Signed &mdash; {{ $agreement->signed_at->format('M d, Y') }}</span>
+                    <a href="{{ route('agreement.mine') }}" target="_blank" rel="noopener noreferrer"
+                       class="underline underline-offset-2 hover:text-emerald-700 transition-colors whitespace-nowrap">View my copy</a>
                 </div>
             @endif
 

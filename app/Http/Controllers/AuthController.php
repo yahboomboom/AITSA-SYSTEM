@@ -21,6 +21,7 @@ use App\Models\TransactionLedger;
 use App\Models\AdmissionSlotLimit;
 use App\Models\Setting;
 use App\Services\FeeAssessmentService;
+use Illuminate\Support\Facades\Password;
 
 class AuthController extends Controller
 {
@@ -31,6 +32,63 @@ class AuthController extends Controller
             return $this->handleRoleRedirection(Auth::user());
         }
         return view('login');
+    }
+
+    // Forgot-password: accept the same login_id-or-email identifier the
+    // login form itself accepts, resolve it to a real email, then hand off
+    // to Laravel's built-in password broker for the token/notification.
+    public function showForgotPasswordForm()
+    {
+        if (Auth::check()) {
+            return $this->handleRoleRedirection(Auth::user());
+        }
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['login_id' => ['required', 'string']]);
+
+        $identifier = $request->input('login_id');
+        $user = User::where('login_id', $identifier)->orWhere('email', $identifier)->first();
+
+        // Deliberately identical response whether or not the account exists,
+        // so this form can't be used to enumerate valid student IDs/emails.
+        if ($user) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
+
+        return back()->with('status', 'If an account matches, a password reset link has been sent to the associated email address.');
+    }
+
+    public function showResetPasswordForm(Request $request, string $token)
+    {
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill(['password' => Hash::make($password)])->save();
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return redirect()->route('login')->with('success', 'Your password has been reset. You may now log in.');
+        }
+
+        return back()->withErrors(['email' => __($status)])->withInput($request->only('email'));
     }
 
     // 2. Process secure credential authentication matching

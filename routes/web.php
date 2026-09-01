@@ -39,6 +39,13 @@ Route::get('/login', [AuthController::class, 'showLogin']);
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Password reset — login_id-or-email identifier (same as the login form),
+// resolved internally to the account's email for Laravel's password broker.
+Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
 // Open Student Application Sequence Endpoints
 Route::get('/apply', [AuthController::class, 'showApplicationForm'])->name('apply');
 Route::post('/apply', [AuthController::class, 'processApplication'])->name('apply.store');
@@ -107,6 +114,11 @@ Route::middleware('signed')->group(function () {
 Route::middleware('auth')->group(function () {
      Route::get('/my-signature', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('signature.edit');
      Route::post('/my-signature', [\App\Http\Controllers\SignatureController::class, 'update'])->name('signature.update');
+
+     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+
+     Route::get('/my-agreement', [\App\Http\Controllers\AgreementController::class, 'downloadMine'])->name('agreement.mine');
     // 1. Student Dashboard Module
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -169,7 +181,8 @@ Route::middleware('auth')->group(function () {
         // upload UI and submission history now live on the /documents page.
         $submission = DocumentSubmission::where('user_id', $user->id)->latest()->first();
         $breakdown = $fees->breakdownFor($user);
-        return view('clearance', compact('clearance', 'submission', 'breakdown'));
+        $agreement = $user->agreements()->where('status', 'completed')->latest()->first();
+        return view('clearance', compact('clearance', 'submission', 'breakdown', 'agreement'));
     })->name('clearance');
 
     // 2.1. Documents Module — submit & track institutional requirements,
@@ -263,6 +276,13 @@ Route::middleware('auth')->group(function () {
         return view('enrollment', compact('clearance', 'passedCodes', 'failedCodes', 'isIrregular', 'yearNum'));
     })->name('enrollment');
 
+    // Student Grades — read-only view of the authenticated student's own grade records.
+    Route::get('/grades', function () {
+        $grades = StudentGrade::where('user_id', Auth::id())->orderBy('subject_code')->get();
+
+        return view('grades', compact('grades'));
+    })->name('grades');
+
     // 5. Ledger Workspace Module (view renamed to `payment`)
     Route::get('/ledger', function (FeeAssessmentService $fees) {
         $user = Auth::user();
@@ -353,11 +373,14 @@ Route::middleware('auth')->group(function () {
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
-        $applicants = User::where('role', 'applicant')->orderByDesc('created_at')->get();
+        $applicants = User::where('role', 'applicant')->with('agreements')->orderByDesc('created_at')->get();
 
         $documentSubmissions = DocumentSubmission::with('user')->latest()->get();
         return view('registrar.dashboard', compact('clearances', 'applicants', 'documentSubmissions'));
     })->name('registrar.dashboard');
+
+    Route::get('/registrar/applicants/{id}/agreement', [\App\Http\Controllers\AgreementController::class, 'downloadForUser'])
+        ->name('registrar.applicant-agreement');
 
     // Admission Slots: lets the Registrar set how many total slots each curriculum
     // has for the current registration/reservation period, split evenly across a
@@ -625,6 +648,83 @@ Route::middleware('auth')->group(function () {
 
             return view('faculty.schedule', ['context' => $context]);
         })->name('faculty.schedule');
+
+        Route::get('/faculty/sections', function () {
+            $sections = auth()->user()->taughtSections()
+                ->where('school_year', Setting::get('school_year', '2026-2027'))
+                ->with('subject')
+                ->orderBy('block_label')
+                ->get()
+                ->map(fn (Section $s) => [
+                    'id' => $s->id,
+                    'subjectCode' => $s->subject->code,
+                    'subjectTitle' => $s->subject->title,
+                    'blockLabel' => $s->block_label,
+                    'enrolledCount' => $s->enrolledCount(),
+                ]);
+
+            return view('faculty.sections', compact('sections'));
+        })->name('faculty.sections');
+
+        Route::get('/faculty/sections/{section}/grades', function (Section $section) {
+            abort_unless($section->faculty_id === auth()->id(), 403);
+            $section->load('subject');
+
+            $students = $section->enrollments()
+                ->where('enrollments.status', '!=', 'rejected')
+                ->with('user')
+                ->get()
+                ->pluck('user')
+                ->filter()
+                ->sortBy('name')
+                ->values();
+
+            $grades = StudentGrade::where('subject_code', $section->subject->code)
+                ->whereIn('user_id', $students->pluck('id'))
+                ->get()
+                ->keyBy('user_id');
+
+            return view('faculty.section-grades', compact('section', 'students', 'grades'));
+        })->name('faculty.sections.grades');
+
+        Route::post('/faculty/sections/{section}/grades', function (Request $request, Section $section) {
+            abort_unless($section->faculty_id === auth()->id(), 403);
+            $section->load('subject');
+
+            $enrolledIds = $section->enrollments()
+                ->where('enrollments.status', '!=', 'rejected')
+                ->with('user')
+                ->get()
+                ->pluck('user.id')
+                ->filter()
+                ->values();
+
+            foreach ($request->input('grades', []) as $userId => $rawGrade) {
+                if (! $enrolledIds->contains((int) $userId)) {
+                    continue;
+                }
+
+                $grade = is_numeric($rawGrade) ? (int) $rawGrade : null;
+
+                if ($grade === null) {
+                    StudentGrade::where('user_id', $userId)->where('subject_code', $section->subject->code)->delete();
+                } else {
+                    StudentGrade::updateOrCreate(
+                        ['user_id' => $userId, 'subject_code' => $section->subject->code],
+                        ['status' => $grade >= 75 ? 'Passed' : 'Failed', 'final_grade' => (string) $grade]
+                    );
+                }
+            }
+
+            AuditLog::record(
+                'Grades Updated',
+                auth()->user()->name . ' recorded grades for ' . $section->subject->code . ' (Block ' . $section->block_label . ').',
+                'Section',
+                $section->id
+            );
+
+            return redirect()->route('faculty.sections.grades', $section->id)->with('success', 'Grades saved.');
+        })->name('faculty.sections.grades.store');
     }); // end role:faculty
 
     // --- DEPARTMENT OFFICER QUEUE ---
@@ -1037,6 +1137,28 @@ Route::middleware('auth')->group(function () {
 
             return redirect()->back()->with('success', $applicant->name . ' is now marked as ' . ($applicant->is_reserved ? 'Reserved' : 'Not Reserved') . '.');
         })->name('registrar.toggle-reservation');
+
+        /**
+         * Soft-delete a stale/abandoned applicant so they stop cluttering the
+         * pending queue. This is NOT the old verify/decline gate — it doesn't
+         * judge the application, it just archives records nobody ever acted
+         * on (e.g. never paid, never followed up). Reversible via the users
+         * table's deleted_at column if ever needed.
+         */
+        Route::post('/registrar/archive-applicant/{id}', function ($id) {
+            $applicant = User::where('id', $id)->where('role', 'applicant')->firstOrFail();
+
+            AuditLog::record(
+                'Applicant Archived',
+                'Registrar archived the stale application for ' . $applicant->name . ' (' . $applicant->email . ').',
+                'User',
+                $applicant->id
+            );
+
+            $applicant->delete();
+
+            return redirect()->back()->with('success', $applicant->name . '\'s application has been archived.');
+        })->name('registrar.archive-applicant');
 
     }); // end role:registrar,admission
 

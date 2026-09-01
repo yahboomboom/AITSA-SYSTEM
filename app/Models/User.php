@@ -92,6 +92,11 @@ class User extends Authenticatable
         return $this->hasMany(StudentGrade::class);
     }
 
+    public function agreements(): HasMany
+    {
+        return $this->hasMany(EnrollmentAgreement::class);
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);

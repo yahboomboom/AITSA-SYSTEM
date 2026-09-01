@@ -221,6 +221,13 @@
                     </p>
                 </div>
 
+                @if (session('success'))
+                <div class="rounded-lg border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900/30 px-4 py-3 flex gap-2.5 items-start">
+                    <i class="fa-solid fa-circle-check text-brandGreen mt-0.5 text-sm flex-shrink-0"></i>
+                    <p class="text-xs font-medium text-brandGreen dark:text-emerald-400">{{ session('success') }}</p>
+                </div>
+                @endif
+
                 @if ($errors->any())
                 <div class="rounded-lg border border-red-200/60 bg-red-50 dark:bg-red-950/20 dark:border-red-900/30 px-4 py-3 flex gap-2.5 items-start">
                     <i class="fa-solid fa-circle-exclamation text-red-500 mt-0.5 text-sm flex-shrink-0"></i>
@@ -262,7 +269,7 @@
                     </div>
 
                     <div class="flex justify-end -mt-1">
-                        <a href="#" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-brandGreen dark:hover:text-brandGold
+                        <a href="{{ route('password.request') }}" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-brandGreen dark:hover:text-brandGold
                                           transition-colors duration-200 hover:underline underline-offset-2">
                             Forgot Password?
                         </a>

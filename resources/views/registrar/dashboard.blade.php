@@ -69,6 +69,12 @@
                     </div>
                 @endif
 
+                @if(session('error'))
+                    <div class="p-4 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
+                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
+                    </div>
+                @endif
+
                 <div class="space-y-1">
                     <h1 class="text-2xl font-extrabold tracking-tight text-brandNavy dark:text-white">Registrar Portal</h1>
                 </div>
@@ -93,6 +99,10 @@
                             'isReserved' => (bool) $a->is_reserved, // have they actually paid the fee?
                             'toggleReservationUrl' => route('registrar.toggle-reservation', $a->id),
                             'activateApplicantUrl' => route('registrar.activate-applicant', $a->id),
+                            'archiveApplicantUrl' => route('registrar.archive-applicant', $a->id),
+                            'agreementSigned' => $a->agreements->contains(fn ($agreement) => $agreement->status === 'completed'),
+                            'agreementSignedAt' => optional($a->agreements->firstWhere('status', 'completed'))->signed_at?->format('M d, Y'),
+                            'agreementViewUrl' => route('registrar.applicant-agreement', $a->id),
                         ])->values(),
                         'stats' => [
                             'total' => $clearances->count(),
