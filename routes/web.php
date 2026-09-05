@@ -893,7 +893,45 @@ Route::middleware('auth')->group(function () {
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
     Route::middleware('role:admin')->group(function () {
     Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
+
+        $termClearances = Clearance::has('user')->with('items')
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
+            ->get();
+
+        $settled = $termClearances->filter(fn (Clearance $c) => $c->chair_status === 'Approved'
+            && $c->cashier_status === 'Approved'
+            && $c->registrar_status === 'Approved'
+            && $c->allItemsApproved());
+
+        $roleLabels = [
+            'chair' => 'Department Chair',
+            'cashier' => 'Finance Cashier',
+            'registrar' => 'Institutional Registrar',
+        ];
+
+        $accounts = User::whereIn('role', array_keys($roleLabels))->get()
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'loginId' => $u->login_id,
+                'role' => $u->role,
+                'roleLabel' => $roleLabels[$u->role],
+            ])->values();
+
+        $context = [
+            'stats' => [
+                'totalActiveUsers' => User::count(),
+                'clearancesSettled' => $settled->count(),
+                'pendingQueues' => $termClearances->count() - $settled->count(),
+            ],
+            'accounts' => $accounts,
+        ];
+
+        return view('admin.dashboard', compact('context'));
     })->name('admin.dashboard');
 
     // Walk-in registration — for staff to manually register a student who never

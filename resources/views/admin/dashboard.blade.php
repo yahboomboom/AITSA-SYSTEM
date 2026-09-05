@@ -46,77 +46,14 @@
                     <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5">Institutional metrics for running portals, clearances, and user registration modules.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-
-                    <div class="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
-                        <p class="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Total Active Users</p>
-                        <h4 class="text-2xl font-black text-brandNavy dark:text-white">1,248</h4>
-                        <p class="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">Across all role profiles</p>
-                    </div>
-
-                    <div class="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
-                        <p class="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Clearances Settled</p>
-                        <h4 class="text-2xl font-black text-brandNavy dark:text-white">412</h4>
-                        <p class="text-[11px] text-brandGreen font-medium mt-1">33% total completion</p>
-                    </div>
-
-                    <div class="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
-                        <p class="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Pending Queues</p>
-                        <h4 class="text-2xl font-black text-brandNavy dark:text-white">836</h4>
-                        <p class="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">Awaiting staff signature reviews</p>
-                    </div>
-
-                    <div class="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
-                        <p class="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">System Operational</p>
-                        <h4 class="text-2xl font-black text-brandGreen">100%</h4>
-                        <p class="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">All database links connected</p>
-                    </div>
-                </div>
-
                 @if(session('success'))
                 <div class="p-3.5 rounded-lg bg-brandGreen/8 border border-brandGreen/20 text-brandGreen font-bold text-xs mb-4">
                     <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                 </div>
                 @endif
 
-                <div class="mb-4">
-                    <h4 class="text-base font-bold text-brandNavy dark:text-white">System Accounts</h4>
-                    <p class="text-xs text-brandNavy/50 dark:text-slate-400">Quick oversight of operational node access tiers.</p>
-                </div>
-
-                <div class="bg-white dark:bg-panelDark rounded-lg border border-brandNavy/8 dark:border-slate-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-lightBg dark:bg-slate-800/40 text-brandNavy/40 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest border-b border-brandNavy/8 dark:border-slate-800">
-                                    <th class="py-3.5 px-5">Official Name</th>
-                                    <th class="py-3.5 px-5">Email</th>
-                                    <th class="py-3.5 px-5">System ID</th>
-                                    <th class="py-3.5 px-5">Role</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/60 text-sm">
-                                <tr class="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td class="py-4 px-5 font-bold text-brandNavy dark:text-white">Dr. Alex Santos</td>
-                                    <td class="py-4 px-5 text-brandNavy/50 dark:text-slate-400">chair@aitsa.edu.ph</td>
-                                    <td class="py-4 px-5 font-mono text-xs text-brandNavy/40 dark:text-slate-500">chair01</td>
-                                    <td class="py-4 px-5"><span class="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">Department Chair</span></td>
-                                </tr>
-                                <tr class="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td class="py-4 px-5 font-bold text-brandNavy dark:text-white">Elena Cruz</td>
-                                    <td class="py-4 px-5 text-brandNavy/50 dark:text-slate-400">cashier@aitsa.edu.ph</td>
-                                    <td class="py-4 px-5 font-mono text-xs text-brandNavy/40 dark:text-slate-500">cashier01</td>
-                                    <td class="py-4 px-5"><span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">Finance Cashier</span></td>
-                                </tr>
-                                <tr class="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td class="py-4 px-5 font-bold text-brandNavy dark:text-white">Roberto Diaz</td>
-                                    <td class="py-4 px-5 text-brandNavy/50 dark:text-slate-400">registrar@aitsa.edu.ph</td>
-                                    <td class="py-4 px-5 font-mono text-xs text-brandNavy/40 dark:text-slate-500">registrar01</td>
-                                    <td class="py-4 px-5"><span class="px-2 py-0.5 rounded text-xs font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">Institutional Registrar</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="admin-dashboard-root" data-context="{{ json_encode($context) }}">
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
@@ -124,5 +61,7 @@
     </div>
 
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/admin-dashboard-app.jsx')
 </body>
 </html>
