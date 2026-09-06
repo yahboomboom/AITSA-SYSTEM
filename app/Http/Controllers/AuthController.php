@@ -410,7 +410,20 @@ class AuthController extends Controller
     public function showCashierTransactions()
     {
         $transactions = TransactionLedger::with(['user', 'processor'])->orderBy('created_at', 'desc')->get();
-        return view('cashier.transactions', compact('transactions'));
+
+        $context = [
+            'rows' => $transactions->map(fn ($t) => [
+                'id' => $t->id,
+                'studentName' => $t->user->name ?? 'Unknown Student',
+                'referenceNo' => $t->reference_no ?? 'N/A',
+                'amount' => (float) ($t->amount ?? 3500),
+                'status' => $t->status ?? 'Success',
+                'processorName' => $t->processor->name ?? 'System Override',
+                'timestamp' => $t->created_at ? $t->created_at->format('Y-m-d H:i') : now()->format('Y-m-d H:i'),
+            ])->values(),
+        ];
+
+        return view('cashier.transactions', compact('context'));
     }
 
     /**
