@@ -26,6 +26,7 @@ export default defineConfig({
                 'resources/js/cashier-transactions-app.jsx',
                 'resources/js/cashier-accounts-app.jsx',
                 'resources/js/registrar-students-app.jsx',
+                'resources/js/registrar-reports-app.jsx',
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/apply-app.jsx',

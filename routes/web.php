@@ -1136,7 +1136,35 @@ Route::middleware('auth')->group(function () {
             ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
-        return view('registrar.reports', compact('clearances', 'pendingApplicants'));
+
+        $context = [
+            'summary' => [
+                'total' => $clearances->count(),
+                'registrarSigned' => $clearances->where('registrar_status', 'Approved')->count(),
+                'registrarPending' => $clearances->count() - $clearances->where('registrar_status', 'Approved')->count(),
+                'fullyCleared' => $clearances->filter(fn ($c) =>
+                    $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved'
+                )->count(),
+            ],
+            'pendingApplicants' => $pendingApplicants,
+            'dashboardUrl' => route('registrar.dashboard'),
+            'rows' => $clearances->values()->map(fn ($c, $i) => [
+                'id' => $c->id,
+                'index' => $i + 1,
+                'studentName' => $c->user->name ?? 'Unknown',
+                'studentEmail' => $c->user->email ?? '',
+                'studentNo' => $c->user->login_id ?? 'N/A',
+                'program' => $c->user->major ?? '—',
+                'chairStatus' => $c->chair_status,
+                'cashierStatus' => $c->cashier_status,
+                'registrarStatus' => $c->registrar_status,
+                'registrarSigned' => $c->registrar_status === 'Approved',
+                'isCleared' => $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved',
+                'signUrl' => route('registrar.sign', $c->id),
+            ])->values(),
+        ];
+
+        return view('registrar.reports', compact('context'));
     })->name('registrar.reports');
 
     // Curriculum editing — moved here from Admin (per the adviser's note that
