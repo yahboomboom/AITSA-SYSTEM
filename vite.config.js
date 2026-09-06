@@ -22,6 +22,7 @@ export default defineConfig({
                 'resources/js/department-dashboard-app.jsx',
                 'resources/js/documents-app.jsx',
                 'resources/js/admin-dashboard-app.jsx',
+                'resources/js/cashier-billing-app.jsx',
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/apply-app.jsx',

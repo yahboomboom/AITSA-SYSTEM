@@ -43,168 +43,58 @@
                     </div>
                 @endif
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                @php
+                    $context = [
+                        'feeRates' => [
+                            'tuitionPerUnit' => $tuitionPerUnit,
+                            'miscFee' => $miscFee,
+                            'reservationFee' => $reservationFee,
+                            'tesdaTuitionFee' => $tesdaTuitionFee,
+                        ],
+                        'discountTypes' => $discountTypes->map(fn ($type) => [
+                            'id' => $type->id,
+                            'name' => $type->name,
+                            'percent' => $type->percent,
+                            'studentsCount' => $type->students_count,
+                            'deleteUrl' => route('cashier.billing.discounts.delete', $type),
+                        ])->values(),
+                        'students' => $students->map(fn ($student) => [
+                            'id' => $student->id,
+                            'name' => $student->name,
+                            'loginId' => $student->login_id,
+                            'major' => $student->major,
+                            'yearLevel' => $student->year_level,
+                            'discountTypeId' => $student->discount_type_id,
+                            'assignUrl' => route('cashier.billing.assign', $student),
+                        ])->values(),
+                        'errors' => array_map(fn ($m) => $m[0], $errors->getMessages()),
+                        'old' => [
+                            'tuition_per_unit' => old('tuition_per_unit'),
+                            'misc_fee' => old('misc_fee'),
+                            'reservation_fee' => old('reservation_fee'),
+                            'tesda_tuition_fee' => old('tesda_tuition_fee'),
+                            'name' => old('name'),
+                            'percent' => old('percent'),
+                        ],
+                    ];
+                @endphp
 
-                    {{-- FEE RATES --}}
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
-                        <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800">
-                            <h2 class="text-sm font-bold text-brandNavy dark:text-white"><i class="fa-solid fa-coins mr-2 text-brandGold"></i>Fee Rates</h2>
-                        </div>
-                        <form action="{{ route('cashier.billing.fees') }}" method="POST" class="p-5 space-y-4 text-xs"
-                            onsubmit="return lockFormSubmit(this, 'Saving…')">
-                            @csrf
-                            @if ($errors->hasAny(['tuition_per_unit', 'misc_fee', 'reservation_fee', 'tesda_tuition_fee']))
-                                <div class="p-3 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold">
-                                    <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first('tuition_per_unit') ?: $errors->first('misc_fee') ?: $errors->first('reservation_fee') ?: $errors->first('tesda_tuition_fee') }}
-                                </div>
-                            @endif
-                            <div>
-                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Tuition per unit (₱)</label>
-                                <input type="number" name="tuition_per_unit" min="0" required value="{{ old('tuition_per_unit', $tuitionPerUnit) }}"
-                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Miscellaneous fee per term (₱)</label>
-                                <input type="number" name="misc_fee" min="0" required value="{{ old('misc_fee', $miscFee) }}"
-                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                            </div>
-                            {{-- NEW: Slot reservation fee, now editable here instead of a hidden default --}}
-                            <div>
-                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Slot reservation fee (₱)</label>
-                                <input type="number" name="reservation_fee" min="0" required value="{{ old('reservation_fee', $reservationFee) }}"
-                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                                <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Charged once, when a new applicant reserves their slot. Kept separate from tuition — never added on top of it.</p>
-                            </div>
-                            {{-- NEW: Flat tuition override for TESDA Short-Term Programs --}}
-                            <div>
-                                <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">TESDA Short-Term Program tuition (₱, flat)</label>
-                                <input type="number" name="tesda_tuition_fee" min="0" required value="{{ old('tesda_tuition_fee', $tesdaTuitionFee) }}"
-                                    class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                                <p class="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Flat tuition for TESDA NC students (Bookkeeping, Events Management, Food & Beverages), used instead of the regular tuition above.</p>
-                            </div>
-                            <button type="submit" class="px-5 py-2.5 bg-brandNavy hover:bg-brandGreen text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                Save Rates
-                            </button>
-                        </form>
-                    </div>
-
-                    {{-- DISCOUNT TYPES --}}
-                    <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
-                        <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800">
-                            <h2 class="text-sm font-bold text-brandNavy dark:text-white"><i class="fa-solid fa-percent mr-2 text-brandGreen"></i>Discount Types <span class="font-normal text-brandNavy/40 dark:text-slate-500">(applies to tuition only)</span></h2>
-                        </div>
-                        <div class="p-5 space-y-4 text-xs">
-                            <form action="{{ route('cashier.billing.discounts') }}" method="POST" class="flex flex-wrap items-end gap-2"
-                                onsubmit="return lockFormSubmit(this, 'Adding…')">
-                                @csrf
-                                @if ($errors->hasAny(['name', 'percent']))
-                                    <div class="w-full p-3 rounded-lg bg-red-600/10 border border-red-600/20 text-red-600 font-bold">
-                                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first('name') ?: $errors->first('percent') }}
-                                    </div>
-                                @endif
-                                <div class="flex-1 min-w-32">
-                                    <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">Name</label>
-                                    <input type="text" name="name" required maxlength="100" placeholder="e.g. Academic Scholar" value="{{ old('name') }}"
-                                        class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                                </div>
-                                <div class="w-20">
-                                    <label class="block font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-widest text-[10px] mb-1.5">%</label>
-                                    <input type="number" name="percent" min="1" max="100" required value="{{ old('percent') }}"
-                                        class="w-full bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2.5 rounded focus:outline-none focus:border-brandGreen">
-                                </div>
-                                <button type="submit" class="px-4 py-2.5 bg-brandGreen hover:bg-emerald-600 text-white font-black rounded text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                    Add
-                                </button>
-                            </form>
-
-                            <div class="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-                                @forelse($discountTypes as $type)
-                                    <div class="py-2.5 flex items-center justify-between gap-2">
-                                        <div>
-                                            <span class="font-bold text-brandNavy dark:text-slate-200">{{ $type->name }}</span>
-                                            <span class="text-brandGreen font-black ml-2">{{ $type->percent }}%</span>
-                                            <span class="text-brandNavy/40 dark:text-slate-500 ml-2">{{ $type->students_count }} student(s)</span>
-                                        </div>
-                                        <form action="{{ route('cashier.billing.discounts.delete', $type) }}" method="POST"
-                                              onsubmit="return confirm({{ Illuminate\Support\Js::from('Remove '.$type->name.'? Students with this discount will lose it.') }});">
-                                            @csrf
-                                            <button type="submit" class="w-7 h-7 rounded bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
-                                                <i class="fa-solid fa-trash-can text-[10px]"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                @empty
-                                    <p class="py-3 text-brandNavy/40 dark:text-slate-500">No discount types yet.</p>
-                                @endforelse
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- STUDENT DISCOUNT ASSIGNMENT --}}
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
-                    <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800">
-                        <h2 class="text-sm font-bold text-brandNavy dark:text-white"><i class="fa-solid fa-user-tag mr-2 text-brandNavy dark:text-slate-300"></i>Student Discounts</h2>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">
-                                    <th class="py-3.5 px-5">Student</th>
-                                    <th class="py-3.5 px-5">Program / Year</th>
-                                    <th class="py-3.5 px-5">Discount</th>
-                                    <th class="py-3.5 px-5 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
-                                @forelse($students as $student)
-                                    <tr class="hover:bg-lightBg dark:hover:bg-slate-800/20 transition-colors">
-                                        <td class="py-3.5 px-5">
-                                            <span class="font-bold text-brandNavy dark:text-white block">{{ $student->name }}</span>
-                                            <span class="font-mono text-brandNavy/60 dark:text-slate-400">{{ $student->login_id ?? '—' }}</span>
-                                        </td>
-                                        <td class="py-3.5 px-5 text-brandNavy/60 dark:text-slate-400">{{ $student->major ?? '—' }} · {{ $student->year_level ?? '—' }}</td>
-                                        <td class="py-3.5 px-5" colspan="2">
-                                            <form action="{{ route('cashier.billing.assign', $student) }}" method="POST" class="flex items-center justify-between gap-2"
-                                                onsubmit="return lockFormSubmit(this, 'Saving…')">
-                                                @csrf
-                                                <select name="discount_type_id"
-                                                    class="bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen">
-                                                    <option value="">— None —</option>
-                                                    @foreach($discountTypes as $type)
-                                                        <option value="{{ $type->id }}" @selected($student->discount_type_id === $type->id)>{{ $type->name }} ({{ $type->percent }}%)</option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide disabled:opacity-50 disabled:cursor-not-allowed">
-                                                    Save
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="py-10 text-center text-brandNavy/40 dark:text-slate-500 font-medium">No student accounts found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                <div
+                    id="cashier-billing-root"
+                    data-context="{{ json_encode($context) }}"
+                    data-csrf-token="{{ csrf_token() }}"
+                    data-fees-url="{{ route('cashier.billing.fees') }}"
+                    data-discounts-url="{{ route('cashier.billing.discounts') }}"
+                >
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
         </main>
     </div>
 
-<script>
-    function lockFormSubmit(form, busyLabel) {
-        const btn = form.querySelector('button[type="submit"]');
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = busyLabel;
-        }
-        return true;
-    }
-</script>
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/cashier-billing-app.jsx')
 </body>
 </html>
