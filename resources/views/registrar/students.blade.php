@@ -46,61 +46,8 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg overflow-hidden">
-                    @if($students->isEmpty())
-                        <div class="py-16 text-center text-brandNavy/40 dark:text-slate-500">
-                            <i class="fa-solid fa-users text-3xl mb-3 block opacity-40"></i>
-                            <p class="text-sm font-semibold">No student accounts found.</p>
-                            <p class="text-xs mt-1">Student accounts are created by the Admin.</p>
-                        </div>
-                    @else
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-brandNavy/8 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40">
-                                    <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider">Student</th>
-                                    <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden sm:table-cell">Student ID</th>
-                                    <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden md:table-cell">Program</th>
-                                    <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden md:table-cell">Year</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800">
-                                @foreach($students as $s)
-                                @php
-                                    $failCount = \App\Models\StudentGrade::where('user_id', $s->id)->where('status', 'Failed')->count();
-                                @endphp
-                                <tr class="hover:bg-lightBg dark:hover:bg-slate-800/30 transition-colors">
-                                    <td class="px-5 py-3.5">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full bg-brandNavy/10 dark:bg-slate-700 flex items-center justify-center text-xs font-black text-brandNavy dark:text-slate-300 flex-shrink-0">
-                                                {{ strtoupper(substr($s->name, 0, 1)) }}
-                                            </div>
-                                            <div>
-                                                <p class="font-bold text-brandNavy dark:text-slate-200 text-sm leading-tight">{{ $s->name }}</p>
-                                                <p class="text-xs text-brandNavy/40 dark:text-slate-500">{{ $s->email }}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-5 py-3.5 hidden sm:table-cell">
-                                        <span class="font-mono text-xs text-brandNavy/70 dark:text-slate-400">{{ $s->login_id }}</span>
-                                    </td>
-                                    <td class="px-5 py-3.5 hidden md:table-cell">
-                                        <span class="text-xs text-brandNavy/60 dark:text-slate-400">{{ $s->major ?? '—' }}</span>
-                                    </td>
-                                    <td class="px-5 py-3.5 hidden md:table-cell">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs text-brandNavy/60 dark:text-slate-400">{{ $s->year_level ?? '—' }}</span>
-                                            @if($failCount > 0)
-                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600">Irregular</span>
-                                            @else
-                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600">Regular</span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @endif
+                <div id="registrar-students-root" data-context="{{ json_encode($context) }}">
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
@@ -109,5 +56,7 @@
 </div>
 
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/registrar-students-app.jsx')
 </body>
 </html>

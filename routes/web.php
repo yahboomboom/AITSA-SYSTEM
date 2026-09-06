@@ -1114,7 +1114,20 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/students', function () {
         $students = User::where('role', 'student')->orderBy('name')->get();
-        return view('registrar.students', compact('students'));
+
+        $context = [
+            'rows' => $students->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'email' => $s->email,
+                'loginId' => $s->login_id,
+                'major' => $s->major,
+                'yearLevel' => $s->year_level,
+                'isIrregular' => \App\Models\StudentGrade::where('user_id', $s->id)->where('status', 'Failed')->exists(),
+            ])->values(),
+        ];
+
+        return view('registrar.students', compact('context'));
     })->name('registrar.students');
 
     Route::get('/registrar/reports', function () {
