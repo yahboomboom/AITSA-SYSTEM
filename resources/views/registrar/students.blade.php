@@ -42,7 +42,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl font-black text-brandNavy dark:text-white">Student Records</h1>
-                        <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5">Manage academic grades and standing for enrolled students.</p>
+                        <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5">View academic standing for enrolled students. Grades are recorded by faculty per section.</p>
                     </div>
                 </div>
 
@@ -61,7 +61,6 @@
                                     <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden sm:table-cell">Student ID</th>
                                     <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden md:table-cell">Program</th>
                                     <th class="text-left px-5 py-3 text-[10px] font-bold text-brandNavy/50 dark:text-slate-500 uppercase tracking-wider hidden md:table-cell">Year</th>
-                                    <th class="px-5 py-3"></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800">
@@ -96,12 +95,6 @@
                                                 <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600">Regular</span>
                                             @endif
                                         </div>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-right">
-                                        <a href="{{ route('registrar.students.grades', $s->id) }}"
-                                            class="inline-flex items-center gap-1.5 text-xs font-bold text-brandGreen hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
-                                            Manage Grades <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach

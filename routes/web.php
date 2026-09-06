@@ -1104,42 +1104,18 @@ Route::middleware('auth')->group(function () {
     })->name('admin.departments.officers.store');
     }); // end role:admin
 
-    // Student Records — list all students + link to grade editor (Registrar)
+    // Student Records — list all students (Registrar). Grade entry is faculty-only
+    // (per-section, tied to an actual class the student is enrolled in) — see
+    // faculty.sections.grades below. A registrar-side grade editor previously existed
+    // here as a second, independent writer to the same student_grades rows with no
+    // reconciliation between the two; removed deliberately rather than relabeled, since
+    // this deployment has no legacy/transferee grade data that would need a manual
+    // backfill path.
     Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/students', function () {
         $students = User::where('role', 'student')->orderBy('name')->get();
         return view('registrar.students', compact('students'));
     })->name('registrar.students');
-
-    // Grade editor — GET: show, POST: save (Registrar)
-    Route::get('/registrar/students/{id}/grades', function ($id) {
-        $student = User::where('id', $id)->where('role', 'student')->firstOrFail();
-        $grades  = StudentGrade::where('user_id', $id)->get()->keyBy('subject_code');
-        return view('registrar.student-grades', compact('student', 'grades'));
-    })->name('registrar.students.grades');
-
-    Route::post('/registrar/students/{id}/grades', function (Request $request, $id) {
-        $student = User::where('id', $id)->where('role', 'student')->firstOrFail();
-
-        foreach ($request->input('grades', []) as $code => $rawGrade) {
-            $grade = is_numeric($rawGrade) ? (int) $rawGrade : null;
-
-            if ($grade === null || $grade === 0) {
-                StudentGrade::where('user_id', $id)->where('subject_code', $code)->delete();
-            } else {
-                StudentGrade::updateOrCreate(
-                    ['user_id' => $id, 'subject_code' => $code],
-                    [
-                        'status'      => $grade >= 75 ? 'Passed' : 'Failed',
-                        'final_grade' => (string) $grade,
-                    ]
-                );
-            }
-        }
-
-        AuditLog::record('Grades Updated', 'Registrar updated grade records for ' . $student->name . ' (' . $student->login_id . ').', 'User', $student->id);
-        return redirect()->route('registrar.students.grades', $id)->with('success', 'Grades saved.');
-    })->name('registrar.students.grades.store');
 
     Route::get('/registrar/reports', function () {
         $clearances        = Clearance::has('user')->with('user')
