@@ -436,7 +436,20 @@ class AuthController extends Controller
             ->where('semester', (int) Setting::get('semester', '1'))
             ->orderBy('created_at', 'desc')
             ->get();
-        return view('cashier.accounts', compact('accounts'));
+
+        $context = [
+            'rows' => $accounts->map(fn ($a) => [
+                'id' => $a->id,
+                'profileId' => '#' . sprintf('%04d', $a->id),
+                'studentName' => $a->user->name ?? 'Unknown Student',
+                'studentEmail' => $a->user->email ?? 'N/A',
+                'referenceNo' => 'TXN-' . (10000 + ($a->user_id ?? 0)) . '-WIT',
+                'cashierStatus' => $a->cashier_status,
+            ])->values(),
+            'reviewUrl' => route('cashier.dashboard'),
+        ];
+
+        return view('cashier.accounts', compact('context'));
     }
 
     /**

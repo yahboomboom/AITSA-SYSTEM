@@ -28,7 +28,9 @@ class CashierAccountsTest extends TestCase
         $response->assertDontSee('Quick Approve');
         $response->assertDontSee('₱ 3,500.00', false);
         $response->assertDontSee('name="amount"', false);
-        $response->assertSee('Review in Cashier Hub');
+        // "Review in Cashier Hub" is rendered client-side by the React island now, so
+        // the safe-path assertion here is that the real dashboard URL (not a form
+        // posting fake amounts) reaches the page as data.
         $response->assertSee(route('cashier.dashboard'), false);
     }
 

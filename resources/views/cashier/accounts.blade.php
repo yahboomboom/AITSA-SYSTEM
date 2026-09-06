@@ -42,95 +42,16 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
-                    <div class="p-5 border-b border-brandNavy/8 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <h2 class="text-sm font-bold text-brandNavy dark:text-white">Account Registry</h2>
-
-                        <div class="relative w-full sm:w-64">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-brandNavy/30 dark:text-slate-500">
-                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                            </span>
-                            <input type="text" id="accountSearchInput" placeholder="Search student..." class="w-full text-xs bg-lightBg dark:bg-slate-900 text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded pl-9 pr-4 py-2 outline-none focus:border-brandGreen/40 transition-colors">
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-lightBg dark:bg-slate-800/40 border-b border-brandNavy/8 dark:border-slate-800 text-brandNavy/40 dark:text-slate-500 font-bold uppercase tracking-wider">
-                                    <th class="p-4">Profile ID</th>
-                                    <th class="p-4">Student</th>
-                                    <th class="p-4">Reference</th>
-                                    <th class="p-4">Clearance</th>
-                                    <th class="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-                                @if(isset($accounts) && count($accounts))
-                                    @foreach($accounts as $a)
-                                        <tr class="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                            <td class="p-4 font-mono text-brandNavy/40 dark:text-slate-500">
-                                                #{{ sprintf('%04d', $a->id) }}
-                                            </td>
-                                            <td class="p-4">
-                                                <div class="font-bold text-brandNavy dark:text-white">
-                                                    {{ $a->user->name ?? 'Unknown Student' }}
-                                                </div>
-                                                <div class="text-[10px] text-brandNavy/40 dark:text-slate-500">
-                                                    {{ $a->user->email ?? 'N/A' }}
-                                                </div>
-                                            </td>
-                                            <td class="p-4 font-mono text-brandNavy/40 dark:text-slate-500">
-                                                TXN-{{ 10000 + ($a->user_id ?? 0) }}-WIT
-                                            </td>
-                                            <td class="p-4">
-                                                @if($a->cashier_status === 'Approved')
-                                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGreen/10 text-brandGreen border border-brandGreen/20 rounded">Approved</span>
-                                                @else
-                                                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
-                                                @endif
-                                            </td>
-                                            <td class="p-4 text-right">
-                                                @if($a->cashier_status !== 'Approved')
-                                                    <a href="{{ route('cashier.dashboard') }}" class="inline-block px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]">
-                                                        <i class="fa-solid fa-arrow-right mr-1"></i>Review in Cashier Hub
-                                                    </a>
-                                                @else
-                                                    <button disabled class="px-3 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-600 rounded cursor-not-allowed font-medium border border-brandNavy/8 dark:border-slate-700 text-[11px]">
-                                                        <i class="fa-solid fa-check mr-1"></i>Settled
-                                                    </button>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    <tr>
-                                        <td colspan="5" class="p-8 text-center text-brandNavy/40 dark:text-slate-500 text-sm">
-                                            No account records found.
-                                        </td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                        </table>
-                    </div>
+                <div id="cashier-accounts-root" data-context="{{ json_encode($context) }}">
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 
             </div>
         </main>
     </div>
 
-    <script>
-        document.getElementById('accountSearchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                if (row.cells.length === 1) return;
-                const name = row.cells[1].textContent.toLowerCase();
-                const reference = row.cells[2].textContent.toLowerCase();
-                row.style.display = (name.includes(searchTerm) || reference.includes(searchTerm)) ? '' : 'none';
-            });
-        });
-    </script>
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/cashier-accounts-app.jsx')
 </body>
 </html>
