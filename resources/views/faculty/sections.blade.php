@@ -35,44 +35,26 @@
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Select a section to enter or update final grades for enrolled students.</p>
         </div>
 
-        <div class="bg-white dark:bg-panelDark rounded-2xl shadow-sm overflow-hidden">
-            @if ($sections->isEmpty())
-                <p class="text-sm text-slate-500 dark:text-slate-400 p-6">You are not assigned to any sections this term.</p>
-            @else
-                <table class="w-full text-sm">
-                    <thead class="bg-lightBg dark:bg-slate-900/40 text-left text-[10px] uppercase tracking-wider text-brandNavy/50 dark:text-slate-500">
-                        <tr>
-                            <th class="px-6 py-3">Subject</th>
-                            <th class="px-6 py-3">Block</th>
-                            <th class="px-6 py-3">Enrolled</th>
-                            <th class="px-6 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800">
-                        @foreach ($sections as $section)
-                            <tr>
-                                <td class="px-6 py-3">
-                                    <span class="font-mono font-bold text-brandNavy dark:text-slate-200">{{ $section['subjectCode'] }}</span>
-                                    <span class="block text-xs text-slate-500 dark:text-slate-400">{{ $section['subjectTitle'] }}</span>
-                                </td>
-                                <td class="px-6 py-3 text-brandNavy/80 dark:text-slate-300">{{ $section['blockLabel'] }}</td>
-                                <td class="px-6 py-3 text-brandNavy/80 dark:text-slate-300">{{ $section['enrolledCount'] }}</td>
-                                <td class="px-6 py-3 text-right">
-                                    <a href="{{ route('faculty.sections.grades', $section['id']) }}"
-                                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brandNavy hover:bg-brandGreen text-white text-xs font-bold transition-colors">
-                                        <i class="fa-solid fa-pen-to-square"></i>Enter Grades
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
+        @php
+            $context = $sections->map(fn ($section) => [
+                'id' => $section['id'],
+                'subjectCode' => $section['subjectCode'],
+                'subjectTitle' => $section['subjectTitle'],
+                'blockLabel' => $section['blockLabel'],
+                'enrolledCount' => $section['enrolledCount'],
+                'gradesUrl' => route('faculty.sections.grades', $section['id']),
+            ])->values();
+        @endphp
+
+        <div id="faculty-sections-root" data-context="{{ json_encode($context) }}">
+            <p class="text-sm text-slate-500">Loading…</p>
         </div>
 
     </main>
 </div>
 
 @include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/faculty-sections-app.jsx')
 </body>
 </html>
