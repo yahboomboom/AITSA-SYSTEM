@@ -11,9 +11,9 @@
     ];
 @endphp
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden" onclick="closeMobileSidebar()"></div>
-<aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col w-64 -translate-x-full bg-brandNavy transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto">
-    <div class="h-16 flex items-center justify-between px-6 border-b border-white/10">
-        <div class="flex items-center min-w-0">
+<aside id="app-sidebar" class="group fixed inset-y-0 left-0 z-40 flex flex-col w-64 -translate-x-full bg-brandNavy transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto">
+    <div class="h-16 flex items-center justify-between px-6 border-b border-white/10 lg:group-[.sidebar-collapsed]:justify-center lg:group-[.sidebar-collapsed]:px-0">
+        <div class="flex items-center min-w-0 lg:group-[.sidebar-collapsed]:hidden">
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-full object-cover ring-2 ring-brandGold/70 mr-3 flex-shrink-0">
             <h1 class="sidebar-label font-heading text-base font-semibold tracking-tight text-white truncate">AITSA HQ</h1>
         </div>
