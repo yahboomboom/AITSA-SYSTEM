@@ -37,17 +37,9 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
-                {{-- Success / error banners --}}
                 @if(session('success'))
                     <div class="p-4 rounded-lg bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">
                         <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
-                @if($errors->any())
-                    <div class="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 font-bold text-xs space-y-1">
-                        @foreach($errors->all() as $error)
-                            <p><i class="fa-solid fa-triangle-exclamation mr-2"></i>{{ $error }}</p>
-                        @endforeach
                     </div>
                 @endif
 
@@ -59,104 +51,32 @@
                     </p>
                 </div>
 
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-xl p-5 space-y-3">
-                    <div>
-                        <h2 class="text-sm font-extrabold text-brandNavy dark:text-white">Start New Semester</h2>
-                        <p class="text-xs text-brandNavy/50 dark:text-slate-400">
-                            Creates a fresh, Pending clearance for every active College student (Associate and Bachelor programs — TESDA is not affected) and advances the current term. This cannot be undone from this screen.
-                        </p>
-                    </div>
-                    <form action="{{ route('registrar.start-new-term') }}" method="POST"
-                          onsubmit="return confirm('Start a new semester? This creates a fresh clearance for every active College student.');"
-                          class="flex flex-wrap items-end gap-3">
-                        @csrf
-                        <div>
-                            <label class="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1">School Year</label>
-                            <input type="text" name="school_year" value="{{ old('school_year', $schoolYear) }}" required
-                                   class="w-32 bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1">Semester</label>
-                            <select name="semester" required class="bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs">
-                                <option value="1">1st Semester</option>
-                                <option value="2">2nd Semester</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="text-[11px] font-bold text-white bg-brandGreen hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors">
-                            Start New Semester
-                        </button>
-                    </form>
-                    @error('semester')
-                        <p class="text-xs text-red-600 font-semibold">{{ $message }}</p>
-                    @enderror
+                @php
+                    $context = [
+                        'curricula' => $curricula->values(),
+                        'errors' => array_map(fn ($m) => $m[0], $errors->getMessages()),
+                        'old' => [
+                            'school_year' => old('school_year', $schoolYear),
+                            'semester' => old('semester'),
+                        ],
+                    ];
+                @endphp
+
+                <div
+                    id="registrar-slots-root"
+                    data-context="{{ json_encode($context) }}"
+                    data-csrf-token="{{ csrf_token() }}"
+                    data-start-term-url="{{ route('registrar.start-new-term') }}"
+                >
+                    <p class="text-sm text-slate-500">Loading…</p>
                 </div>
-
-                <div class="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-xl overflow-hidden">
-                    <table class="w-full text-sm">
-                        <thead class="bg-lightBg dark:bg-slate-900/40 text-[11px] uppercase tracking-wider text-brandNavy/50 dark:text-slate-400">
-                            <tr>
-                                <th class="text-left px-5 py-3 font-bold">Curriculum</th>
-                                <th class="text-left px-5 py-3 font-bold">Level</th>
-                                <th class="text-left px-5 py-3 font-bold">Total Slots</th>
-                                <th class="text-left px-5 py-3 font-bold">Sections</th>
-                                <th class="text-left px-5 py-3 font-bold">Per Section</th>
-                                <th class="text-left px-5 py-3 font-bold">Taken / Left</th>
-                                <th class="text-left px-5 py-3 font-bold">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800">
-                            @foreach($curricula as $c)
-                            {{--
-                                IMPORTANT: a <form> can NOT legally wrap <td> elements as a direct
-                                child of <tr> — the browser's HTML parser "foster-parents" it out of
-                                the table when it renders, silently detaching the form from its own
-                                inputs. That's why Save looked fine but never actually saved anything.
-
-                                Fix: keep the <td>/<input> markup exactly where the table needs it,
-                                but point each input (and the submit button) at a real <form> that
-                                lives OUTSIDE the table, using the HTML5 form="..." attribute.
-                            --}}
-                            <tr>
-                                <td class="px-5 py-3 font-bold text-brandNavy dark:text-white">{{ $c['programName'] }}</td>
-                                <td class="px-5 py-3 text-xs text-brandNavy/60 dark:text-slate-400">{{ $c['level'] }}</td>
-                                <td class="px-5 py-3">
-                                    <input type="number" name="total_slots" min="1" value="{{ $c['totalSlots'] }}"
-                                           form="slot-form-{{ $c['id'] }}"
-                                           class="w-24 bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1 text-xs">
-                                </td>
-                                <td class="px-5 py-3">
-                                    <input type="number" name="sections" min="1" value="{{ $c['sections'] }}"
-                                           form="slot-form-{{ $c['id'] }}"
-                                           class="w-16 bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1 text-xs">
-                                </td>
-                                <td class="px-5 py-3 text-xs text-brandNavy/60 dark:text-slate-400">{{ $c['perSection'] }} seats each</td>
-                                <td class="px-5 py-3 text-xs">
-                                    <span class="font-bold {{ $c['slotsLeft'] <= 0 ? 'text-red-500' : 'text-brandGreen' }}">
-                                        {{ $c['taken'] }} taken · {{ $c['slotsLeft'] }} left
-                                    </span>
-                                </td>
-                                <td class="px-5 py-3">
-                                    <button type="submit" form="slot-form-{{ $c['id'] }}" class="text-[11px] font-bold text-white bg-brandNavy hover:bg-brandNavy/90 px-3 py-1.5 rounded-lg transition-colors">
-                                        Save
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                {{-- One real <form> per curriculum row, kept outside the table for valid HTML.
-                     Each input/button above points here via its form="slot-form-{id}" attribute. --}}
-                @foreach($curricula as $c)
-                    <form id="slot-form-{{ $c['id'] }}" action="{{ route('registrar.slots.update', $c['id']) }}" method="POST" class="hidden">
-                        @csrf
-                    </form>
-                @endforeach
 
             </div>
         </main>
     </div>
 
+@include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/registrar-slots-app.jsx')
 </body>
 </html>

@@ -432,6 +432,7 @@ Route::middleware('auth')->group(function () {
                 'perSection'   => $limit->slotsPerSection(),
                 'taken'        => $limit->takenCount(),
                 'slotsLeft'    => $limit->slotsLeft(),
+                'updateUrl'    => route('registrar.slots.update', $limit->id),
             ];
         });
 
