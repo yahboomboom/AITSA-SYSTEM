@@ -20,6 +20,7 @@ class UiFoundationSidebarRestyleTest extends TestCase
         $response->assertOk();
         $response->assertSee('id="app-sidebar"', false);
         $response->assertSee('bg-brandNavy', false);
+        $response->assertSee('border-brandGold bg-white/5', false);
     }
 
     public function test_admin_dashboard_renders_the_navy_sidebar_with_working_nav_links(): void
@@ -30,6 +31,7 @@ class UiFoundationSidebarRestyleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('bg-brandNavy', false);
+        $response->assertSee('border-brandGold bg-white/5', false);
         $response->assertSee(route('admin.departments'), false);
     }
 
@@ -41,7 +43,8 @@ class UiFoundationSidebarRestyleTest extends TestCase
         $response = $this->actingAs($officer)->get('/department/dashboard');
 
         $response->assertOk();
-        $response->assertSee('Library');
         $response->assertSee('bg-brandNavy', false);
+        $response->assertSee('border-brandGold bg-white/5', false);
+        $response->assertSee('text-white/40 mb-3">Library', false);
     }
 }
