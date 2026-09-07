@@ -42,4 +42,22 @@
     .form-slide { transition: max-height .4s ease, opacity .3s ease; overflow: hidden; }
     .form-slide.hidden-anim { max-height: 0; opacity: 0; pointer-events: none; }
     .form-slide.visible-anim { max-height: 4000px; opacity: 1; }
+
+    /* UI redesign — document list pattern (clearance, approvals, checklists) */
+    .ui-doc-list { border-top-width: 1px; }
+    .ui-doc-row { display: flex; align-items: center; gap: .75rem; padding: .75rem .125rem; border-bottom-width: 1px; }
+    .ui-doc-check { width: 1.125rem; height: 1.125rem; border-radius: 9999px; border-width: 1.5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* UI redesign — single emphasized stat (e.g. "83% cleared") */
+    .ui-headline-stat { display: flex; align-items: flex-end; gap: .875rem; margin-bottom: 1.375rem; padding-bottom: 1.375rem; border-bottom-width: 1px; }
+    .ui-headline-num { font-weight: 700; line-height: .85; font-size: 3.25rem; }
+
+    /* UI redesign — data table pattern (registries, reports, audit trail) */
+    .ui-table { width: 100%; border-collapse: collapse; }
+    .ui-table th { text-align: left; font-weight: 500; font-size: .75rem; padding: .625rem .75rem; border-bottom-width: 1px; }
+    .ui-table td { padding: .625rem .75rem; border-bottom-width: 1px; font-size: .8125rem; }
+
+    /* UI redesign — outline badge + primary button shape */
+    .ui-badge-outline { display: inline-flex; align-items: center; gap: .25rem; font-size: .6875rem; font-weight: 500; padding: .125rem .5rem; border-radius: .25rem; border-width: 1px; }
+    .ui-btn-primary { display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; font-weight: 500; padding: .5rem 1rem; border-radius: .25rem; }
 }
