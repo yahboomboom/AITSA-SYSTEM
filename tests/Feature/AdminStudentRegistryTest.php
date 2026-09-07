@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Js;
 use Tests\TestCase;
 
 class AdminStudentRegistryTest extends TestCase
@@ -102,7 +101,7 @@ class AdminStudentRegistryTest extends TestCase
         $this->assertNull($chair->fresh()->deleted_at);
     }
 
-    public function test_delete_confirmation_escapes_a_js_breakout_name(): void
+    public function test_delete_confirmation_data_escapes_a_js_breakout_name(): void
     {
         $maliciousName = "Mallory');window.__xssFired=1;//";
         $student = User::factory()->create(['role' => 'student', 'name' => $maliciousName]);
@@ -111,19 +110,13 @@ class AdminStudentRegistryTest extends TestCase
 
         $response->assertOk();
 
-        // An unescaped name would let the attacker's `');` close the JS call early and
-        // start executing arbitrary JS right inside the onclick attribute. Assert that
-        // raw breakout sequence is not present in the rendered HTML.
+        // The delete flow is React state driven (the student's name reaches the page only
+        // via the JSON-encoded data-context attribute, never an inline onclick string), so
+        // there is no JS-breakout vector to test for directly. Assert the raw breakout
+        // sequence is not present unescaped in the rendered HTML, and that the name survives
+        // intact inside the HTML-escaped JSON attribute (Blade's {{ }} escapes it for us).
         $response->assertDontSee("Mallory');window.__xssFired=1;", false);
-
-        // Deleting a student opens a typed-name confirmation modal instead of a native
-        // confirm() popup (so an accidental click can't nuke an account outright), but
-        // the student's name is still passed into an inline onclick via
-        // Illuminate\Support\Js::from(), which produces a single properly-escaped JS
-        // string literal that is also safe as an HTML attribute value. Assert that
-        // escaped literal is what actually renders.
-        $expected = Js::from($maliciousName);
-        $response->assertSee('openDeleteStudentModal('.Js::from(route('admin.students.destroy', $student)).', '.$expected.')', false);
+        $response->assertSee(e(json_encode($maliciousName)), false);
     }
 
     public function test_non_admin_cannot_delete_a_student(): void
