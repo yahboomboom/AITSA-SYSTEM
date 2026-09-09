@@ -35,6 +35,8 @@ export default defineConfig({
                 'resources/js/admin-reports-app.jsx',
                 'resources/js/admin-audit-app.jsx',
                 'resources/js/admin-create-student-app.jsx',
+                'resources/js/signature-app.jsx',
+                'resources/js/profile-app.jsx',
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/apply-app.jsx',
