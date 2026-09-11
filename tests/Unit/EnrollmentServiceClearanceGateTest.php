@@ -43,4 +43,28 @@ class EnrollmentServiceClearanceGateTest extends TestCase
 
         $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
     }
+
+    public function test_provisional_clearance_passes_despite_pending_registrar_status(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+            'is_provisional' => true,
+        ]);
+
+        $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_non_provisional_clearance_still_blocked_on_pending_registrar_status(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+            'is_provisional' => false,
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
 }
