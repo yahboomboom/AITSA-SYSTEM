@@ -67,4 +67,16 @@ class EnrollmentServiceClearanceGateTest extends TestCase
 
         $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
     }
+
+    public function test_provisional_clearance_does_not_override_an_active_registrar_hold(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Hold',
+            'is_provisional' => true,
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
 }

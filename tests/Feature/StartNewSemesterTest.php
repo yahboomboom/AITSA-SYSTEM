@@ -50,6 +50,7 @@ class StartNewSemesterTest extends TestCase
         $this->assertSame('Pending', $newClearance->chair_status);
         $this->assertSame('Pending', $newClearance->cashier_status);
         $this->assertSame('Pending', $newClearance->registrar_status);
+        $this->assertFalse($newClearance->is_provisional);
         $this->assertDatabaseHas('audit_logs', ['action' => 'New Term Started']);
     }
 
