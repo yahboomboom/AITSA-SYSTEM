@@ -40,6 +40,8 @@ class AdmissionService
             'year_level' => $applicant->year_level ?? '1st Year',
         ]);
 
+        $isFirstEverClearance = Clearance::where('user_id', $applicant->id)->doesntExist();
+
         Clearance::initializeFor(
             $applicant->id,
             \App\Models\Setting::get('school_year', '2026-2027'),
@@ -49,6 +51,7 @@ class AdmissionService
                 'chair_status' => 'Pending',
                 'cashier_status' => 'Pending',
                 'registrar_status' => 'Pending',
+                'is_provisional' => $isFirstEverClearance,
             ]
         );
 

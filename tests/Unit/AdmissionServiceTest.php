@@ -93,4 +93,35 @@ class AdmissionServiceTest extends TestCase
         $this->assertSame('2027-2028', $clearance->school_year);
         $this->assertSame(2, $clearance->semester);
     }
+
+    public function test_first_ever_clearance_is_auto_provisional(): void
+    {
+        Mail::fake();
+        $applicant = User::factory()->create(['role' => 'applicant']);
+
+        (new AdmissionService())->activateStudentAccount($applicant);
+
+        $clearance = Clearance::where('user_id', $applicant->id)->first();
+        $this->assertTrue($clearance->is_provisional);
+    }
+
+    public function test_a_second_clearance_row_is_not_auto_provisional(): void
+    {
+        Mail::fake();
+        $applicant = User::factory()->create(['role' => 'applicant']);
+        // Simulates a pre-existing clearance row, e.g. a returning/re-admitted student.
+        Clearance::create([
+            'user_id' => $applicant->id,
+            'school_year' => '2025-2026',
+            'semester' => 1,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+        ]);
+
+        (new AdmissionService())->activateStudentAccount($applicant);
+
+        $newClearance = Clearance::where('user_id', $applicant->id)
+            ->where('school_year', \App\Models\Setting::get('school_year', '2026-2027'))
+            ->first();
+        $this->assertFalse($newClearance->is_provisional);
+    }
 }
