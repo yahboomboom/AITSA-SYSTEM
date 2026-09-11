@@ -79,4 +79,48 @@ class EnrollmentServiceClearanceGateTest extends TestCase
 
         $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
     }
+
+    public function test_down_payment_met_satisfies_the_cashier_leg_despite_pending_status(): void
+    {
+        $this->seed(\Database\Seeders\ProgramSeeder::class);
+        \App\Models\Setting::put('down_payment_percent', '30');
+        \App\Models\Setting::clearCache();
+        $student = User::factory()->create(['role' => 'student', 'major' => 'BSOA', 'year_level' => '1st Year']);
+        $program = \App\Models\Program::where('code', 'BSOA')->first();
+        $subject = \App\Models\Subject::factory()->for($program)->create(['year_level' => 1, 'semester' => 1, 'units' => 5]);
+        \App\Models\Section::factory()->for($subject)->create(['block_label' => 'A', 'school_year' => '2026-2027']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+        ]);
+        // assessment = 1500 tuition + 1500 misc = 3000; 30% threshold = 900
+        \App\Models\TransactionLedger::factory()->create([
+            'user_id' => $student->id, 'status' => 'Settled', 'amount' => 900.00,
+        ]);
+
+        $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_neither_paid_enough_nor_waived_still_blocks(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_down_payment_waiver_satisfies_the_cashier_leg_even_with_zero_paid(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+            'down_payment_waived' => true,
+        ]);
+
+        $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
+    }
 }
