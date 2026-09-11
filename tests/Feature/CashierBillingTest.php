@@ -41,12 +41,25 @@ class CashierBillingTest extends TestCase
                 'misc_fee' => 2000,
                 'reservation_fee' => 500,
                 'tesda_tuition_fee' => 1500,
+                'down_payment_percent' => 40,
             ])
             ->assertRedirect(route('cashier.billing'));
 
         $this->assertSame('450', Setting::get('tuition_per_unit'));
         $this->assertSame('2000', Setting::get('misc_fee'));
+        $this->assertSame('40', Setting::get('down_payment_percent'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'Fees Updated']);
+    }
+
+    public function test_down_payment_percent_over_100_is_rejected(): void
+    {
+        $this->actingAs($this->cashier)
+            ->from('/cashier/billing')
+            ->post('/cashier/billing/fees', [
+                'tuition_per_unit' => 300, 'misc_fee' => 1500, 'reservation_fee' => 500,
+                'tesda_tuition_fee' => 1500, 'down_payment_percent' => 150,
+            ])
+            ->assertSessionHasErrors('down_payment_percent');
     }
 
     public function test_negative_fees_are_rejected(): void

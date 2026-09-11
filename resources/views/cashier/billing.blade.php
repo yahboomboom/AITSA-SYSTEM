@@ -50,6 +50,7 @@
                             'miscFee' => $miscFee,
                             'reservationFee' => $reservationFee,
                             'tesdaTuitionFee' => $tesdaTuitionFee,
+                            'downPaymentPercent' => $downPaymentPercent,
                         ],
                         'discountTypes' => $discountTypes->map(fn ($type) => [
                             'id' => $type->id,

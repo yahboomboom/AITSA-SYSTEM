@@ -18,6 +18,10 @@ const FIELDS = [
         name: 'tesda_tuition_fee', ctxKey: 'tesdaTuitionFee', label: 'TESDA Short-Term Program tuition (₱, flat)',
         hint: 'Flat tuition for TESDA NC students (Bookkeeping, Events Management, Food & Beverages), used instead of the regular tuition above.',
     },
+    {
+        name: 'down_payment_percent', ctxKey: 'downPaymentPercent', label: 'Down payment required to enroll (%)',
+        hint: 'A student can self-enroll in sections once they\'ve paid this percentage of their total assessment — the remaining balance is settled later. Does not affect Cashier "Approve & Sign Off" (Officially Cleared), which still requires full payment.',
+    },
 ];
 
 export default function FeeRatesForm({ feeRates, errors, old, csrfToken, actionUrl }) {

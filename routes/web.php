@@ -835,6 +835,7 @@ Route::middleware('auth')->group(function () {
             'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
             // NEW: flat tuition specifically for TESDA Short-Term Programs.
             'tesdaTuitionFee' => (int) \App\Models\Setting::get('tesda_tuition_fee', '1500'),
+            'downPaymentPercent' => (int) \App\Models\Setting::get('down_payment_percent', '30'),
             'discountTypes' => DiscountType::withCount('students')->orderBy('name')->get(),
             'students' => User::where('role', 'student')->with('discountType')->orderBy('name')->get(),
         ]);
@@ -846,13 +847,15 @@ Route::middleware('auth')->group(function () {
             'misc_fee' => ['required', 'integer', 'min:0'],
             'reservation_fee' => ['required', 'integer', 'min:0'],
             'tesda_tuition_fee' => ['required', 'integer', 'min:0'],
+            'down_payment_percent' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
         \App\Models\Setting::put('tuition_per_unit', (string) $request->integer('tuition_per_unit'));
         \App\Models\Setting::put('misc_fee', (string) $request->integer('misc_fee'));
         \App\Models\Setting::put('reservation_fee', (string) $request->integer('reservation_fee'));
         \App\Models\Setting::put('tesda_tuition_fee', (string) $request->integer('tesda_tuition_fee'));
-        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit, misc fee to ₱' . $request->integer('misc_fee') . ', reservation fee to ₱' . $request->integer('reservation_fee') . ', and TESDA flat tuition to ₱' . $request->integer('tesda_tuition_fee') . '.', 'Setting', null);
+        \App\Models\Setting::put('down_payment_percent', (string) $request->integer('down_payment_percent'));
+        AuditLog::record('Fees Updated', 'Cashier set tuition to ₱' . $request->integer('tuition_per_unit') . '/unit, misc fee to ₱' . $request->integer('misc_fee') . ', reservation fee to ₱' . $request->integer('reservation_fee') . ', and TESDA flat tuition to ₱' . $request->integer('tesda_tuition_fee') . ' and the down-payment threshold to ' . $request->integer('down_payment_percent') . '%.', 'Setting', null);
 
                 return redirect()->route('cashier.billing')->with('success', 'Fee rates updated.');
     })->name('cashier.billing.fees');
