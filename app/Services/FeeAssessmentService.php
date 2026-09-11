@@ -49,6 +49,9 @@ class FeeAssessmentService
         $paid = round((float) TransactionLedger::where('user_id', $user->id)
             ->where('status', 'Settled')->sum('amount'), 2);
         $balance = round(max($assessment - $paid, 0), 2);
+        $downPaymentPercent = (int) Setting::get('down_payment_percent', '30');
+        $downPaymentRequired = round($assessment * $downPaymentPercent / 100, 2);
+        $downPaymentMet = $paid >= $downPaymentRequired && $assessment > 0;
 
         return [
             'units' => $units,
@@ -63,6 +66,8 @@ class FeeAssessmentService
             'paid' => $paid,
             'balance' => $balance,
             'fully_paid' => $balance == 0.0 && $assessment > 0,
+            'down_payment_required' => $downPaymentRequired,
+            'down_payment_met' => $downPaymentMet,
         ];
     }
 
