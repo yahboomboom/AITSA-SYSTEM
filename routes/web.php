@@ -1261,8 +1261,9 @@ Route::middleware('auth')->group(function () {
 
     }); // end role:registrar,admission
 
-    // --- REGISTRAR-ONLY: term rollover (higher blast-radius than the
-    // shared registrar,admission workspace above, so it gets its own,
+    // --- REGISTRAR-ONLY: term rollover + provisional-extension grants
+    // (higher blast-radius / more discretionary than the shared
+    // registrar,admission workspace above, so they get their own,
     // tighter role gate). ---
     Route::middleware('role:registrar')->group(function () {
         Route::post('/registrar/start-new-term', function (Request $request) {
@@ -1311,5 +1312,26 @@ Route::middleware('auth')->group(function () {
 
             return redirect()->route('registrar.slots')->with('success', 'Started ' . $data['school_year'] . ' Semester ' . $data['semester'] . ' for ' . $created . ' College student(s).');
         })->name('registrar.start-new-term');
-    }); // end role:registrar (start-new-term)
+
+        Route::post('/registrar/clearances/{clearance}/grant-provisional', function (Request $request, Clearance $clearance) {
+            $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+
+            $clearance->update([
+                'is_provisional' => true,
+                'provisional_reason' => $data['reason'],
+                'provisional_granted_by' => Auth::id(),
+                'provisional_granted_at' => now(),
+            ]);
+
+            AuditLog::record(
+                'Provisional Extension Granted',
+                Auth::user()->name . ' granted a provisional clearance extension to ' .
+                    ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . '): ' . $data['reason'],
+                'Clearance',
+                $clearance->id
+            );
+
+            return redirect()->route('registrar.dashboard')->with('success', 'Provisional extension granted.');
+        })->name('registrar.grant-provisional');
+    }); // end role:registrar (start-new-term, grant-provisional)
 });
