@@ -823,6 +823,31 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->back()->with('success', 'Clearance held with remarks.');
     })->name('cashier.hold');
+
+    Route::post('/cashier/waive-down-payment', function (Request $request) {
+        $data = $request->validate([
+            'user_id' => ['required', 'integer'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        $clearance = Clearance::currentFor(User::findOrFail($data['user_id']));
+        abort_if(! $clearance, 404, 'No current-term clearance found for this student.');
+
+        $clearance->update([
+            'down_payment_waived' => true,
+            'down_payment_waived_reason' => $data['reason'],
+            'down_payment_waived_by' => Auth::id(),
+            'down_payment_waived_at' => now(),
+        ]);
+
+        AuditLog::record(
+            'Down Payment Waived',
+            Auth::user()->name . ' waived the down-payment requirement for ' . ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . '): ' . $data['reason'],
+            'Clearance',
+            $clearance->id
+        );
+
+        return redirect()->route('cashier.dashboard')->with('success', 'Down payment requirement waived.');
+    })->name('cashier.waive-down-payment');
     Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
     Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
 
