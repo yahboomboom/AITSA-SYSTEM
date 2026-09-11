@@ -93,4 +93,35 @@ class RegistrarDashboardIslandTest extends TestCase
         $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
         $this->assertSame(1, $occurrences);
     }
+
+    public function test_dashboard_context_includes_provisional_fields_and_grant_url(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = User::factory()->create(['role' => 'student']);
+        $clearance = Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+        ]);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;isProvisional&quot;:false', false);
+        $response->assertSee('&quot;grantProvisionalUrl&quot;:&quot;' . str_replace('/', '\/', route('registrar.grant-provisional', $clearance->id)) . '&quot;', false);
+    }
+
+    public function test_dashboard_context_reflects_a_granted_provisional_clearance(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+            'is_provisional' => true,
+        ]);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        $response->assertSee('&quot;isProvisional&quot;:true', false);
+    }
 }

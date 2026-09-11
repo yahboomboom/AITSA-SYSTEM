@@ -45,6 +45,10 @@ export default function ClearanceQueueTable({ rows, csrfToken }) {
                                             <span className="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGreen/10 text-brandGreen border border-brandGreen/20 uppercase tracking-wider">
                                                 <i className="fa-solid fa-circle-check mr-1.5" />Cleared
                                             </span>
+                                        ) : row.isProvisional ? (
+                                            <span className="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-cyan-600/10 text-cyan-600 border border-cyan-600/20 uppercase tracking-wider">
+                                                <i className="fa-solid fa-hourglass-half mr-1.5" />Provisional
+                                            </span>
                                         ) : (
                                             <span className="inline-flex items-center px-3 py-1 rounded text-[10px] font-bold bg-brandGold/10 text-brandGold border border-brandGold/20 uppercase tracking-wider">
                                                 <i className="fa-solid fa-clock mr-1.5" />Pending Review
@@ -57,27 +61,45 @@ export default function ClearanceQueueTable({ rows, csrfToken }) {
                                                 <i className="fa-solid fa-check-double mr-1.5" />Signed Off
                                             </button>
                                         ) : (
-                                            <div className="flex items-center justify-end gap-2">
-                                                <form action={row.signUrl} method="POST" className="inline-block">
-                                                    <input type="hidden" name="_token" value={csrfToken} />
-                                                    <button type="submit" className="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide">
-                                                        Sign Clearance
-                                                    </button>
-                                                </form>
-                                                <form action={row.holdUrl} method="POST" className="flex items-center gap-2">
-                                                    <input type="hidden" name="_token" value={csrfToken} />
-                                                    <input
-                                                        type="text"
-                                                        name="remarks"
-                                                        required
-                                                        maxLength={500}
-                                                        placeholder="Reason for hold"
-                                                        className="w-36 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-brandNavy dark:text-slate-200 outline-none"
-                                                    />
-                                                    <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded transition-colors tracking-wide">
-                                                        Hold
-                                                    </button>
-                                                </form>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <form action={row.signUrl} method="POST" className="inline-block">
+                                                        <input type="hidden" name="_token" value={csrfToken} />
+                                                        <button type="submit" className="px-4 py-2 bg-brandNavy hover:bg-brandGreen text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                            Sign Clearance
+                                                        </button>
+                                                    </form>
+                                                    <form action={row.holdUrl} method="POST" className="flex items-center gap-2">
+                                                        <input type="hidden" name="_token" value={csrfToken} />
+                                                        <input
+                                                            type="text"
+                                                            name="remarks"
+                                                            required
+                                                            maxLength={500}
+                                                            placeholder="Reason for hold"
+                                                            className="w-36 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-brandNavy dark:text-slate-200 outline-none"
+                                                        />
+                                                        <button type="submit" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded transition-colors tracking-wide">
+                                                            Hold
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                {!row.isProvisional && (
+                                                    <form action={row.grantProvisionalUrl} method="POST" className="flex items-center gap-2">
+                                                        <input type="hidden" name="_token" value={csrfToken} />
+                                                        <input
+                                                            type="text"
+                                                            name="reason"
+                                                            required
+                                                            maxLength={1000}
+                                                            placeholder="Reason (e.g. old school delay)"
+                                                            className="w-48 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-[11px] text-brandNavy dark:text-slate-200 outline-none"
+                                                        />
+                                                        <button type="submit" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-[11px] font-black rounded transition-colors tracking-wide whitespace-nowrap">
+                                                            Grant Provisional
+                                                        </button>
+                                                    </form>
+                                                )}
                                             </div>
                                         )}
                                     </td>

@@ -89,8 +89,10 @@
                             'studentId' => $row->user->login_id ?? '—',
                             'program' => $row->user->major ?? '—',
                             'isApproved' => ($row->registrar_status ?? 'Pending') === 'Approved',
+                            'isProvisional' => (bool) $row->is_provisional,
                             'signUrl' => route('registrar.sign', $row->id),
                             'holdUrl' => route('registrar.hold', $row->id),
+                            'grantProvisionalUrl' => route('registrar.grant-provisional', $row->id),
                         ])->values(),
                         'documents' => $documentSubmissions->map(fn ($doc) => [
                             'id' => $doc->id,
