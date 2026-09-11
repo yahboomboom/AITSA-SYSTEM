@@ -376,7 +376,7 @@ class AuthController extends Controller
             ->map(fn ($group) => $group->first());
 
         $rows = $clearances->map(function ($clearance) use ($fees, $latestSettledByUser) {
-            $balance = $clearance->user ? (float) $fees->breakdownFor($clearance->user)['balance'] : 0.0;
+            $breakdown = $clearance->user ? $fees->breakdownFor($clearance->user) : ['balance' => 0.0, 'down_payment_met' => false];
 
             $latestSettled = $latestSettledByUser->get($clearance->user_id);
 
@@ -385,8 +385,10 @@ class AuthController extends Controller
                 'userId' => $clearance->user_id,
                 'studentName' => $clearance->user->name ?? 'Unknown Student',
                 'studentEmail' => $clearance->user->email ?? 'N/A',
-                'balance' => $balance,
+                'balance' => (float) $breakdown['balance'],
                 'isApproved' => $clearance->cashier_status === 'Approved',
+                'isDownPaymentMet' => (bool) $breakdown['down_payment_met'],
+                'isDownPaymentWaived' => (bool) $clearance->down_payment_waived,
                 'referenceNo' => $latestSettled->reference_no ?? null,
             ];
         })->values();

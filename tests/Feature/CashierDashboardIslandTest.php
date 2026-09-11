@@ -58,4 +58,55 @@ class CashierDashboardIslandTest extends TestCase
 
         $this->actingAs($student)->get('/cashier/dashboard')->assertForbidden();
     }
+
+    public function test_dashboard_context_includes_down_payment_fields(): void
+    {
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+        ]);
+
+        $response = $this->actingAs($cashier)->get('/cashier/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;isDownPaymentMet&quot;:false', false);
+        $response->assertSee('&quot;isDownPaymentWaived&quot;:false', false);
+        $response->assertSee('data-waive-down-payment-url', false);
+    }
+
+    public function test_dashboard_context_reflects_a_met_down_payment(): void
+    {
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+        ]);
+        // misc_fee defaults to 1500 with 0 units/tuition for a student with no program/section;
+        // down_payment_percent defaults to 30 -> threshold 450.
+        \App\Models\TransactionLedger::factory()->create([
+            'user_id' => $student->id, 'status' => 'Settled', 'amount' => 450.00,
+        ]);
+
+        $response = $this->actingAs($cashier)->get('/cashier/dashboard');
+
+        $response->assertSee('&quot;isDownPaymentMet&quot;:true', false);
+    }
+
+    public function test_dashboard_context_reflects_a_waived_down_payment(): void
+    {
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Pending', 'registrar_status' => 'Approved',
+            'down_payment_waived' => true,
+        ]);
+
+        $response = $this->actingAs($cashier)->get('/cashier/dashboard');
+
+        $response->assertSee('&quot;isDownPaymentWaived&quot;:true', false);
+    }
 }

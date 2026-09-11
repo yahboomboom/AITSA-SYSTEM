@@ -66,6 +66,8 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                                     <td className="p-4">
                                         {row.isApproved ? (
                                             <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGreen/10 text-brandGreen border border-brandGreen/20 rounded">Approved</span>
+                                        ) : (row.isDownPaymentMet || row.isDownPaymentWaived) ? (
+                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-cyan-600/10 text-cyan-600 border border-cyan-600/20 rounded">Enrollable</span>
                                         ) : (
                                             <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
                                         )}
