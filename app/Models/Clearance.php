@@ -37,6 +37,10 @@ class Clearance extends Model
         'provisional_reason',
         'provisional_granted_by',
         'provisional_granted_at',
+        'down_payment_waived',
+        'down_payment_waived_reason',
+        'down_payment_waived_by',
+        'down_payment_waived_at',
     ];
     
     protected $casts = [
@@ -45,6 +49,8 @@ class Clearance extends Model
         'registrar_signed_at' => 'datetime',
         'is_provisional' => 'boolean',
         'provisional_granted_at' => 'datetime',
+        'down_payment_waived' => 'boolean',
+        'down_payment_waived_at' => 'datetime',
     ];
 
     /**
