@@ -20,16 +20,77 @@ class RegistrarDocumentReviewTest extends TestCase
         $this->registrar = User::factory()->create(['role' => 'registrar']);
     }
 
-    public function test_dashboard_lists_submissions(): void
+    public function test_dashboard_does_not_preload_document_submissions(): void
     {
-        $sub = DocumentSubmission::factory()->create();
+        $sub = DocumentSubmission::factory()->create(['status' => 'pending']);
 
         $response = $this->actingAs($this->registrar)->get('/registrar/dashboard');
 
         $response->assertOk();
-        $this->assertTrue($response->viewData('documentSubmissions')->contains('id', $sub->id));
         $response->assertSee('id="registrar-dashboard-root"', false);
-        $response->assertSee('&quot;originalName&quot;:&quot;' . $sub->original_name . '&quot;', false);
+        $response->assertDontSee($sub->original_name);
+        $this->assertSame(1, $response->viewData('documentsPendingCount'));
+    }
+
+    public function test_documents_search_finds_matching_submission_by_student_name(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Searchable Student']);
+        $sub = DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'pending']);
+
+        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Searchable');
+
+        $response->assertOk()->assertJsonFragment(['id' => $sub->id, 'originalName' => $sub->original_name]);
+    }
+
+    public function test_documents_search_requires_a_query(): void
+    {
+        DocumentSubmission::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($this->registrar)->getJson('/registrar/documents/search')
+            ->assertOk()->assertJsonCount(0, 'documents');
+    }
+
+    public function test_documents_search_shows_only_the_latest_submission_for_a_document_type(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Resubmitter']);
+        DocumentSubmission::factory()->create([
+            'user_id' => $student->id,
+            'document_type' => 'form137',
+            'original_name' => 'rejected-form137.pdf',
+            'status' => 'rejected',
+            'created_at' => now()->subMinute(),
+        ]);
+        DocumentSubmission::factory()->create([
+            'user_id' => $student->id,
+            'document_type' => 'form137',
+            'original_name' => 'new-form137.pdf',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Resubmitter');
+
+        $response->assertOk()
+            ->assertJsonFragment(['originalName' => 'new-form137.pdf'])
+            ->assertJsonMissing(['originalName' => 'rejected-form137.pdf']);
+    }
+
+    public function test_documents_search_hides_accepted_documents_unless_viewing_all(): void
+    {
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Cleared Student']);
+        $accepted = DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'accepted']);
+
+        $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Cleared')
+            ->assertOk()->assertJsonCount(0, 'documents');
+
+        $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Cleared&all=1')
+            ->assertOk()->assertJsonFragment(['id' => $accepted->id]);
+    }
+
+    public function test_students_cannot_search_documents(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->getJson('/registrar/documents/search?q=a')->assertForbidden();
     }
 
     public function test_registrar_can_accept(): void

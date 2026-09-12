@@ -10,7 +10,8 @@ const EMPTY_CONTEXT = {
     applicants: [],
     stats: { total: 0, approvedToday: 0, pending: 0 },
     clearances: [],
-    documents: [],
+    documentsSearchUrl: '',
+    documentsPendingCount: 0,
 };
 
 function parseContext(raw) {
@@ -20,7 +21,8 @@ function parseContext(raw) {
             applicants: Array.isArray(parsed.applicants) ? parsed.applicants : [],
             stats: parsed.stats ?? EMPTY_CONTEXT.stats,
             clearances: Array.isArray(parsed.clearances) ? parsed.clearances : [],
-            documents: Array.isArray(parsed.documents) ? parsed.documents : [],
+            documentsSearchUrl: parsed.documentsSearchUrl ?? '',
+            documentsPendingCount: parsed.documentsPendingCount ?? 0,
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -44,7 +46,11 @@ if (el) {
                     pending={context.stats.pending}
                 />
                 <ClearanceQueueTable rows={context.clearances} csrfToken={csrfToken} />
-                <DocumentSubmissionsTable documents={context.documents} csrfToken={csrfToken} />
+                <DocumentSubmissionsTable
+                    searchUrl={context.documentsSearchUrl}
+                    pendingCount={context.documentsPendingCount}
+                    csrfToken={csrfToken}
+                />
             </div>
         </ErrorBoundary>
     );

@@ -94,21 +94,8 @@
                             'holdUrl' => route('registrar.hold', $row->id),
                             'grantProvisionalUrl' => route('registrar.grant-provisional', $row->id),
                         ])->values(),
-                        'documents' => $documentSubmissions->map(fn ($doc) => [
-                            'id' => $doc->id,
-                            'studentName' => $doc->user->name ?? '—',
-                            'studentId' => $doc->user->login_id ?? '—',
-                            'typeLabel' => $doc->typeLabel(),
-                            'documentUrl' => route('documents.show', $doc),
-                            'originalName' => $doc->original_name,
-                            'sizeKb' => number_format($doc->size / 1024, 0),
-                            'notes' => $doc->notes,
-                            'status' => $doc->status,
-                            'remarks' => $doc->remarks,
-                            'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
-                            'acceptUrl' => route('registrar.documents.accept', $doc),
-                            'rejectUrl' => route('registrar.documents.reject', $doc),
-                        ])->values(),
+                        'documentsSearchUrl' => route('registrar.documents.search'),
+                        'documentsPendingCount' => $documentsPendingCount,
                     ];
                 @endphp
 

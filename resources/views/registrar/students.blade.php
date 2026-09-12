@@ -37,7 +37,7 @@
         </header>
 
         <div class="flex-1 overflow-y-auto p-6 lg:p-8">
-            <div class="max-w-4xl mx-auto space-y-6">
+            <div class="w-full space-y-6">
 
                 <div class="flex items-center justify-between">
                     <div>
@@ -46,7 +46,7 @@
                     </div>
                 </div>
 
-                <div id="registrar-students-root" data-context="{{ json_encode($context) }}">
+                <div id="registrar-students-root" data-context="{{ json_encode($context) }}" data-csrf-token="{{ csrf_token() }}">
                     <p class="text-sm text-slate-500">Loading…</p>
                 </div>
 

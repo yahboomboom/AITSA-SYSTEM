@@ -60,7 +60,7 @@ class DocumentUploadTest extends TestCase
         Storage::fake('local');
 
         $this->actingAs($this->student())->post('/documents/submit-requirement', [
-            'document' => UploadedFile::fake()->create('big.pdf', 6000, 'application/pdf'),
+            'document' => UploadedFile::fake()->create('big.pdf', 16000, 'application/pdf'),
             'document_type' => 'form137',
         ])->assertSessionHasErrors('document');
 
