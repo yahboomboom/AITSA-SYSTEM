@@ -12,22 +12,25 @@ class FacultyRoomApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $chair;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'registrar']);
+        // Faculty/room management moved from Registrar to the Dept Chair
+        // alongside section scheduling — see
+        // docs/superpowers/specs/2026-09-12-scheduling-to-chair-design.md.
+        $this->chair = User::factory()->create(['role' => 'chair']);
     }
 
-    public function test_admin_can_create_and_list_rooms(): void
+    public function test_chair_can_create_and_list_rooms(): void
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/rooms', ['name' => 'Rm 101', 'type' => 'physical'])
             ->assertStatus(201)
             ->assertJsonPath('room.name', 'Rm 101');
 
-        $this->actingAs($this->admin)->getJson('/api/admin/rooms')
+        $this->actingAs($this->chair)->getJson('/api/admin/rooms')
             ->assertOk()
             ->assertJsonPath('rooms.0.name', 'Rm 101');
 
@@ -38,21 +41,21 @@ class FacultyRoomApiTest extends TestCase
     {
         Room::create(['name' => 'Rm 101', 'type' => 'physical']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/rooms', ['name' => 'Rm 101', 'type' => 'physical'])
             ->assertStatus(422);
     }
 
     public function test_invalid_room_type_is_rejected(): void
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/rooms', ['name' => 'Rm 102', 'type' => 'hologram'])
             ->assertStatus(422);
     }
 
-    public function test_admin_can_create_and_list_faculty(): void
+    public function test_chair_can_create_and_list_faculty(): void
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/faculty', ['name' => 'Prof. Liza Ramos', 'login_id' => 'faculty09'])
             ->assertStatus(201)
             ->assertJsonPath('faculty.name', 'Prof. Liza Ramos')
@@ -61,7 +64,7 @@ class FacultyRoomApiTest extends TestCase
         $this->assertDatabaseHas('users', ['login_id' => 'faculty09', 'role' => 'faculty']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'Faculty Created']);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/admin/faculty');
+        $response = $this->actingAs($this->chair)->getJson('/api/admin/faculty');
         $response->assertOk();
         $this->assertContains('faculty09', array_column($response->json('faculty'), 'login_id'));
     }
@@ -70,7 +73,7 @@ class FacultyRoomApiTest extends TestCase
     {
         User::factory()->create(['login_id' => 'faculty09']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/faculty', ['name' => 'Prof. Dup', 'login_id' => 'faculty09'])
             ->assertStatus(422);
     }
@@ -81,7 +84,7 @@ class FacultyRoomApiTest extends TestCase
         $current = Section::factory()->create(['faculty_id' => $prof->id, 'school_year' => '2026-2027']);
         Section::factory()->create(['faculty_id' => $prof->id, 'school_year' => '2025-2026', 'days' => ['T']]);
 
-        $response = $this->actingAs($this->admin)->getJson("/api/admin/faculty/{$prof->id}/schedule");
+        $response = $this->actingAs($this->chair)->getJson("/api/admin/faculty/{$prof->id}/schedule");
 
         $response->assertOk();
         $this->assertCount(1, $response->json('schedule'));
@@ -92,7 +95,7 @@ class FacultyRoomApiTest extends TestCase
     {
         $student = User::factory()->create(['role' => 'student']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->getJson("/api/admin/faculty/{$student->id}/schedule")
             ->assertStatus(422);
     }
@@ -103,5 +106,13 @@ class FacultyRoomApiTest extends TestCase
 
         $this->actingAs($student)->getJson('/api/admin/faculty')->assertForbidden();
         $this->actingAs($student)->postJson('/api/admin/rooms', ['name' => 'X', 'type' => 'physical'])->assertForbidden();
+    }
+
+    public function test_registrar_can_no_longer_use_faculty_or_room_endpoints(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+
+        $this->actingAs($registrar)->getJson('/api/admin/faculty')->assertForbidden();
+        $this->actingAs($registrar)->postJson('/api/admin/rooms', ['name' => 'X', 'type' => 'physical'])->assertForbidden();
     }
 }

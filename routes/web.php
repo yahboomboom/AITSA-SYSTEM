@@ -551,6 +551,15 @@ Route::middleware('auth')->group(function () {
         return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges'));
     })->name('approver.dashboard');
 
+    // Scheduling — sections (day/time/faculty/room) plus faculty/room
+    // management, moved here from the Registrar's Curriculum page. Programs
+    // and Subjects (curriculum content) stay Registrar-only; this page's
+    // React island browses that same read-only subject list via the shared
+    // GET /api/admin/programs endpoints to find what to schedule.
+    Route::get('/approver/scheduling', function () {
+        return view('approver.scheduling');
+    })->name('approver.scheduling');
+
     Route::post('/approver/enrollments/{enrollment}/approve', function (Enrollment $enrollment) {
         if ($enrollment->status !== 'pending') {
             return back()->with('error', 'This enrollment is no longer pending.');

@@ -19,6 +19,7 @@ export default defineConfig({
                 'resources/js/registrar-dashboard-app.jsx',
                 'resources/js/cashier-dashboard-app.jsx',
                 'resources/js/approver-dashboard-app.jsx',
+                'resources/js/approver-scheduling-app.jsx',
                 'resources/js/department-dashboard-app.jsx',
                 'resources/js/documents-app.jsx',
                 'resources/js/admin-dashboard-app.jsx',

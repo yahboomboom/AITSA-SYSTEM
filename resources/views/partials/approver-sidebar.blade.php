@@ -1,5 +1,11 @@
 {{-- partials/approver-sidebar.blade.php --}}
 {{-- Shared sidebar for Department Chair / Dean approver pages. --}}
+@php
+    $approverNavLinks = [
+        ['route' => 'approver.dashboard', 'pattern' => 'approver.dashboard', 'label' => 'Academic Approvals', 'icon' => 'fa-clipboard-check'],
+        ['route' => 'approver.scheduling', 'pattern' => 'approver.scheduling', 'label' => 'Scheduling', 'icon' => 'fa-calendar-days'],
+    ];
+@endphp
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden" onclick="closeMobileSidebar()"></div>
 <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col w-64 -translate-x-full bg-white dark:bg-panelDark border-r border-brandNavy/10 dark:border-slate-800 transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto">
     <div class="h-16 flex items-center justify-between px-6 border-b border-brandNavy/10 dark:border-slate-800">
@@ -17,10 +23,13 @@
 
     <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5">
         <p class="sidebar-label px-3 text-[10px] font-bold text-brandNavy/40 dark:text-slate-500 uppercase tracking-widest mb-3">Dean / Chair Controls</p>
-        <a href="{{ route('approver.dashboard') }}" title="Academic Approvals" class="flex items-center space-x-3 px-3 py-2.5 border-l-2 border-brandGreen text-brandGreen dark:text-emerald-400 font-bold text-sm transition-colors">
-            <i class="fa-solid fa-clipboard-check w-4 text-center flex-shrink-0"></i>
-            <span class="sidebar-label">Academic Approvals</span>
-        </a>
+        @foreach ($approverNavLinks as $link)
+            <a href="{{ route($link['route']) }}" title="{{ $link['label'] }}"
+               class="flex items-center space-x-3 px-3 py-2.5 border-l-2 text-sm transition-colors {{ Route::is($link['pattern']) ? 'border-brandGreen text-brandGreen dark:text-emerald-400 font-bold' : 'border-transparent text-brandNavy/60 hover:text-brandNavy dark:text-slate-400 dark:hover:text-white font-medium' }}">
+                <i class="fa-solid {{ $link['icon'] }} w-4 text-center flex-shrink-0"></i>
+                <span class="sidebar-label">{{ $link['label'] }}</span>
+            </a>
+        @endforeach
     </nav>
 </aside>
 @include('partials.sidebar-toggle-script')

@@ -30,19 +30,33 @@ Route::post('/webhooks/docusign', [DocuSignWebhookController::class, 'handle']);
 // Curriculum-editing API — moved from Admin to Registrar (per Admin doing too
 // much; Dept Chair was considered but not included). URL prefix kept as
 // 'admin' to avoid churning every frontend call site in curriculum-app.jsx.
-Route::middleware(['auth:sanctum', 'role:registrar,admission'])->prefix('admin')->group(function () {
-    Route::get('/programs', [ProgramController::class, 'index']);
-    Route::get('/programs/{program}/subjects', [ProgramController::class, 'subjects']);
-    Route::post('/settings/change-matriculation', [SettingController::class, 'changeMatriculation']);
-    Route::post('/subjects', [SubjectController::class, 'store']);
-    Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
-    Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
-    Route::post('/sections', [SectionController::class, 'store']);
-    Route::put('/sections/{section}', [SectionController::class, 'update']);
-    Route::delete('/sections/{section}', [SectionController::class, 'destroy']);
-    Route::get('/faculty', [FacultyController::class, 'index']);
-    Route::post('/faculty', [FacultyController::class, 'store']);
-    Route::get('/faculty/{user}/schedule', [FacultyController::class, 'schedule']);
-    Route::get('/rooms', [RoomController::class, 'index']);
-    Route::post('/rooms', [RoomController::class, 'store']);
+//
+// 2026-09-12: scheduling (sections/faculty/rooms) split out to the Dept
+// Chair — see docs/superpowers/specs/2026-09-12-scheduling-to-chair-design.md.
+// Registrar keeps Programs/Subjects (curriculum content); Chair browses the
+// same program/subject listing read-only to find what to schedule, so that
+// GET pair is shared rather than duplicated.
+Route::prefix('admin')->group(function () {
+    Route::middleware(['auth:sanctum', 'role:registrar,admission,chair'])->group(function () {
+        Route::get('/programs', [ProgramController::class, 'index']);
+        Route::get('/programs/{program}/subjects', [ProgramController::class, 'subjects']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:registrar,admission'])->group(function () {
+        Route::post('/settings/change-matriculation', [SettingController::class, 'changeMatriculation']);
+        Route::post('/subjects', [SubjectController::class, 'store']);
+        Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
+        Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:chair'])->group(function () {
+        Route::post('/sections', [SectionController::class, 'store']);
+        Route::put('/sections/{section}', [SectionController::class, 'update']);
+        Route::delete('/sections/{section}', [SectionController::class, 'destroy']);
+        Route::get('/faculty', [FacultyController::class, 'index']);
+        Route::post('/faculty', [FacultyController::class, 'store']);
+        Route::get('/faculty/{user}/schedule', [FacultyController::class, 'schedule']);
+        Route::get('/rooms', [RoomController::class, 'index']);
+        Route::post('/rooms', [RoomController::class, 'store']);
+    });
 });

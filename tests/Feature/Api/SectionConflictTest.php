@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Enrollment;
 use App\Models\Room;
 use App\Models\Section;
 use App\Models\Subject;
@@ -13,14 +14,14 @@ class SectionConflictTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $chair;
     private User $prof;
     private Room $room;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'registrar']);
+        $this->chair = User::factory()->create(['role' => 'chair']);
         $this->prof = User::factory()->create(['role' => 'faculty', 'name' => 'Prof. Cruz']);
         $this->room = Room::create(['name' => 'Rm 301', 'type' => 'physical']);
     }
@@ -46,7 +47,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id, 'start_time' => '09:00', 'end_time' => '10:30']));
 
         $response->assertStatus(409);
@@ -57,7 +58,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['room_id' => $this->room->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['room_id' => $this->room->id]));
 
         $response->assertStatus(409);
@@ -69,7 +70,7 @@ class SectionConflictTest extends TestCase
         $meet = Room::create(['name' => 'Google Meet A', 'type' => 'virtual']);
         Section::factory()->create(['room_id' => $meet->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['room_id' => $meet->id]))
             ->assertStatus(201);
     }
@@ -78,7 +79,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id, 'days' => ['T', 'Th']]))
             ->assertStatus(201);
     }
@@ -87,7 +88,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id, 'start_time' => '09:30', 'end_time' => '11:00']))
             ->assertStatus(201);
     }
@@ -96,7 +97,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30', 'school_year' => '2025-2026']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id]))
             ->assertStatus(201);
     }
@@ -105,7 +106,7 @@ class SectionConflictTest extends TestCase
     {
         $section = Section::factory()->create(['faculty_id' => $this->prof->id, 'room_id' => $this->room->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->putJson("/api/admin/sections/{$section->id}", ['capacity' => 45])
             ->assertOk()
             ->assertJsonPath('section.capacity', 45);
@@ -115,7 +116,7 @@ class SectionConflictTest extends TestCase
     {
         Section::factory()->create(['days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30', 'room' => 'Same String', 'professor' => 'Same String']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['room' => 'Same String', 'professor' => 'Same String']))
             ->assertStatus(201);
     }
@@ -124,18 +125,35 @@ class SectionConflictTest extends TestCase
     {
         $student = User::factory()->create(['role' => 'student']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $student->id]))
             ->assertStatus(422);
     }
 
     public function test_store_returns_faculty_name_and_room_label(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->chair)
             ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id, 'room_id' => $this->room->id]));
 
         $response->assertStatus(201)
             ->assertJsonPath('section.faculty_name', 'Prof. Cruz')
             ->assertJsonPath('section.room_label', 'Rm 301');
+    }
+
+    public function test_section_crud_and_delete_guard(): void
+    {
+        $subject = Subject::factory()->create();
+
+        $create = $this->actingAs($this->chair)->postJson('/api/admin/sections', $this->payload(['subject_id' => $subject->id]));
+        $create->assertCreated();
+        $sectionId = $create->json('section.id');
+
+        $this->actingAs($this->chair)->putJson("/api/admin/sections/{$sectionId}", [
+            'room' => 'Rm 202',
+        ])->assertOk();
+        $this->assertSame('Rm 202', Section::find($sectionId)->room);
+
+        Enrollment::factory()->create(['status' => 'enrolled'])->sections()->attach($sectionId);
+        $this->actingAs($this->chair)->deleteJson("/api/admin/sections/{$sectionId}")->assertStatus(409);
     }
 }
