@@ -389,6 +389,7 @@ class AuthController extends Controller
                 'isApproved' => $clearance->cashier_status === 'Approved',
                 'isDownPaymentMet' => (bool) $breakdown['down_payment_met'],
                 'isDownPaymentWaived' => (bool) $clearance->down_payment_waived,
+                'isHeld' => $clearance->cashier_status === 'Hold',
                 'referenceNo' => $latestSettled->reference_no ?? null,
             ];
         })->values();

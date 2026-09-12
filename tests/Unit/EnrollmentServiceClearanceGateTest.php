@@ -123,4 +123,36 @@ class EnrollmentServiceClearanceGateTest extends TestCase
 
         $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
     }
+
+    public function test_down_payment_met_does_not_override_an_active_cashier_hold(): void
+    {
+        $this->seed(\Database\Seeders\ProgramSeeder::class);
+        \App\Models\Setting::put('down_payment_percent', '30');
+        \App\Models\Setting::clearCache();
+        $student = User::factory()->create(['role' => 'student', 'major' => 'BSOA', 'year_level' => '1st Year']);
+        $program = \App\Models\Program::where('code', 'BSOA')->first();
+        $subject = \App\Models\Subject::factory()->for($program)->create(['year_level' => 1, 'semester' => 1, 'units' => 5]);
+        \App\Models\Section::factory()->for($subject)->create(['block_label' => 'A', 'school_year' => '2026-2027']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Hold', 'registrar_status' => 'Approved',
+        ]);
+        \App\Models\TransactionLedger::factory()->create([
+            'user_id' => $student->id, 'status' => 'Settled', 'amount' => 900.00,
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_down_payment_waiver_does_not_override_an_active_cashier_hold(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Hold', 'registrar_status' => 'Approved',
+            'down_payment_waived' => true,
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
 }

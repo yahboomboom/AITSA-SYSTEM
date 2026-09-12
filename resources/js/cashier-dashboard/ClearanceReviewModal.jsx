@@ -86,7 +86,7 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                         </button>
                     </form>
 
-                    {!student.isDownPaymentMet && !student.isDownPaymentWaived && (
+                    {!student.isDownPaymentMet && !student.isDownPaymentWaived && !student.isHeld && (
                         <form
                             action={waiveDownPaymentUrl}
                             method="POST"

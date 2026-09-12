@@ -33,8 +33,9 @@ class EnrollmentService
         return $clearance !== null
             && $clearance->chair_status === 'Approved'
             && ($clearance->cashier_status === 'Approved'
-                || $clearance->down_payment_waived === true
-                || app(FeeAssessmentService::class)->breakdownFor($user)['down_payment_met'])
+                || (($clearance->down_payment_waived === true
+                    || app(FeeAssessmentService::class)->breakdownFor($user)['down_payment_met'])
+                    && $clearance->cashier_status !== 'Hold'))
             && ($clearance->registrar_status === 'Approved' || ($clearance->is_provisional === true && $clearance->registrar_status !== 'Hold'))
             && $clearance->allItemsApproved();
     }

@@ -109,4 +109,18 @@ class CashierDashboardIslandTest extends TestCase
 
         $response->assertSee('&quot;isDownPaymentWaived&quot;:true', false);
     }
+
+    public function test_dashboard_context_includes_held_status(): void
+    {
+        $cashier = User::factory()->create(['role' => 'cashier']);
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Hold', 'registrar_status' => 'Approved',
+        ]);
+
+        $response = $this->actingAs($cashier)->get('/cashier/dashboard');
+
+        $response->assertSee('&quot;isHeld&quot;:true', false);
+    }
 }
