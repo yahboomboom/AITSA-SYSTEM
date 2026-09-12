@@ -12,6 +12,7 @@ const EMPTY_CONTEXT = {
     clearances: [],
     documentsSearchUrl: '',
     documentsPendingCount: 0,
+    documentsRejectedCount: 0,
 };
 
 function parseContext(raw) {
@@ -23,6 +24,7 @@ function parseContext(raw) {
             clearances: Array.isArray(parsed.clearances) ? parsed.clearances : [],
             documentsSearchUrl: parsed.documentsSearchUrl ?? '',
             documentsPendingCount: parsed.documentsPendingCount ?? 0,
+            documentsRejectedCount: parsed.documentsRejectedCount ?? 0,
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -49,6 +51,7 @@ if (el) {
                 <DocumentSubmissionsTable
                     searchUrl={context.documentsSearchUrl}
                     pendingCount={context.documentsPendingCount}
+                    rejectedCount={context.documentsRejectedCount}
                     csrfToken={csrfToken}
                 />
             </div>

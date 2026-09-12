@@ -12,10 +12,11 @@ const STATUS_LABELS = {
     rejected: 'Rejected',
 };
 
-export default function DocumentSubmissionsTable({ searchUrl, pendingCount, csrfToken }) {
+export default function DocumentSubmissionsTable({ searchUrl, pendingCount, rejectedCount, csrfToken }) {
     const initialParams = new URLSearchParams(window.location.search);
     const [search, setSearch] = useState(() => initialParams.get('documents_search') ?? '');
     const [viewAll, setViewAll] = useState(() => initialParams.get('documents_view') === 'all');
+    const [statusFilter, setStatusFilter] = useState(null);
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(false);
     const query = search.trim();
@@ -31,17 +32,23 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, csrf
     }, []);
 
     useEffect(() => {
-        if (!query || !searchUrl) {
+        if (!query && !statusFilter) {
             setDocuments([]);
             setLoading(false);
             return;
         }
+        if (!searchUrl) return;
 
         const thisRequest = ++requestId.current;
         setLoading(true);
         const timer = setTimeout(() => {
-            const params = new URLSearchParams({ q: query });
-            if (viewAll) params.set('all', '1');
+            const params = new URLSearchParams();
+            if (query) params.set('q', query);
+            if (statusFilter) {
+                params.set('status', statusFilter);
+            } else if (viewAll) {
+                params.set('all', '1');
+            }
 
             fetch(`${searchUrl}?${params}`, { headers: { Accept: 'application/json' } })
                 .then((res) => (res.ok ? res.json() : Promise.reject(res)))
@@ -57,16 +64,40 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, csrf
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [query, viewAll, searchUrl]);
+    }, [query, viewAll, statusFilter, searchUrl]);
+
+    const toggleStatus = (status) => {
+        setStatusFilter((current) => current === status ? null : status);
+        setViewAll(false);
+    };
 
     return (
         <div id="student-submitted-documents" className="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <h3 className="text-sm font-bold text-brandNavy dark:text-white tracking-wide">
-                        {query && !viewAll ? 'Student Pending Document/s' : 'Student Submitted Document/s'}
+                        {(query || statusFilter) && !viewAll ? `Student ${statusFilter === 'rejected' ? 'Rejected' : 'Pending'} Document/s` : 'Student Submitted Document/s'}
                     </h3>
-                    {pendingCount > 0 && <span className="px-2 py-0.5 text-[9px] font-black bg-brandGold text-white rounded-full">{pendingCount} pending</span>}
+                    {pendingCount > 0 && (
+                        <button
+                            type="button"
+                            title="Show pending documents"
+                            onClick={() => toggleStatus('pending')}
+                            className={`px-2 py-0.5 text-[9px] font-black rounded-full cursor-pointer transition-colors ${statusFilter === 'pending' ? 'bg-brandNavy text-white' : 'bg-brandGold text-white hover:opacity-80'}`}
+                        >
+                            {pendingCount} pending
+                        </button>
+                    )}
+                    {rejectedCount > 0 && (
+                        <button
+                            type="button"
+                            title="Show rejected documents"
+                            onClick={() => toggleStatus('rejected')}
+                            className={`px-2 py-0.5 text-[9px] font-black rounded-full cursor-pointer transition-colors ${statusFilter === 'rejected' ? 'bg-brandNavy text-white' : 'bg-red-600 text-white hover:opacity-80'}`}
+                        >
+                            {rejectedCount} rejected
+                        </button>
+                    )}
                 </div>
                 <div className="relative w-full sm:w-72">
                     <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
@@ -99,7 +130,7 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, csrf
                                 <td colSpan={5} className="py-12 text-center text-brandNavy/40 dark:text-slate-500 font-medium">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <i className="fa-solid fa-folder-open text-2xl text-brandNavy/20 dark:text-slate-600" />
-                                        <span>{loading ? 'Searching…' : query ? 'No more pendings.' : 'Search to view to be submitted documents.'}</span>
+                                        <span>{loading ? 'Searching…' : (query || statusFilter) ? 'No matching documents.' : 'Search or choose a status to view submitted documents.'}</span>
                                     </div>
                                 </td>
                             </tr>

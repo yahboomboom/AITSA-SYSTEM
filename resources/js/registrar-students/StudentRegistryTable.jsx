@@ -1,29 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 
 const STATUS_STYLES = {
-    Approved: 'bg-brandGreen/10 text-brandGreen border-brandGreen/20',
-    Hold: 'bg-red-600/10 text-red-600 border-red-600/20',
+    Cleared: 'bg-brandGreen/10 text-brandGreen border-brandGreen/20',
     Pending: 'bg-brandGold/10 text-brandGold border-brandGold/20',
 };
 
 export default function StudentRegistryTable({ searchUrl, csrfToken }) {
     const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const query = search.trim();
     const requestId = useRef(0);
 
     useEffect(() => {
-        if (!query || !searchUrl) {
+        if (!query && !statusFilter) {
             setRows([]);
             setLoading(false);
             return;
         }
+        if (!searchUrl) return;
 
         const thisRequest = ++requestId.current;
         setLoading(true);
         const timer = setTimeout(() => {
-            fetch(`${searchUrl}?${new URLSearchParams({ q: query })}`, { headers: { Accept: 'application/json' } })
+            const params = new URLSearchParams();
+            if (query) params.set('q', query);
+            if (statusFilter) params.set('status', statusFilter);
+
+            fetch(`${searchUrl}?${params}`, { headers: { Accept: 'application/json' } })
                 .then((res) => (res.ok ? res.json() : Promise.reject(res)))
                 .then((data) => {
                     if (requestId.current === thisRequest) {
@@ -37,21 +42,32 @@ export default function StudentRegistryTable({ searchUrl, csrfToken }) {
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [query, searchUrl]);
+    }, [query, statusFilter, searchUrl]);
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg overflow-hidden">
             <div className="px-5 py-4 border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <span className="text-xs font-bold text-brandNavy dark:text-white uppercase tracking-wider">Student Records</span>
-                <div className="relative w-full sm:w-72">
-                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search student name or ID..."
-                        className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
-                    />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-72">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search student name or ID..."
+                            className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
+                        />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
+                    >
+                        <option value="all">All statuses</option>
+                        <option value="hold">On Hold</option>
+                        <option value="cleared">Cleared</option>
+                    </select>
                 </div>
             </div>
             <div className="w-full overflow-hidden">
@@ -71,7 +87,7 @@ export default function StudentRegistryTable({ searchUrl, csrfToken }) {
                         <tr>
                             <td colSpan={6} className="py-16 text-center text-brandNavy/40 dark:text-slate-500">
                                 <i className="fa-solid fa-users text-3xl mb-3 block opacity-40" />
-                                <p className="text-sm font-semibold">{loading ? 'Searching…' : query ? 'No matching student records.' : 'Search to view student records.'}</p>
+                                <p className="text-sm font-semibold">{loading ? 'Searching…' : (query || statusFilter) ? 'No matching student records.' : 'Search or filter to view student records.'}</p>
                             </td>
                         </tr>
                     ) : rows.map((student) => <StudentRow key={student.id} student={student} csrfToken={csrfToken} />)}
@@ -99,7 +115,7 @@ function StudentRow({ student, csrfToken }) {
                 <td className="px-3 py-3.5 hidden md:table-cell"><span className="text-xs text-brandNavy/60 dark:text-slate-400 break-words">{student.major ?? '—'}</span></td>
                 <td className="px-3 py-3.5 hidden md:table-cell"><div className="flex flex-wrap items-center gap-2"><span className="text-xs text-brandNavy/60 dark:text-slate-400">{student.yearLevel ?? '—'}</span>{student.isIrregular ? <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600">Irregular</span> : <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600">Regular</span>}</div></td>
                 <td className="px-3 py-3.5">
-                    {status === 'Hold' ? <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold border uppercase tracking-wider bg-red-600/10 text-red-600 border-red-600/20"><i className="fa-solid fa-triangle-exclamation mr-1" />Hold</span> : <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${STATUS_STYLES[status] ?? STATUS_STYLES.Pending}`}>{status}</span>}
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${STATUS_STYLES[status] ?? STATUS_STYLES.Pending}`}>{status}</span>
                 </td>
                 <td className="px-3 py-3.5">
                     <div className="flex items-center justify-center gap-1.5">
@@ -111,7 +127,7 @@ function StudentRow({ student, csrfToken }) {
                         >
                             <i className="fa-solid fa-eye" />View
                         </button>
-                        {student.signUrl && status !== 'Hold' && status !== 'Approved' && (
+                        {student.signUrl && !student.needsAttention && status !== 'Cleared' && (
                             <form action={student.signUrl} method="POST">
                                 <input type="hidden" name="_token" value={csrfToken} />
                                 <button type="submit" title="Sign and approve clearance" className="inline-flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold rounded bg-brandNavy hover:bg-brandGreen text-white">

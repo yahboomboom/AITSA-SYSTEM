@@ -430,31 +430,40 @@ Route::middleware('auth')->group(function () {
         // registrar.documents.search (see below) so the dashboard payload
         // doesn't grow with every document ever submitted — only the count
         // is needed up front, for the "N pending" badge.
-        $documentsPendingCount = DocumentSubmission::where('status', 'pending')->count();
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount'));
+        $latestDocuments = DocumentSubmission::orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
+        $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
+        $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount', 'documentsRejectedCount'));
     })->name('registrar.dashboard');
 
     Route::get('/registrar/documents/search', function (Request $request) {
         $q = trim((string) $request->query('q', ''));
-        if ($q === '') {
+        $status = $request->query('status');
+        $statusFilter = in_array($status, ['pending', 'rejected'], true) ? $status : null;
+
+        if ($q === '' && ! $statusFilter) {
             return response()->json(['documents' => []]);
         }
 
         $viewAll = $request->boolean('all');
 
         $documents = DocumentSubmission::with('user')
-            ->when(! $viewAll, fn ($query) => $query->whereIn('status', ['pending', 'rejected']))
-            ->where(function ($query) use ($q) {
+            ->when($q !== '', fn ($query) => $query->where(function ($query) use ($q) {
                 $query->where('original_name', 'like', "%{$q}%")
                     ->orWhereHas('user', fn ($userQuery) => $userQuery
                         ->where('name', 'like', "%{$q}%")
                         ->orWhere('login_id', 'like', "%{$q}%"));
-            })
+            }))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->limit(100)
             ->get()
             ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type)
+            ->when($statusFilter, fn ($documents) => $documents->where('status', $statusFilter))
+            ->when(! $statusFilter && ! $viewAll, fn ($documents) => $documents->whereIn('status', ['pending', 'rejected']))
             ->values();
 
         return response()->json([
@@ -1207,19 +1216,26 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/registrar/students/search', function (Request $request) {
         $q = trim((string) $request->query('q', ''));
-        if ($q === '') {
+        $status = $request->query('status');
+        $statusFilter = in_array($status, ['hold', 'cleared'], true) ? $status : null;
+        $wantsAll = $status === 'all';
+
+        if ($q === '' && $statusFilter === null && ! $wantsAll) {
             return response()->json(['rows' => []]);
         }
 
         $students = User::where('role', 'student')
-            ->where(function ($query) use ($q) {
+            ->when($q !== '', fn ($query) => $query->where(function ($query) use ($q) {
                 $query->where('name', 'like', "%{$q}%")
                     ->orWhere('email', 'like', "%{$q}%")
                     ->orWhere('login_id', 'like', "%{$q}%")
                     ->orWhere('major', 'like', "%{$q}%");
-            })
+            }))
+            // A status filter needs each student's computed admin status before it
+            // can be applied (see below), so it can't be scoped with a LIMIT here
+            // the way a plain name search can — it's capped after filtering instead.
+            ->when($statusFilter === null, fn ($query) => $query->limit(50))
             ->orderBy('name')
-            ->limit(50)
             ->get();
 
         $studentIds = $students->pluck('id');
@@ -1240,8 +1256,22 @@ Route::middleware('auth')->group(function () {
             ->distinct()
             ->pluck('user_id');
 
-        return response()->json([
-            'rows' => $students->map(fn ($s) => [
+        $rows = $students->map(function ($s) use ($documents, $clearances, $failedStudentIds) {
+            // A document still awaiting review is just as much "needs the
+            // registrar's attention" as a rejected one — both put the
+            // account on hold, not just the rejected case. The badge shown
+            // to the registrar only ever reads "Pending" or "Cleared" — the
+            // on-hold/plain-pending distinction is kept as `needsAttention`
+            // (for gating the Sign button) and as the `status=hold` filter,
+            // without cluttering the visible status with a third label.
+            $clearance = $clearances->get($s->id);
+            $hasPendingAccount = $clearance && $clearance->registrar_status !== 'Approved';
+            $hasPendingDocument = $documents->get($s->id, collect())
+                ->contains(fn ($document) => in_array($document->status, ['pending', 'rejected'], true));
+            $needsAttention = $hasPendingAccount || $hasPendingDocument;
+            $isCleared = ! $needsAttention && ($clearance->registrar_status ?? 'Pending') === 'Approved';
+
+            return [
                 'id' => $s->id,
                 'name' => $s->name,
                 'email' => $s->email,
@@ -1249,10 +1279,9 @@ Route::middleware('auth')->group(function () {
                 'major' => $s->major,
                 'yearLevel' => $s->year_level,
                 'isIrregular' => $failedStudentIds->contains($s->id),
-                'adminStatus' => ($documents->get($s->id, collect())->contains(fn ($document) => $document->status === 'rejected'))
-                    ? 'Hold'
-                    : ($clearances->get($s->id)->registrar_status ?? 'Pending'),
-                'signUrl' => $clearances->get($s->id) ? route('registrar.sign', $clearances->get($s->id)->id) : null,
+                'adminStatus' => $isCleared ? 'Cleared' : 'Pending',
+                'needsAttention' => $needsAttention,
+                'signUrl' => $clearance ? route('registrar.sign', $clearance->id) : null,
                 'documents' => $documents->get($s->id, collect())->map(fn ($document) => [
                     'id' => $document->id,
                     'typeLabel' => $document->typeLabel(),
@@ -1262,8 +1291,16 @@ Route::middleware('auth')->group(function () {
                     'documentUrl' => route('documents.show', $document),
                     'createdAtFormatted' => $document->created_at->format('M d, Y g:i A'),
                 ])->values(),
-            ])->values(),
-        ]);
+            ];
+        });
+
+        if ($statusFilter === 'hold') {
+            $rows = $rows->filter(fn ($row) => $row['needsAttention'])->values();
+        } elseif ($statusFilter === 'cleared') {
+            $rows = $rows->filter(fn ($row) => $row['adminStatus'] === 'Cleared')->values();
+        }
+
+        return response()->json(['rows' => $rows->take(100)->values()]);
     })->name('registrar.students.search');
 
     Route::get('/registrar/reports', function () {

@@ -195,11 +195,19 @@ class AuthController extends Controller
             );
         }
 
+        // `major` must be the Program's `code` (e.g. "BSOA"), not the display
+        // name from the form — User::program() resolves a student's program
+        // by looking up that code, and the enrollment block/section lookup
+        // (and therefore the whole Enrollment page) silently comes up empty
+        // for anyone whose major doesn't match a real program code.
+        $programCode = collect(config('curricula'))->firstWhere('id', $request->input('program_key'))['program_code']
+            ?? $request->input('program_name');
+
         $applicant = User::create([
             'name'              => $request->input('name'),
             'email'             => $request->input('email'),
             'login_id'          => 'APPL-' . strtoupper(Str::random(8)),
-            'major'             => $request->input('program_name'),
+            'major'             => $programCode,
             'program_key'       => $request->input('program_key'),
             'role'              => 'applicant',
             'password'          => Hash::make(Str::random(32)),
@@ -468,8 +476,10 @@ class AuthController extends Controller
 
         $enrollment = Enrollment::with('sections.subject')
             ->where('user_id', $user->id)
-            ->where('status', 'enrolled')
-            ->latest()
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->whereIn('status', ['pending', 'enrolled'])
+            ->latest('id')
             ->first();
 
         $subjects = $enrollment

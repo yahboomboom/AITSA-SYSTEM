@@ -93,6 +93,18 @@ class RegistrarDocumentReviewTest extends TestCase
         $this->actingAs($student)->getJson('/registrar/documents/search?q=a')->assertForbidden();
     }
 
+    public function test_pending_status_filter_works_without_a_text_query(): void
+    {
+        $pending = DocumentSubmission::factory()->create(['status' => 'pending']);
+        $rejected = DocumentSubmission::factory()->create(['status' => 'rejected']);
+
+        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?status=pending');
+
+        $response->assertOk();
+        $response->assertJsonFragment(['id' => $pending->id]);
+        $response->assertJsonMissing(['id' => $rejected->id]);
+    }
+
     public function test_registrar_can_accept(): void
     {
         $sub = DocumentSubmission::factory()->create();

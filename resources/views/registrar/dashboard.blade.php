@@ -96,6 +96,7 @@
                         ])->values(),
                         'documentsSearchUrl' => route('registrar.documents.search'),
                         'documentsPendingCount' => $documentsPendingCount,
+                        'documentsRejectedCount' => $documentsRejectedCount,
                     ];
                 @endphp
 
