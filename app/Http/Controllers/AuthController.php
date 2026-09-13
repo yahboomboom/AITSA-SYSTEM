@@ -361,14 +361,13 @@ class AuthController extends Controller
         return redirect('/');
     }
 
-        // 6.5 Render the Cashier Administrative Dashboard with SQLite compatibility
+    // 6.5 Render the Cashier Administrative Dashboard with SQLite compatibility
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
         $clearances = Clearance::with('user.discountType')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
-            ->where('cashier_status', '!=', 'Approved')
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
             ->get();
 
