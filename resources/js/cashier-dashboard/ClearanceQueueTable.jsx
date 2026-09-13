@@ -60,29 +60,19 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                                     <td className="p-4 font-mono text-brandNavy/40 dark:text-slate-500">
                                         {row.referenceNo ?? '—'}
                                     </td>
-                                    <td className={`p-4 font-bold ${row.isApproved ? 'text-brandGreen' : 'text-brandGold'}`}>
+                                    <td className="p-4 font-bold text-brandGold">
                                         {peso(row.balance)}
                                     </td>
                                     <td className="p-4">
-                                        {row.isApproved ? (
-                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGreen/10 text-brandGreen border border-brandGreen/20 rounded">Approved</span>
-                                        ) : (
-                                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
-                                        )}
+                                        <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
                                     </td>
                                     <td className="p-4 text-right">
-                                        {row.isApproved ? (
-                                            <button disabled className="px-3 py-1.5 bg-lightBg dark:bg-slate-800 text-brandNavy/30 dark:text-slate-600 rounded text-[11px] font-medium border border-brandNavy/8 dark:border-slate-700 cursor-not-allowed">
-                                                <i className="fa-solid fa-check mr-1" />Settled
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => onReview(row)}
-                                                className="px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]"
-                                            >
-                                                Review
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => onReview(row)}
+                                            className="px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]"
+                                        >
+                                            Review
+                                        </button>
                                     </td>
                                 </tr>
                             ))
