@@ -5,13 +5,16 @@ export default function ClearanceQueueTable({ rows, onReview }) {
     const [searchTerm, setSearchTerm] = useState('');
 
     const term = searchTerm.trim().toLowerCase();
+    // Approved clearances are done — they'd just clutter the queue of
+    // students still needing review. Searching can still surface them
+    // (e.g. to double-check a settled account), just not by default.
     const filtered = term
         ? rows.filter((row) => (
             row.studentName.toLowerCase().includes(term) ||
             row.studentEmail.toLowerCase().includes(term) ||
             (row.referenceNo ?? '').toLowerCase().includes(term)
         ))
-        : rows;
+        : rows.filter((row) => !row.isApproved);
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-lg overflow-hidden">
@@ -44,10 +47,10 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-                        {rows.length === 0 ? (
+                        {filtered.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="p-8 text-center text-brandNavy/40 dark:text-slate-500 text-sm">
-                                    No students pending clearance.
+                                    {term ? 'No matching students.' : 'No students pending clearance.'}
                                 </td>
                             </tr>
                         ) : (

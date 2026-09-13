@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const STATUS_STYLES = {
     pending: 'bg-brandGold/10 text-brandGold border-brandGold/20',
@@ -70,6 +70,23 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
         setStatusFilter((current) => current === status ? null : status);
         setViewAll(false);
     };
+
+    // A status filter (e.g. "4 rejected") spans every student, so the flat
+    // list repeats each student's name/ID once per document and turns into
+    // an unscannable wall of rows. Grouping by student and showing the
+    // name/ID only once per group (ordered by that student's most recent
+    // document, since `documents` arrives newest-first) keeps the same
+    // table but cuts that repetition down.
+    const groups = useMemo(() => {
+        const byStudent = new Map();
+        for (const doc of documents) {
+            if (!byStudent.has(doc.studentId)) {
+                byStudent.set(doc.studentId, { studentId: doc.studentId, studentName: doc.studentName, docs: [] });
+            }
+            byStudent.get(doc.studentId).docs.push(doc);
+        }
+        return Array.from(byStudent.values());
+    }, [documents]);
 
     return (
         <div id="student-submitted-documents" className="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
@@ -149,12 +166,17 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
                                 </td>
                             </tr>
                         ) : (
-                            documents.map((doc) => (
-                                <tr key={doc.id} className="hover:bg-lightBg dark:hover:bg-slate-800/20 transition-colors align-top">
-                                    <td className="py-5 px-6">
-                                        <span className="font-bold text-brandNavy dark:text-white block">{doc.studentName}</span>
-                                        <span className="font-mono text-brandNavy/60 dark:text-slate-400">{doc.studentId}</span>
-                                    </td>
+                            groups.map((group) => group.docs.map((doc, index) => (
+                                <tr
+                                    key={doc.id}
+                                    className={`hover:bg-lightBg dark:hover:bg-slate-800/20 transition-colors align-top ${index === 0 && group !== groups[0] ? 'border-t-2 border-t-brandNavy/10 dark:border-t-slate-700' : ''}`}
+                                >
+                                    {index === 0 && (
+                                        <td className="py-5 px-6" rowSpan={group.docs.length}>
+                                            <span className="font-bold text-brandNavy dark:text-white block">{group.studentName}</span>
+                                            <span className="font-mono text-brandNavy/60 dark:text-slate-400">{group.studentId}</span>
+                                        </td>
+                                    )}
                                     <td className="py-5 px-6">
                                         <span className="font-semibold text-brandNavy dark:text-slate-200 block">{doc.typeLabel}</span>
                                         <a href={doc.documentUrl} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline font-mono text-[11px]">
@@ -215,7 +237,7 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
                                         )}
                                     </td>
                                 </tr>
-                            ))
+                            )))
                         )}
                     </tbody>
                 </table>
