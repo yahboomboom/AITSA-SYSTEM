@@ -31,10 +31,10 @@ export default function ReportTable({ rows, csrfToken }) {
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q) return [];
+        if (!q && status === 'all') return [];
 
         return rows.filter((r) => {
-            const matchesStudent = `${r.studentName} ${r.studentNo} ${r.studentEmail}`.toLowerCase().includes(q);
+            const matchesStudent = !q || `${r.studentName} ${r.studentNo} ${r.studentEmail}`.toLowerCase().includes(q);
             const matchesStatus = status === 'all' || (status === 'signed') === r.registrarSigned;
             return matchesStudent && matchesStatus;
         });

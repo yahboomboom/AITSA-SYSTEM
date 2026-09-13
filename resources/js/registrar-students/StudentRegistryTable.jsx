@@ -7,7 +7,7 @@ const STATUS_STYLES = {
 
 export default function StudentRegistryTable({ searchUrl, csrfToken }) {
     const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('');
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const query = search.trim();
@@ -64,7 +64,8 @@ export default function StudentRegistryTable({ searchUrl, csrfToken }) {
                         onChange={(event) => setStatusFilter(event.target.value)}
                         className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
                     >
-                        <option value="all">All statuses</option>
+                        <option value="">Status</option>
+                        <option value="all">View all students</option>
                         <option value="hold">On Hold</option>
                         <option value="cleared">Cleared</option>
                     </select>

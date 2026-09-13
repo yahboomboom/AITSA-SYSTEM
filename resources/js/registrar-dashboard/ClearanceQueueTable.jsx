@@ -2,24 +2,49 @@ import { useMemo, useState } from 'react';
 
 export default function ClearanceQueueTable({ rows, csrfToken }) {
     const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
     const query = search.trim().toLowerCase();
-    const filteredRows = useMemo(() => query
-        ? rows.filter((row) => `${row.studentName} ${row.studentId}`.toLowerCase().includes(query))
-        : [], [rows, query]);
+    const filteredRows = useMemo(() => {
+        if (!query && !statusFilter) return [];
+
+        return rows.filter((row) => {
+            const matchesQuery = !query || `${row.studentName} ${row.studentId}`.toLowerCase().includes(query);
+            const matchesStatus = !statusFilter
+                || statusFilter === 'all'
+                || (statusFilter === 'cleared' && row.isApproved)
+                || (statusFilter === 'provisional' && row.isProvisional)
+                || (statusFilter === 'pending' && !row.isApproved && !row.isProvisional);
+
+            return matchesQuery && matchesStatus;
+        });
+    }, [rows, query, statusFilter]);
 
     return (
         <div className="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-sm font-bold text-brandNavy dark:text-white tracking-wide">Admission & Clearance Processing Queue</h3>
-                <div className="relative w-full sm:w-72">
-                    <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search student name or ID..."
-                        className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen dark:focus:border-emerald-500/50 transition-colors"
-                    />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-72">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search student name or ID..."
+                            className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen dark:focus:border-emerald-500/50 transition-colors"
+                        />
+                    </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
+                    >
+                        <option value="">Status</option>
+                        <option value="all">View all students</option>
+                        <option value="pending">Pending review</option>
+                        <option value="provisional">Provisional</option>
+                        <option value="cleared">Cleared</option>
+                    </select>
                 </div>
             </div>
 
@@ -40,7 +65,7 @@ export default function ClearanceQueueTable({ rows, csrfToken }) {
                                 <td colSpan={5} className="py-12 text-center text-brandNavy/40 dark:text-slate-500 font-medium">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <i className="fa-solid fa-box-open text-2xl text-brandNavy/20 dark:text-slate-600" />
-                                        <span>{query ? 'No matching students.' : 'Search to view admission and clearance records.'}</span>
+                                        <span>{query || statusFilter ? 'No matching students.' : 'Search or choose a status to view admission and clearance records.'}</span>
                                     </div>
                                 </td>
                             </tr>
