@@ -15,36 +15,36 @@
 
         if ($cl) {
             if ($cl->chair_status === 'Approved') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-check',  'color' => '#1D7A46', 'title' => 'Dept. Chair Approved',      'desc' => 'Your clearance has been signed by the Department Chair.',          'time' => 'Clearance update'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-check',  'color' => '#1D7A46', 'title' => 'Dept. Chair Approved',      'desc' => 'Your clearance has been signed by the Department Chair.',          'time' => $cl->chair_signed_at?->diffForHumans() ?? 'Clearance update'];
             } elseif ($cl->chair_status === 'Hold') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Chair Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Department Chair for details.', 'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Chair Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Department Chair for details.', 'time' => $cl->updated_at->diffForHumans()];
             } else {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Awaiting Chair Signature',   'desc' => 'Your clearance is pending the Department Chair\'s sign-off.',     'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Awaiting Chair Signature',   'desc' => 'Your clearance is pending the Department Chair\'s sign-off.',     'time' => $cl->created_at->diffForHumans()];
             }
 
             if ($cl->registrar_status === 'Approved') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-signature', 'color' => '#0B3C5D', 'title' => 'Registrar Cleared',          'desc' => 'The Registrar has verified and signed your clearance slip.',       'time' => 'Clearance update'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-signature', 'color' => '#0B3C5D', 'title' => 'Registrar Cleared',          'desc' => 'The Registrar has verified and signed your clearance slip.',       'time' => $cl->registrar_signed_at?->diffForHumans() ?? 'Clearance update'];
             } elseif ($cl->registrar_status === 'Hold') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Registrar Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Registrar for details.', 'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Registrar Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Registrar for details.', 'time' => $cl->updated_at->diffForHumans()];
             } else {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Registrar Pending',           'desc' => 'Waiting for the Registrar to process your clearance.',             'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half','color' => '#E2A700', 'title' => 'Registrar Pending',           'desc' => 'Waiting for the Registrar to process your clearance.',             'time' => $cl->created_at->diffForHumans()];
             }
 
             if ($cl->cashier_status === 'Approved') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-wallet',         'color' => '#F97316', 'title' => 'Payment Verified',            'desc' => 'Your payment has been received and verified by the Cashier.',      'time' => 'Finance update'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-wallet',         'color' => '#F97316', 'title' => 'Payment Verified',            'desc' => 'Your payment has been received and verified by the Cashier.',      'time' => $cl->cashier_signed_at?->diffForHumans() ?? 'Finance update'];
             } elseif ($cl->cashier_status === 'Hold') {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Cashier Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Cashier for details.', 'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => 'Cashier Clearance On Hold', 'desc' => $cl->remarks ?? 'Contact the Cashier for details.', 'time' => $cl->updated_at->diffForHumans()];
             } else {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-credit-card',    'color' => '#F97316', 'title' => 'Payment Required',            'desc' => 'Please settle your balance to proceed with clearance.',            'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-credit-card',    'color' => '#F97316', 'title' => 'Payment Required',            'desc' => 'Please settle your balance to proceed with clearance.',            'time' => $cl->created_at->diffForHumans()];
             }
 
             $cl->loadMissing('items.department');
             foreach ($cl->items->where('status', 'Hold') as $heldItem) {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => $heldItem->department->name . ' Clearance On Hold', 'desc' => $heldItem->remarks ?? 'Contact the office for details.', 'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-triangle-exclamation', 'color' => '#DC2626', 'title' => $heldItem->department->name . ' Clearance On Hold', 'desc' => $heldItem->remarks ?? 'Contact the office for details.', 'time' => $heldItem->updated_at->diffForHumans()];
             }
             $pendingDepartmentItems = $cl->items->where('status', 'Pending');
             if ($pendingDepartmentItems->isNotEmpty()) {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Department Clearance Pending', 'desc' => $pendingDepartmentItems->pluck('department.name')->implode(', ') . ' clearance still pending.', 'time' => 'Action needed'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Department Clearance Pending', 'desc' => $pendingDepartmentItems->pluck('department.name')->implode(', ') . ' clearance still pending.', 'time' => $pendingDepartmentItems->max('updated_at')->diffForHumans()];
             }
 
             $allCleared = $cl->chair_status === 'Approved'
@@ -53,46 +53,46 @@
                        && $cl->allItemsApproved();
 
             if ($allCleared) {
-                $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Enrollment Unlocked!',        'desc' => 'All clearances approved. You may now enroll for A.Y. 2025–2026.', 'time' => 'System'];
+                $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Enrollment Unlocked!',        'desc' => 'All clearances approved. You may now enroll for A.Y. 2025–2026.', 'time' => collect([$cl->chair_signed_at, $cl->registrar_signed_at, $cl->cashier_signed_at])->filter()->max()?->diffForHumans() ?? 'System'];
             }
 
             $latestEnrollment = \App\Models\Enrollment::where('user_id', $authId)->latest()->first();
             if ($latestEnrollment) {
                 if ($latestEnrollment->status === 'pending') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Enrollment Under Review', 'desc' => 'Your subject picks are with the Department Chair for approval.', 'time' => 'Enrollment update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Enrollment Under Review', 'desc' => 'Your subject picks are with the Department Chair for approval.', 'time' => $latestEnrollment->updated_at->diffForHumans()];
                 } elseif ($latestEnrollment->status === 'enrolled') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Officially Enrolled', 'desc' => 'Your enrollment is confirmed. View your schedule and COR anytime.', 'time' => 'Enrollment update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-graduation-cap', 'color' => '#1D7A46', 'title' => 'Officially Enrolled', 'desc' => 'Your enrollment is confirmed. View your schedule and COR anytime.', 'time' => $latestEnrollment->updated_at->diffForHumans()];
                 } elseif ($latestEnrollment->status === 'rejected') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Enrollment Returned', 'desc' => 'The Chair returned your enrollment: ' . \Illuminate\Support\Str::limit($latestEnrollment->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Enrollment Returned', 'desc' => 'The Chair returned your enrollment: ' . \Illuminate\Support\Str::limit($latestEnrollment->remarks ?? 'See remarks.', 80), 'time' => $latestEnrollment->updated_at->diffForHumans()];
                 }
             }
 
             $latestMatriculationChange = \App\Models\MatriculationChange::where('user_id', $authId)->latest('id')->first();
             if ($latestMatriculationChange) {
                 if ($latestMatriculationChange->status === 'pending') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#E2A700', 'title' => 'Change Request Under Review', 'desc' => 'Your change of matriculation is with the Department Chair for approval.', 'time' => 'Matriculation update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#E2A700', 'title' => 'Change Request Under Review', 'desc' => 'Your change of matriculation is with the Department Chair for approval.', 'time' => $latestMatriculationChange->updated_at->diffForHumans()];
                 } elseif ($latestMatriculationChange->status === 'approved') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#1D7A46', 'title' => 'Change of Matriculation Approved', 'desc' => 'Your schedule has been updated. View your COR anytime.', 'time' => 'Matriculation update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-arrows-rotate', 'color' => '#1D7A46', 'title' => 'Change of Matriculation Approved', 'desc' => 'Your schedule has been updated. View your COR anytime.', 'time' => $latestMatriculationChange->updated_at->diffForHumans()];
                 } elseif ($latestMatriculationChange->status === 'rejected') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Change Request Returned', 'desc' => 'The Chair returned your change request: ' . \Illuminate\Support\Str::limit($latestMatriculationChange->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-circle-xmark', 'color' => '#DC2626', 'title' => 'Change Request Returned', 'desc' => 'The Chair returned your change request: ' . \Illuminate\Support\Str::limit($latestMatriculationChange->remarks ?? 'See remarks.', 80), 'time' => $latestMatriculationChange->updated_at->diffForHumans()];
                 }
             }
             $latestDocument = \App\Models\DocumentSubmission::where('user_id', $authId)->latest()->first();
             if ($latestDocument) {
                 if ($latestDocument->status === 'pending') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-folder-open', 'color' => '#E2A700', 'title' => 'Document Under Review', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' is with the Registrar for review.', 'time' => 'Document update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-folder-open', 'color' => '#E2A700', 'title' => 'Document Under Review', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' is with the Registrar for review.', 'time' => $latestDocument->created_at->diffForHumans()];
                 } elseif ($latestDocument->status === 'accepted') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-check', 'color' => '#1D7A46', 'title' => 'Document Accepted', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was accepted by the Registrar.', 'time' => 'Document update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-check', 'color' => '#1D7A46', 'title' => 'Document Accepted', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was accepted by the Registrar.', 'time' => ($latestDocument->reviewed_at ?? $latestDocument->created_at)->diffForHumans()];
                 } elseif ($latestDocument->status === 'rejected') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-xmark', 'color' => '#DC2626', 'title' => 'Document Rejected', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was rejected: ' . \Illuminate\Support\Str::limit($latestDocument->remarks ?? 'See remarks.', 80), 'time' => 'Action needed'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-file-circle-xmark', 'color' => '#DC2626', 'title' => 'Document Rejected', 'desc' => 'Your ' . $latestDocument->typeLabel() . ' was rejected: ' . \Illuminate\Support\Str::limit($latestDocument->remarks ?? 'See remarks.', 80), 'time' => ($latestDocument->reviewed_at ?? $latestDocument->created_at)->diffForHumans()];
                 }
             }
             $latestPayment = \App\Models\TransactionLedger::where('user_id', $authId)->where('gateway', 'paymongo')->latest()->first();
             if ($latestPayment) {
                 if ($latestPayment->status === 'Settled') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-money-check-dollar', 'color' => '#1D7A46', 'title' => 'Payment Received', 'desc' => '₱' . number_format((float) $latestPayment->amount, 2) . ' settled via PayMongo. Ref ' . $latestPayment->reference_no . '.', 'time' => 'Finance update'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-money-check-dollar', 'color' => '#1D7A46', 'title' => 'Payment Received', 'desc' => '₱' . number_format((float) $latestPayment->amount, 2) . ' settled via PayMongo. Ref ' . $latestPayment->reference_no . '.', 'time' => ($latestPayment->paid_at ?? $latestPayment->created_at)->diffForHumans()];
                 } elseif ($latestPayment->status === 'Pending') {
-                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Payment Awaiting Verification', 'desc' => 'Use Verify Payment on your Ledger page to confirm your online payment.', 'time' => 'Action needed'];
+                    $notifs[] = ['id' => $nid++, 'icon' => 'fa-hourglass-half', 'color' => '#E2A700', 'title' => 'Payment Awaiting Verification', 'desc' => 'Use Verify Payment on your Ledger page to confirm your online payment.', 'time' => $latestPayment->created_at->diffForHumans()];
                 }
             }
         } else {
