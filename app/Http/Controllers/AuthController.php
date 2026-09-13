@@ -353,13 +353,14 @@ class AuthController extends Controller
         return redirect('/');
     }
 
-    // 6.5 Render the Cashier Administrative Dashboard with SQLite compatibility
+        // 6.5 Render the Cashier Administrative Dashboard with SQLite compatibility
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
         $clearances = Clearance::with('user.discountType')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('cashier_status', '!=', 'Approved')
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
             ->get();
 
@@ -417,12 +418,15 @@ class AuthController extends Controller
         $context = [
             'rows' => $transactions->map(fn ($t) => [
                 'id' => $t->id,
+                'userId' => $t->user_id,
                 'studentName' => $t->user->name ?? 'Unknown Student',
+                'studentNo' => $t->user->login_id ?? 'N/A',
                 'referenceNo' => $t->reference_no ?? 'N/A',
                 'amount' => (float) ($t->amount ?? 3500),
                 'status' => $t->status ?? 'Success',
                 'processorName' => $t->processor->name ?? 'System Override',
                 'timestamp' => $t->created_at ? $t->created_at->format('Y-m-d H:i') : now()->format('Y-m-d H:i'),
+                'createdAt' => $t->created_at ? $t->created_at->toIso8601String() : now()->toIso8601String(),
             ])->values(),
         ];
 
@@ -437,18 +441,37 @@ class AuthController extends Controller
         $accounts = Clearance::with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('cashier_status', '!=', 'Approved')
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Only the most recent settled payment per student is relevant here —
+        // older ledger entries for the same student are just noise on this screen.
+        $latestSettledByUser = TransactionLedger::where('status', 'Settled')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($group) => $group->first());
+
         $context = [
-            'rows' => $accounts->map(fn ($a) => [
-                'id' => $a->id,
-                'profileId' => '#' . sprintf('%04d', $a->id),
-                'studentName' => $a->user->name ?? 'Unknown Student',
-                'studentEmail' => $a->user->email ?? 'N/A',
-                'referenceNo' => 'TXN-' . (10000 + ($a->user_id ?? 0)) . '-WIT',
-                'cashierStatus' => $a->cashier_status,
-            ])->values(),
+            'rows' => $accounts->map(function ($a) use ($latestSettledByUser) {
+                $latestSettled = $latestSettledByUser->get($a->user_id);
+
+                return [
+                    'id' => $a->id,
+                    'profileId' => '#' . sprintf('%04d', $a->id),
+                    'studentName' => $a->user->name ?? 'Unknown Student',
+                    'studentEmail' => $a->user->email ?? 'N/A',
+                    'studentNo' => $a->user->login_id ?? 'N/A',
+                    'referenceNo' => $latestSettled->reference_no ?? null,
+                    'lastPaymentAmount' => $latestSettled ? (float) $latestSettled->amount : null,
+                    'lastPaymentDate' => $latestSettled && $latestSettled->created_at
+                        ? $latestSettled->created_at->format('Y-m-d')
+                        : null,
+                    'cashierStatus' => $a->cashier_status,
+                ];
+            })->values(),
             'reviewUrl' => route('cashier.dashboard'),
         ];
 
