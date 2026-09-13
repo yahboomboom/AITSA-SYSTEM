@@ -30,11 +30,13 @@ export default function ReportTable({ rows, csrfToken }) {
     const [status, setStatus] = useState('all');
 
     const filtered = useMemo(() => {
-        const q = search.toLowerCase();
+        const q = search.trim().toLowerCase();
+        if (!q && status === 'all') return [];
+
         return rows.filter((r) => {
-            const matchesName = r.studentName.toLowerCase().includes(q);
+            const matchesStudent = !q || `${r.studentName} ${r.studentNo} ${r.studentEmail}`.toLowerCase().includes(q);
             const matchesStatus = status === 'all' || (status === 'signed') === r.registrarSigned;
-            return matchesName && matchesStatus;
+            return matchesStudent && matchesStatus;
         });
     }, [rows, search, status]);
 
@@ -47,7 +49,7 @@ export default function ReportTable({ rows, csrfToken }) {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search student name..."
+                        placeholder="Search student name or ID..."
                         className="w-full pl-9 pr-4 py-2 text-xs rounded border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-500 outline-none focus:border-brandGreen/40 transition-colors"
                     />
                 </div>
@@ -98,7 +100,7 @@ export default function ReportTable({ rows, csrfToken }) {
                             {filtered.length === 0 && (
                                 <tr>
                                     <td colSpan={9} className="py-10 text-center text-sm text-brandNavy/40 dark:text-slate-500">
-                                        {rows.length === 0 ? 'No student records found.' : 'No matching records.'}
+                                        {!search.trim() ? 'Search to view clearance records.' : 'No matching records.'}
                                     </td>
                                 </tr>
                             )}

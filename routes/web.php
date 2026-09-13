@@ -17,6 +17,8 @@ use App\Models\StudentGrade;
 use App\Models\TransactionLedger;
 use App\Models\User;
 use App\Notifications\ClearanceStatusUpdatedNotification;
+use App\Notifications\DocumentRejectedNotification;
+use App\Notifications\DocumentStatusReminderNotification;
 use App\Services\FeeAssessmentService;
 use App\Services\MatriculationChangeService;
 use App\Services\PaymentService;
@@ -56,16 +58,30 @@ Route::post('/apply', [AuthController::class, 'processApplication'])->name('appl
 // with or reused for a different applicant.
 Route::middleware('signed')->group(function () {
         Route::get('/apply/reservation/{user}/return', function (User $user, PaymentService $payments) {
-        abort_unless($user->role === 'applicant', 404);
+        // PayMongo's webhook (server-to-server) can settle this payment and
+        // auto-activate the applicant into a student account before the
+        // applicant's own browser finishes redirecting back here — the role
+        // may already be 'student' by the time this request arrives. Only
+        // 404 when there's no evidence a reservation was ever paid for this
+        // user at all.
+        $settledReservation = TransactionLedger::where('user_id', $user->id)
+            ->where('fee_type', 'reservation')
+            ->where('status', 'Settled')
+            ->latest('paid_at')
+            ->first();
 
-        try {
-            $result = $payments->verifyLatestPending($user);
-        } catch (PaymentGatewayException $e) {
-            return redirect()->route('apply')->with('error', $e->getMessage());
-        }
+        abort_unless($user->role === 'applicant' || $settledReservation, 404);
 
-        if (! $result['ok']) {
-            return redirect()->route('apply')->with('error', $result['message']);
+        if (! $settledReservation) {
+            try {
+                $result = $payments->verifyLatestPending($user);
+            } catch (PaymentGatewayException $e) {
+                return redirect()->route('apply')->with('error', $e->getMessage());
+            }
+
+            if (! $result['ok']) {
+                return redirect()->route('apply')->with('error', $result['message']);
+            }
         }
 
         // Payment confirmed — PaymentService already auto-created the student
@@ -73,7 +89,7 @@ Route::middleware('signed')->group(function () {
         // PaymentService::settleRow). Pull the fresh record + the settled
         // transaction so we can show a proper receipt / statement of account.
         $user->refresh();
-        $txn = TransactionLedger::where('user_id', $user->id)
+        $txn = $settledReservation ?? TransactionLedger::where('user_id', $user->id)
             ->where('fee_type', 'reservation')
             ->where('status', 'Settled')
             ->latest('paid_at')
@@ -87,6 +103,7 @@ Route::middleware('signed')->group(function () {
             'program_name'    => $user->major,
             'login_id'        => $user->login_id,
             'email'           => $user->email,
+            'email_sent'      => (bool) $user->credentials_email_sent_at,
         ]);
     })->name('apply.reservation.return');
 
@@ -193,7 +210,7 @@ Route::middleware('auth')->group(function () {
         }
 
         $request->validate([
-            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:15360'],
             'document_type' => ['required', 'in:' . implode(',', array_keys(DocumentSubmission::TYPES))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -222,7 +239,12 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('login');
         }
 
-        $submissions = DocumentSubmission::where('user_id', $user->id)->latest()->get();
+        $submissions = DocumentSubmission::where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('document_type')
+            ->values();
 
         // Transcript of Records / Honorable Dismissal are only asked of
         // students who transferred or returned from another school — a NEW
@@ -260,7 +282,7 @@ Route::middleware('auth')->group(function () {
         }
 
         $request->validate([
-            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:15360'],
             'document_type' => ['required', 'in:' . implode(',', array_keys(DocumentSubmission::TYPES))],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -404,9 +426,65 @@ Route::middleware('auth')->group(function () {
             ->get();
         $applicants = User::where('role', 'applicant')->with('agreements')->orderByDesc('created_at')->get();
 
-        $documentSubmissions = DocumentSubmission::with('user')->latest()->get();
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentSubmissions'));
+        // The submissions list itself is loaded on demand via
+        // registrar.documents.search (see below) so the dashboard payload
+        // doesn't grow with every document ever submitted — only the count
+        // is needed up front, for the "N pending" badge.
+        $latestDocuments = DocumentSubmission::orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
+        $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
+        $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount', 'documentsRejectedCount'));
     })->name('registrar.dashboard');
+
+    Route::get('/registrar/documents/search', function (Request $request) {
+        $q = trim((string) $request->query('q', ''));
+        $status = $request->query('status');
+        $statusFilter = in_array($status, ['pending', 'rejected'], true) ? $status : null;
+
+        if ($q === '' && ! $statusFilter) {
+            return response()->json(['documents' => []]);
+        }
+
+        $viewAll = $request->boolean('all');
+
+        $documents = DocumentSubmission::with('user')
+            ->when($q !== '', fn ($query) => $query->where(function ($query) use ($q) {
+                $query->where('original_name', 'like', "%{$q}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery
+                        ->where('name', 'like', "%{$q}%")
+                        ->orWhere('login_id', 'like', "%{$q}%"));
+            }))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get()
+            ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type)
+            ->when($statusFilter, fn ($documents) => $documents->where('status', $statusFilter))
+            ->when(! $statusFilter && ! $viewAll, fn ($documents) => $documents->whereIn('status', ['pending', 'rejected']))
+            ->values();
+
+        return response()->json([
+            'documents' => $documents->map(fn ($doc) => [
+                'id' => $doc->id,
+                'studentName' => $doc->user->name ?? '—',
+                'studentId' => $doc->user->login_id ?? '—',
+                'typeLabel' => $doc->typeLabel(),
+                'documentUrl' => route('documents.show', $doc),
+                'originalName' => $doc->original_name,
+                'sizeKb' => number_format($doc->size / 1024, 0),
+                'notes' => $doc->notes,
+                'status' => $doc->status,
+                'remarks' => $doc->remarks,
+                'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
+                'acceptUrl' => route('registrar.documents.accept', $doc),
+                'rejectUrl' => route('registrar.documents.reject', $doc),
+                'reminderUrl' => route('registrar.documents.remind', $doc),
+            ])->values(),
+        ]);
+    })->name('registrar.documents.search');
 
     Route::get('/registrar/applicants/{id}/agreement', [\App\Http\Controllers\AgreementController::class, 'downloadForUser'])
         ->name('registrar.applicant-agreement');
@@ -527,9 +605,22 @@ Route::middleware('auth')->group(function () {
 
         $submission->update(['status' => 'rejected', 'remarks' => $request->input('remarks'), 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
         AuditLog::record('Document Reviewed', 'Registrar rejected ' . $submission->typeLabel() . ' from ' . ($submission->user->name ?? 'ID ' . $submission->user_id) . '.', 'DocumentSubmission', $submission->id);
+        \App\Support\SafeNotify::send($submission->user, new DocumentRejectedNotification($submission, $request->input('remarks')));
+
+        if ($clearance = Clearance::currentFor($submission->user)) {
+            $clearance->update(['registrar_status' => 'Hold', 'remarks' => $request->input('remarks')]);
+        }
 
         return redirect()->route('registrar.dashboard')->with('success', 'Document rejected and returned to the student.');
     })->name('registrar.documents.reject');
+
+    Route::post('/registrar/documents/{submission}/remind', function (DocumentSubmission $submission) {
+        abort_unless(in_array($submission->status, ['pending', 'rejected'], true), 422, 'Only pending or rejected documents can receive reminders.');
+
+        \App\Support\SafeNotify::send($submission->user, new DocumentStatusReminderNotification($submission));
+
+        return redirect()->route('registrar.dashboard')->with('success', 'Reminder sent to the student.');
+    })->name('registrar.documents.remind');
     }); // end role:registrar,admission
 
 
@@ -1151,22 +1242,103 @@ Route::middleware('auth')->group(function () {
     // backfill path.
     Route::middleware('role:registrar,admission')->group(function () {
     Route::get('/registrar/students', function () {
-        $students = User::where('role', 'student')->orderBy('name')->get();
+        // Rows are loaded on demand via registrar.students.search — the
+        // registry table stays hidden until the registrar searches, so
+        // there's no reason to pull every student (and every student's
+        // documents) into the page on every visit.
+        $context = ['rows' => [], 'searchUrl' => route('registrar.students.search')];
 
-        $context = [
-            'rows' => $students->map(fn ($s) => [
+        return view('registrar.students', compact('context'));
+    })->name('registrar.students');
+
+    Route::get('/registrar/students/search', function (Request $request) {
+        $q = trim((string) $request->query('q', ''));
+        $status = $request->query('status');
+        $statusFilter = in_array($status, ['hold', 'cleared'], true) ? $status : null;
+        $wantsAll = $status === 'all';
+
+        if ($q === '' && $statusFilter === null && ! $wantsAll) {
+            return response()->json(['rows' => []]);
+        }
+
+        $students = User::where('role', 'student')
+            ->when($q !== '', fn ($query) => $query->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%")
+                    ->orWhere('login_id', 'like', "%{$q}%")
+                    ->orWhere('major', 'like', "%{$q}%");
+            }))
+            // A status filter needs each student's computed admin status before it
+            // can be applied (see below), so it can't be scoped with a LIMIT here
+            // the way a plain name search can — it's capped after filtering instead.
+            ->when($statusFilter === null, fn ($query) => $query->limit(50))
+            ->orderBy('name')
+            ->get();
+
+        $studentIds = $students->pluck('id');
+
+        $clearances = Clearance::whereIn('user_id', $studentIds)
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
+            ->get()
+            ->keyBy('user_id');
+        $documents = DocumentSubmission::whereIn('user_id', $studentIds)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($submissions) => $submissions->unique('document_type')->values());
+        $failedStudentIds = \App\Models\StudentGrade::whereIn('user_id', $studentIds)
+            ->where('status', 'Failed')
+            ->distinct()
+            ->pluck('user_id');
+
+        $rows = $students->map(function ($s) use ($documents, $clearances, $failedStudentIds) {
+            // A document still awaiting review is just as much "needs the
+            // registrar's attention" as a rejected one — both put the
+            // account on hold, not just the rejected case. The badge shown
+            // to the registrar only ever reads "Pending" or "Cleared" — the
+            // on-hold/plain-pending distinction is kept as `needsAttention`
+            // (for gating the Sign button) and as the `status=hold` filter,
+            // without cluttering the visible status with a third label.
+            $clearance = $clearances->get($s->id);
+            $hasPendingAccount = $clearance && $clearance->registrar_status !== 'Approved';
+            $hasPendingDocument = $documents->get($s->id, collect())
+                ->contains(fn ($document) => in_array($document->status, ['pending', 'rejected'], true));
+            $needsAttention = $hasPendingAccount || $hasPendingDocument;
+            $isCleared = ! $needsAttention && ($clearance->registrar_status ?? 'Pending') === 'Approved';
+
+            return [
                 'id' => $s->id,
                 'name' => $s->name,
                 'email' => $s->email,
                 'loginId' => $s->login_id,
                 'major' => $s->major,
                 'yearLevel' => $s->year_level,
-                'isIrregular' => \App\Models\StudentGrade::where('user_id', $s->id)->where('status', 'Failed')->exists(),
-            ])->values(),
-        ];
+                'isIrregular' => $failedStudentIds->contains($s->id),
+                'adminStatus' => $isCleared ? 'Cleared' : 'Pending',
+                'needsAttention' => $needsAttention,
+                'signUrl' => $clearance ? route('registrar.sign', $clearance->id) : null,
+                'documents' => $documents->get($s->id, collect())->map(fn ($document) => [
+                    'id' => $document->id,
+                    'typeLabel' => $document->typeLabel(),
+                    'originalName' => $document->original_name,
+                    'status' => $document->status,
+                    'remarks' => $document->remarks,
+                    'documentUrl' => route('documents.show', $document),
+                    'createdAtFormatted' => $document->created_at->format('M d, Y g:i A'),
+                ])->values(),
+            ];
+        });
 
-        return view('registrar.students', compact('context'));
-    })->name('registrar.students');
+        if ($statusFilter === 'hold') {
+            $rows = $rows->filter(fn ($row) => $row['needsAttention'])->values();
+        } elseif ($statusFilter === 'cleared') {
+            $rows = $rows->filter(fn ($row) => $row['adminStatus'] === 'Cleared')->values();
+        }
+
+        return response()->json(['rows' => $rows->take(100)->values()]);
+    })->name('registrar.students.search');
 
     Route::get('/registrar/reports', function () {
         $clearances        = Clearance::has('user')->with('user')

@@ -413,14 +413,14 @@ selectProgram('{{ old('program_key') }}', '{{ old('program_level') }}', '{{ old(
     <div class="receipt-modal-enter bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
 
         {{-- Success header --}}
-        <div class="bg-gradient-to-r from-brandGreen to-emerald-500 px-6 pt-7 pb-9 text-center relative">
-            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto text-3xl text-brandGreen shadow-lg">
+        <div class="bg-gradient-to-r from-brandGreen to-emerald-500 px-6 pt-4 pb-5 text-center relative">
+            <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center mx-auto text-xl text-brandGreen shadow-lg">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
         </div>
 
-        <div class="px-6 pb-6 -mt-5">
-            <div class="bg-white rounded-xl pt-2 text-center mb-5">
+        <div class="px-6 pb-6 -mt-1">
+            <div class="bg-white rounded-xl pt-3 text-center mb-5">
                 <h3 class="text-lg font-extrabold text-brandNavy mb-1">Application Successfully Submitted!</h3>
                 <p class="text-xs text-brandNavy/60">Your reservation fee payment was successful and your slot is now reserved.</p>
             </div>
@@ -444,13 +444,25 @@ selectProgram('{{ old('program_key') }}', '{{ old('program_level') }}', '{{ old(
                 </dl>
             </div>
 
+            @if($receipt['email_sent'] ?? true)
             <div class="bg-brandGold/10 border border-brandGold/20 rounded-xl p-3 mb-5 flex gap-2.5">
                 <i class="fa-solid fa-envelope-open-text text-brandGold mt-0.5 text-sm"></i>
                 <p class="text-[11px] text-brandNavy/70 leading-relaxed">
                     Your student account is ready! Your Student ID and password were sent to
-                    <span class="font-bold">{{ $receipt['email'] ?? 'your email' }}</span>.
+                    <span class="font-bold">{{ $receipt['email'] ?? 'your email' }}</span>. Can't find it? Check your spam/junk folder.
                 </p>
             </div>
+            @else
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-5 flex gap-2.5">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 mt-0.5 text-sm"></i>
+                <p class="text-[11px] text-brandNavy/70 leading-relaxed">
+                    Your student account is ready, but we couldn't email your credentials to
+                    <span class="font-bold">{{ $receipt['email'] ?? 'your email' }}</span>. Your Student ID is
+                    <span class="font-bold font-mono">{{ $receipt['login_id'] ?? '—' }}</span> — use
+                    <a href="{{ route('password.request') }}" class="font-bold underline">Forgot Password</a> on the login page to set your password.
+                </p>
+            </div>
+            @endif
 
             <div class="flex gap-2">
                 <button onclick="window.print()" class="flex-1 py-2.5 rounded-xl border border-brandNavy/15 text-brandNavy font-bold text-xs hover:bg-brandNavy/5 transition-colors">

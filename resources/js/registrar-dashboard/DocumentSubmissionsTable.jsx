@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 const STATUS_STYLES = {
     pending: 'bg-brandGold/10 text-brandGold border-brandGold/20',
     accepted: 'bg-brandGreen/10 text-brandGreen border-brandGreen/20',
@@ -10,16 +12,120 @@ const STATUS_LABELS = {
     rejected: 'Rejected',
 };
 
-export default function DocumentSubmissionsTable({ documents, csrfToken }) {
-    const pendingCount = documents.filter((doc) => doc.status === 'pending').length;
+export default function DocumentSubmissionsTable({ searchUrl, pendingCount, rejectedCount, csrfToken }) {
+    const initialParams = new URLSearchParams(window.location.search);
+    const [search, setSearch] = useState(() => initialParams.get('documents_search') ?? '');
+    const [viewAll, setViewAll] = useState(() => initialParams.get('documents_view') === 'all');
+    const [statusFilter, setStatusFilter] = useState(null);
+    const [documents, setDocuments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const query = search.trim();
+    const requestId = useRef(0);
+
+    useEffect(() => {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('documents_search') || url.searchParams.has('documents_view')) {
+            url.searchParams.delete('documents_search');
+            url.searchParams.delete('documents_view');
+            window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!query && !statusFilter) {
+            setDocuments([]);
+            setLoading(false);
+            return;
+        }
+        if (!searchUrl) return;
+
+        const thisRequest = ++requestId.current;
+        setLoading(true);
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams();
+            if (query) params.set('q', query);
+            if (statusFilter) {
+                params.set('status', statusFilter);
+            } else if (viewAll) {
+                params.set('all', '1');
+            }
+
+            fetch(`${searchUrl}?${params}`, { headers: { Accept: 'application/json' } })
+                .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+                .then((data) => {
+                    if (requestId.current === thisRequest) {
+                        setDocuments(Array.isArray(data.documents) ? data.documents : []);
+                        setLoading(false);
+                    }
+                })
+                .catch(() => {
+                    if (requestId.current === thisRequest) setLoading(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [query, viewAll, statusFilter, searchUrl]);
+
+    const toggleStatus = (status) => {
+        setStatusFilter((current) => current === status ? null : status);
+        setViewAll(false);
+    };
 
     return (
-        <div className="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
+        <div id="student-submitted-documents" className="bg-white dark:bg-panelDark/40 border border-brandNavy/10 dark:border-slate-800/80 rounded-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/20 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-brandNavy dark:text-white tracking-wide">Student Document Submissions</h3>
-                {pendingCount > 0 && (
-                    <span className="px-2 py-0.5 text-[9px] font-black bg-brandGold text-white rounded-full">{pendingCount} pending</span>
-                )}
+                <div className="flex items-center gap-3">
+                    <h3 className="text-sm font-bold text-brandNavy dark:text-white tracking-wide">
+                        {(query || statusFilter) && !viewAll ? `Student ${statusFilter === 'rejected' ? 'Rejected' : 'Pending'} Document/s` : 'Student Submitted Document/s'}
+                    </h3>
+                    {pendingCount > 0 && (
+                        <button
+                            type="button"
+                            title="Show pending documents"
+                            onClick={() => toggleStatus('pending')}
+                            className={`px-2 py-0.5 text-[9px] font-black rounded-full cursor-pointer transition-colors ${statusFilter === 'pending' ? 'bg-brandNavy text-white' : 'bg-brandGold text-white hover:opacity-80'}`}
+                        >
+                            {pendingCount} pending
+                        </button>
+                    )}
+                    {rejectedCount > 0 && (
+                        <button
+                            type="button"
+                            title="Show rejected documents"
+                            onClick={() => toggleStatus('rejected')}
+                            className={`px-2 py-0.5 text-[9px] font-black rounded-full cursor-pointer transition-colors ${statusFilter === 'rejected' ? 'bg-brandNavy text-white' : 'bg-red-600 text-white hover:opacity-80'}`}
+                        >
+                            {rejectedCount} rejected
+                        </button>
+                    )}
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="relative w-full sm:w-72">
+                        <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brandNavy/40 dark:text-slate-500 text-xs" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(event) => {
+                                setSearch(event.target.value);
+                                setViewAll(false);
+                            }}
+                            placeholder="Search student name or ID"
+                            className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-3 py-2 rounded focus:outline-none focus:border-brandGreen"
+                        />
+                    </div>
+                    <select
+                        value={statusFilter ?? ''}
+                        onChange={(event) => {
+                            setStatusFilter(event.target.value || null);
+                            setViewAll(false);
+                        }}
+                        className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
+                    >
+                        <option value="">Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="rejected">Reject</option>
+                    </select>
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -38,7 +144,7 @@ export default function DocumentSubmissionsTable({ documents, csrfToken }) {
                                 <td colSpan={5} className="py-12 text-center text-brandNavy/40 dark:text-slate-500 font-medium">
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <i className="fa-solid fa-folder-open text-2xl text-brandNavy/20 dark:text-slate-600" />
-                                        <span>No document submissions yet.</span>
+                                        <span>{loading ? 'Searching…' : (query || statusFilter) ? 'No matching documents.' : 'Search or choose a status to view submitted documents.'}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -60,9 +166,22 @@ export default function DocumentSubmissionsTable({ documents, csrfToken }) {
                                     </td>
                                     <td className="py-5 px-6 text-brandNavy/60 dark:text-slate-400">{doc.createdAtFormatted}</td>
                                     <td className="py-5 px-6 text-center">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${STATUS_STYLES[doc.status] ?? 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
-                                            {STATUS_LABELS[doc.status] ?? doc.status}
-                                        </span>
+                                        {['pending', 'rejected'].includes(doc.status) ? (
+                                            <form action={doc.reminderUrl} method="POST">
+                                                <input type="hidden" name="_token" value={csrfToken} />
+                                                <button
+                                                    type="submit"
+                                                    title="Send a reminder to the student"
+                                                    className={`inline-flex items-center px-3 py-1 rounded text-[10px] font-bold border uppercase tracking-wider cursor-pointer hover:opacity-80 ${STATUS_STYLES[doc.status]}`}
+                                                >
+                                                    {STATUS_LABELS[doc.status]}
+                                                </button>
+                                            </form>
+                                        ) : (
+                                            <span className={`inline-flex items-center px-3 py-1 rounded text-[10px] font-bold border uppercase tracking-wider ${STATUS_STYLES[doc.status] ?? 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
+                                                {STATUS_LABELS[doc.status] ?? doc.status}
+                                            </span>
+                                        )}
                                         {doc.status === 'rejected' && doc.remarks && (
                                             <p className="text-[10px] text-red-500/80 mt-1 max-w-40 mx-auto">{doc.remarks}</p>
                                         )}
