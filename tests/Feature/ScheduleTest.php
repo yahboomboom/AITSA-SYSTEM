@@ -55,4 +55,34 @@ class ScheduleTest extends TestCase
             ->assertOk()
             ->assertSee('BSOA101');
     }
+
+    public function test_schedule_page_exposes_the_current_terms_real_school_year_and_semester(): void
+    {
+        \App\Models\Setting::put('school_year', '2027-2028');
+        \App\Models\Setting::put('semester', '2');
+        $student = User::factory()->create(['role' => 'student']);
+        Enrollment::factory()->create([
+            'user_id' => $student->id,
+            'school_year' => '2027-2028',
+            'semester' => 2,
+            'status' => 'enrolled',
+        ]);
+
+        $response = $this->actingAs($student)->get('/cor');
+
+        $response->assertOk();
+        $response->assertSee('data-school-year="2027-2028"', false);
+        $response->assertSee('data-semester="2"', false);
+    }
+
+    public function test_schedule_page_falls_back_to_the_current_setting_term_with_no_enrollment(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($student)->get('/cor');
+
+        $response->assertOk();
+        $response->assertSee('data-school-year="2026-2027"', false);
+        $response->assertSee('data-semester="1"', false);
+    }
 }

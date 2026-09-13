@@ -26,4 +26,17 @@ class ClearanceIslandTest extends TestCase
     {
         $this->get('/clearance')->assertRedirect();
     }
+
+    public function test_clearance_context_carries_the_real_school_year_and_semester(): void
+    {
+        \App\Models\Setting::put('school_year', '2027-2028');
+        \App\Models\Setting::put('semester', '2');
+        $student = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($student)->get('/clearance');
+
+        $response->assertOk();
+        $response->assertSee('&quot;schoolYear&quot;:&quot;2027-2028&quot;', false);
+        $response->assertSee('&quot;semester&quot;:2', false);
+    }
 }

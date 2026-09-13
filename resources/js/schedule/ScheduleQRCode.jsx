@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-export default function ScheduleQRCode({ subjects, studentName, studentId, studentProgram }) {
+const ORDINAL_SEMESTER = { 1: '1st', 2: '2nd' };
+
+export default function ScheduleQRCode({ subjects, studentName, studentId, studentProgram, schoolYear, semester }) {
     const qrRef = useRef(null);
+    const semesterLabel = ORDINAL_SEMESTER[semester] ?? semester;
 
     useEffect(() => {
         if (!qrRef.current || typeof window.QRCode === 'undefined') return;
@@ -9,7 +12,7 @@ export default function ScheduleQRCode({ subjects, studentName, studentId, stude
         let text = `AITSA SCHEDULE\n`;
         text += `Student: ${studentName}\n`;
         text += `ID: ${studentId} | ${studentProgram}\n`;
-        text += `AY 2025-2026 | 1st Semester\n\n`;
+        text += `AY ${schoolYear} | ${semesterLabel} Semester\n\n`;
         subjects.forEach((s) => {
             text += `${s.code} - ${s.desc}\n`;
             text += `${s.days} | ${s.time} | ${s.room} [${s.type}]\n\n`;
@@ -35,7 +38,7 @@ export default function ScheduleQRCode({ subjects, studentName, studentId, stude
         } catch {
             qrRef.current.innerHTML = '<p class="text-[10px] text-brandNavy/40 dark:text-slate-600 p-4 text-center">QR code unavailable for this schedule.</p>';
         }
-    }, [subjects, studentName, studentId, studentProgram]);
+    }, [subjects, studentName, studentId, studentProgram, schoolYear, semesterLabel]);
 
     return (
         <div className="flex justify-center print-area">
@@ -51,7 +54,7 @@ export default function ScheduleQRCode({ subjects, studentName, studentId, stude
                     </div>
                     <div className="text-center space-y-1">
                         <p className="text-xs font-bold text-brandNavy dark:text-slate-200">{studentName}</p>
-                        <p className="text-[10px] text-brandNavy/50 dark:text-slate-500">Scan to view schedule — AY 2025–2026 1st Sem</p>
+                        <p className="text-[10px] text-brandNavy/50 dark:text-slate-500">Scan to view schedule — AY {schoolYear} {semesterLabel} Sem</p>
                     </div>
                     <button
                         onClick={() => window.print()}

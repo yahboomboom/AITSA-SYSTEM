@@ -109,6 +109,8 @@
                 $submissionPending = $hasSubmission && ($submission->status ?? '') === 'pending';
 
                 $clearanceContext = [
+                    'schoolYear' => $clearance->school_year,
+                    'semester' => $clearance->semester,
                     'isCleared' => $isCleared,
 		    'printUrl' => $isCleared ? route('clearance.print', $clearance->id) : null,
                     'cashierCleared' => $cashierCleared,

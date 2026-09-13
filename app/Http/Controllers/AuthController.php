@@ -497,12 +497,15 @@ class AuthController extends Controller
         $user = Auth::user();
         $student = Student::where('user_id', $user->id)->first();
 
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
+
         $palette = ['bg-blue-600', 'bg-emerald-600', 'bg-violet-600', 'bg-orange-500', 'bg-cyan-600', 'bg-teal-600', 'bg-rose-500', 'bg-amber-500', 'bg-brandGreen'];
 
         $enrollment = Enrollment::with('sections.subject')
             ->where('user_id', $user->id)
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
             ->whereIn('status', ['pending', 'enrolled'])
             ->latest('id')
             ->first();
@@ -520,7 +523,7 @@ class AuthController extends Controller
             ])->all()
             : [];
 
-        return view('schedule', compact('user', 'student', 'subjects'));
+        return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
     }
 
     // 7. Process administrative clearance override and write long-term transaction ledger records

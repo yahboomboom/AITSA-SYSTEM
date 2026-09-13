@@ -55,7 +55,9 @@
                  data-subjects="{{ json_encode($subjects ?? []) }}"
                  data-student-name="{{ Auth::user()->name ?? 'Student' }}"
                  data-student-id="{{ Auth::user()->login_id ?? 'N/A' }}"
-                 data-student-program="{{ Auth::user()->major ?? 'BSIT - Web Development' }}">
+                 data-student-program="{{ Auth::user()->major ?? 'BSIT - Web Development' }}"
+                 data-school-year="{{ $schoolYear }}"
+                 data-semester="{{ $semester }}">
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
 

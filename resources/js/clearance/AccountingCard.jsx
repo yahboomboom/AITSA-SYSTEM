@@ -1,6 +1,6 @@
 const peso = (n) => `₱ ${Number(n ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function AccountingCard({ cashierCleared, breakdown }) {
+export default function AccountingCard({ cashierCleared, breakdown, schoolYear }) {
     const b = breakdown ?? {};
     const hasDiscount = (b.discount_amount ?? 0) > 0;
 
@@ -36,7 +36,7 @@ export default function AccountingCard({ cashierCleared, breakdown }) {
                 <div className="border border-brandNavy/8 dark:border-slate-700 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-lightBg dark:bg-slate-800/50 border-b border-brandNavy/8 dark:border-slate-700 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider">Assessment Breakdown</span>
-                        <span className="text-[9px] font-black text-brandNavy/40 dark:text-slate-500">A.Y. 2025–2026</span>
+                        <span className="text-[9px] font-black text-brandNavy/40 dark:text-slate-500">A.Y. {schoolYear}</span>
                     </div>
                     <div className="divide-y divide-brandNavy/5 dark:divide-slate-800">
                         {lineItems.map((item) => (

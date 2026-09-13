@@ -27,6 +27,7 @@ function parseContext(raw) {
     try {
         const parsed = JSON.parse(raw ?? '{}');
         return {
+            schoolYear: parsed.schoolYear ?? null,
             isCleared: !!parsed.isCleared,
             printUrl: parsed.printUrl ?? null,
             cashierCleared: !!parsed.cashierCleared,
@@ -86,7 +87,7 @@ function ClearanceApp({ context }) {
                         <p className="text-[10px] text-brandNavy/50 dark:text-slate-400 italic">Updates reflect immediately upon administrative action.</p>
                     </div>
 
-                    <AccountingCard cashierCleared={context.cashierCleared} breakdown={context.breakdown} />
+                    <AccountingCard cashierCleared={context.cashierCleared} breakdown={context.breakdown} schoolYear={context.schoolYear} />
                     <RegistrarCard registrarCleared={context.registrarCleared} submission={context.submission} documentsUrl={context.documentsUrl} />
                 </div>
             </div>
