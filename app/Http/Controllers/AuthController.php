@@ -365,7 +365,7 @@ class AuthController extends Controller
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
-        $clearances = Clearance::with('user.discountType')
+        $clearances = Clearance::has('user')->with('user.discountType')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
@@ -445,7 +445,7 @@ class AuthController extends Controller
      */
     public function showCashierAccounts()
     {
-        $accounts = Clearance::with('user')
+        $accounts = Clearance::has('user')->with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->where('cashier_status', '!=', 'Approved')
