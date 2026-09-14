@@ -161,4 +161,52 @@ class FacultyGradeEntryTest extends TestCase
         $response->assertOk();
         $response->assertSee('Please double check row 4.');
     }
+
+    public function test_grade_entry_page_shows_pending_chair_status_in_context(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        GradeSubmission::create([
+            'section_id' => $section->id,
+            'faculty_id' => $faculty->id,
+            'status' => 'pending_chair',
+        ]);
+
+        $response = $this->actingAs($faculty)->get("/faculty/sections/{$section->id}/grades");
+
+        $response->assertOk();
+        $response->assertSee('&quot;submissionStatus&quot;:&quot;pending_chair&quot;', false);
+    }
+
+    public function test_grade_entry_page_shows_pending_registrar_status_in_context(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        GradeSubmission::create([
+            'section_id' => $section->id,
+            'faculty_id' => $faculty->id,
+            'status' => 'pending_registrar',
+        ]);
+
+        $response = $this->actingAs($faculty)->get("/faculty/sections/{$section->id}/grades");
+
+        $response->assertOk();
+        $response->assertSee('&quot;submissionStatus&quot;:&quot;pending_registrar&quot;', false);
+    }
+
+    public function test_grade_entry_page_shows_approved_status_in_context(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        GradeSubmission::create([
+            'section_id' => $section->id,
+            'faculty_id' => $faculty->id,
+            'status' => 'approved',
+        ]);
+
+        $response = $this->actingAs($faculty)->get("/faculty/sections/{$section->id}/grades");
+
+        $response->assertOk();
+        $response->assertSee('&quot;submissionStatus&quot;:&quot;approved&quot;', false);
+    }
 }
