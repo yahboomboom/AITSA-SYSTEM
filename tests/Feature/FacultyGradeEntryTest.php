@@ -131,4 +131,34 @@ class FacultyGradeEntryTest extends TestCase
 
         $this->assertDatabaseMissing('grade_submission_items', ['user_id' => $outsider->id]);
     }
+
+    public function test_grade_entry_page_shows_a_status_banner_and_submit_url_when_draft(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+
+        $response = $this->actingAs($faculty)->get("/faculty/sections/{$section->id}/grades");
+
+        $response->assertOk();
+        $response->assertSee(route('faculty.sections.grades.submit', $section->id), false);
+        $response->assertSee('&quot;submissionStatus&quot;:&quot;draft&quot;', false);
+    }
+
+    public function test_grade_entry_page_shows_rejection_remarks(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        GradeSubmission::create([
+            'section_id' => $section->id,
+            'faculty_id' => $faculty->id,
+            'status' => 'draft',
+            'rejected_by' => 'chair',
+            'remarks' => 'Please double check row 4.',
+        ]);
+
+        $response = $this->actingAs($faculty)->get("/faculty/sections/{$section->id}/grades");
+
+        $response->assertOk();
+        $response->assertSee('Please double check row 4.');
+    }
 }

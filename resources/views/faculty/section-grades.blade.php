@@ -56,6 +56,9 @@
                         'status' => $existing->status ?? null,
                     ];
                 })->values(),
+                'submissionStatus' => $submission->status,
+                'rejectedBy' => $submission->rejected_by,
+                'remarks' => $submission->remarks,
             ];
         @endphp
 
@@ -64,6 +67,7 @@
             data-context="{{ json_encode($context) }}"
             data-csrf-token="{{ csrf_token() }}"
             data-store-url="{{ route('faculty.sections.grades.store', $section->id) }}"
+            data-submit-url="{{ route('faculty.sections.grades.submit', $section->id) }}"
         >
             <p class="text-sm text-slate-500">Loading…</p>
         </div>
