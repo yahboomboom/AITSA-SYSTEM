@@ -74,6 +74,7 @@
                         'verifiedApplicants' => $verifiedApplicants,
                         'totalStudents' => $totalStudents,
                     ],
+                    'agreements' => $agreements,
                     'programBreakdown' => $programBreakdown->map(fn ($prog) => [
                         'major' => $prog->major,
                         'count' => $prog->count,

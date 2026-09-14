@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\DiscountType;
 use App\Models\DocumentSubmission;
 use App\Models\Enrollment;
+use App\Models\EnrollmentAgreement;
 use App\Models\MatriculationChange;
 use App\Models\Program;
 use App\Models\Section;
@@ -1187,7 +1188,14 @@ Route::middleware('auth')->group(function () {
             ->whereNotNull('major')->where('major', '!=', '')
             ->selectRaw('major, count(*) as count')
             ->groupBy('major')->orderByDesc('count')->get();
-        return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown'));
+        $agreementCounts    = EnrollmentAgreement::selectRaw('status, count(*) as count')
+            ->groupBy('status')->pluck('count', 'status');
+        $agreements = [
+            'signed' => (int) ($agreementCounts['completed'] ?? 0),
+            'awaiting' => (int) $agreementCounts->except(['completed', 'declined', 'voided'])->sum(),
+            'declinedOrVoided' => (int) $agreementCounts->only(['declined', 'voided'])->sum(),
+        ];
+        return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown', 'agreements'));
     })->name('admin.reports');
 
     Route::get('/admin/departments', function () {

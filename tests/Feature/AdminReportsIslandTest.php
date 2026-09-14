@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Clearance;
+use App\Models\EnrollmentAgreement;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +31,34 @@ class AdminReportsIslandTest extends TestCase
         $response->assertSee('id="admin-reports-root"', false);
         $response->assertSee('Report Test Student');
         $response->assertSee('&quot;cleared&quot;:1', false);
+    }
+
+    public function test_reports_page_shows_enrollment_agreement_signing_counts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $signed = User::factory()->create(['role' => 'applicant']);
+        EnrollmentAgreement::create([
+            'user_id' => $signed->id, 'envelope_id' => 'env-signed', 'status' => 'completed',
+            'return_token' => 'tok-signed', 'signed_at' => now(),
+        ]);
+
+        $awaiting = User::factory()->create(['role' => 'applicant']);
+        EnrollmentAgreement::create([
+            'user_id' => $awaiting->id, 'envelope_id' => 'env-sent', 'status' => 'sent',
+            'return_token' => 'tok-sent',
+        ]);
+
+        $declined = User::factory()->create(['role' => 'applicant']);
+        EnrollmentAgreement::create([
+            'user_id' => $declined->id, 'envelope_id' => 'env-declined', 'status' => 'declined',
+            'return_token' => 'tok-declined',
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/reports');
+
+        $response->assertOk();
+        $response->assertSee('&quot;agreements&quot;:{&quot;signed&quot;:1,&quot;awaiting&quot;:1,&quot;declinedOrVoided&quot;:1}', false);
     }
 
     public function test_guest_is_redirected(): void
