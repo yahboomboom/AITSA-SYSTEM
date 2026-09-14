@@ -760,6 +760,39 @@ Route::middleware('auth')->group(function () {
         }
         return redirect()->route('approver.dashboard')->with('error', 'Record not found.');
     })->name('approver.hold');
+
+    Route::post('/approver/grades/{submission}/approve', function (GradeSubmission $submission) {
+        abort_unless($submission->status === 'pending_chair', 403, 'This submission is not awaiting Chair approval.');
+
+        $submission->update(['status' => 'pending_registrar', 'chair_id' => Auth::id(), 'chair_at' => now()]);
+
+        $submission->load('section.subject');
+        AuditLog::record(
+            'Grades Chair-Approved',
+            'Department Chair approved grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . ').',
+            'GradeSubmission',
+            $submission->id
+        );
+
+        return back()->with('success', 'Grades approved and forwarded to the Registrar.');
+    })->name('approver.grades.approve');
+
+    Route::post('/approver/grades/{submission}/reject', function (Request $request, GradeSubmission $submission) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        abort_unless($submission->status === 'pending_chair', 403, 'This submission is not awaiting Chair approval.');
+
+        $submission->update(['status' => 'draft', 'rejected_by' => 'chair', 'remarks' => $data['remarks']]);
+
+        $submission->load('section.subject');
+        AuditLog::record(
+            'Grades Chair-Rejected',
+            'Department Chair rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
+            'GradeSubmission',
+            $submission->id
+        );
+
+        return back()->with('success', 'Grades returned to faculty with remarks.');
+    })->name('approver.grades.reject');
     }); // end role:chair
 
     Route::middleware('role:faculty')->group(function () {
