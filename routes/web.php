@@ -345,7 +345,7 @@ Route::middleware('auth')->group(function () {
         return view('payment', compact('clearance', 'breakdown', 'history', 'hasPendingGateway'));
     })->name('ledger');
 
-    Route::post('/ledger/checkout', function (FeeAssessmentService $fees, PaymentService $payments) {
+    Route::post('/ledger/checkout', function (Request $request, FeeAssessmentService $fees, PaymentService $payments) {
         $user = Auth::user();
         $breakdown = $fees->breakdownFor($user);
 
@@ -353,8 +353,19 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('ledger')->with('error', 'You have no outstanding balance to pay.');
         }
 
+        // The amount is always computed server-side from the student's own
+        // assessment — never trust a client-submitted amount for a payment.
+        if ($request->input('type') === 'down_payment') {
+            $amount = max($breakdown['down_payment_required'] - $breakdown['paid'], 0);
+            if ($amount <= 0) {
+                return redirect()->route('ledger')->with('error', 'Your down payment requirement is already met.');
+            }
+        } else {
+            $amount = $breakdown['balance'];
+        }
+
         try {
-            $url = $payments->startCheckout($user, (float) $breakdown['balance']);
+            $url = $payments->startCheckout($user, (float) $amount);
         } catch (PaymentGatewayException $e) {
             return redirect()->route('ledger')->with('error', $e->getMessage());
         }

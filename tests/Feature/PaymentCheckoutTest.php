@@ -95,4 +95,58 @@ class PaymentCheckoutTest extends TestCase
         $this->post('/ledger/checkout')->assertRedirect();
         Http::assertNothingSent();
     }
+
+    public function test_down_payment_checkout_charges_only_the_remaining_down_payment_amount(): void
+    {
+        $this->fakeCheckoutCreated();
+        \App\Models\Setting::put('down_payment_percent', '30');
+        $student = $this->studentWithBalance(); // balance/assessment: 3000.00, down payment required: 900.00
+
+        $response = $this->actingAs($student)->post('/ledger/checkout', ['type' => 'down_payment']);
+
+        $response->assertRedirect('https://checkout.paymongo.com/cs_test_abc');
+        $row = TransactionLedger::where('user_id', $student->id)->first();
+        $this->assertEqualsWithDelta(900.0, (float) $row->amount, 0.001);
+        Http::assertSent(fn ($r) => $r->data()['data']['attributes']['line_items'][0]['amount'] === 90000);
+    }
+
+    public function test_down_payment_checkout_charges_only_the_remaining_amount_after_a_partial_payment(): void
+    {
+        $this->fakeCheckoutCreated();
+        \App\Models\Setting::put('down_payment_percent', '30');
+        $student = $this->studentWithBalance(); // assessment 3000.00, down payment required 900.00
+        TransactionLedger::factory()->create(['user_id' => $student->id, 'status' => 'Settled', 'amount' => 500.00]);
+
+        $response = $this->actingAs($student)->post('/ledger/checkout', ['type' => 'down_payment']);
+
+        $response->assertRedirect('https://checkout.paymongo.com/cs_test_abc');
+        $row = TransactionLedger::where('user_id', $student->id)->where('status', 'Pending')->first();
+        $this->assertEqualsWithDelta(400.0, (float) $row->amount, 0.001);
+    }
+
+    public function test_down_payment_checkout_is_blocked_once_the_down_payment_is_already_met(): void
+    {
+        Http::fake();
+        \App\Models\Setting::put('down_payment_percent', '30');
+        $student = $this->studentWithBalance();
+        TransactionLedger::factory()->create(['user_id' => $student->id, 'status' => 'Settled', 'amount' => 900.00]);
+
+        $response = $this->actingAs($student)->from('/ledger')->post('/ledger/checkout', ['type' => 'down_payment']);
+
+        $response->assertRedirect('/ledger');
+        $response->assertSessionHas('error');
+        Http::assertNothingSent();
+    }
+
+    public function test_full_checkout_still_charges_the_whole_balance_when_type_is_omitted(): void
+    {
+        $this->fakeCheckoutCreated();
+        $student = $this->studentWithBalance();
+
+        $response = $this->actingAs($student)->post('/ledger/checkout');
+
+        $response->assertRedirect('https://checkout.paymongo.com/cs_test_abc');
+        $row = TransactionLedger::where('user_id', $student->id)->first();
+        $this->assertEqualsWithDelta(3000.0, (float) $row->amount, 0.001);
+    }
 }

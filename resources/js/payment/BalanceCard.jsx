@@ -13,6 +13,8 @@ function disableSubmit(e, busyLabel) {
 export default function BalanceCard({ settled, breakdown, hasPendingGateway, checkoutUrl, verifyUrl, csrfToken }) {
     const b = breakdown ?? {};
     const hasDiscount = (b.discount_amount ?? 0) > 0;
+    const remainingDownPayment = Math.max((b.down_payment_required ?? 0) - (b.paid ?? 0), 0);
+    const showDownPaymentOption = !settled && remainingDownPayment > 0 && remainingDownPayment < (b.balance ?? 0);
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
@@ -79,12 +81,24 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                         </button>
                     ) : (
                         !hasPendingGateway && (
-                            <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
-                                <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none">
-                                    <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
-                                </button>
-                            </form>
+                            <>
+                                {showDownPaymentOption && (
+                                    <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
+                                        <input type="hidden" name="_token" value={csrfToken} />
+                                        <input type="hidden" name="type" value="down_payment" />
+                                        <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-transparent border border-brandNavy/25 dark:border-slate-600 hover:bg-brandNavy/5 dark:hover:bg-slate-800 text-brandNavy dark:text-slate-200 font-bold rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                                            <i className="fa-solid fa-unlock" />Pay Down Payment {peso(remainingDownPayment)}
+                                        </button>
+                                        <p className="text-[10px] text-brandNavy/50 dark:text-slate-500 text-center mt-1.5">Unlocks self-enrollment now; the rest can be settled later.</p>
+                                    </form>
+                                )}
+                                <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
+                                    <input type="hidden" name="_token" value={csrfToken} />
+                                    <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none">
+                                        <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
+                                    </button>
+                                </form>
+                            </>
                         )
                     )}
                     {hasPendingGateway && (
