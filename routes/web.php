@@ -671,13 +671,14 @@ Route::middleware('auth')->group(function () {
 
         $submission->update(['status' => 'draft', 'rejected_by' => 'registrar', 'remarks' => $data['remarks']]);
 
-        $submission->load('section.subject');
+        $submission->load('section.subject', 'faculty');
         AuditLog::record(
             'Grades Registrar-Rejected',
             'Registrar rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
             'GradeSubmission',
             $submission->id
         );
+        \App\Support\SafeNotify::send($submission->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Registrar', $submission->section, $data['remarks']));
 
         return back()->with('success', 'Grades returned to faculty with remarks.');
     })->name('registrar.grades.reject');
@@ -833,13 +834,14 @@ Route::middleware('auth')->group(function () {
 
         $submission->update(['status' => 'draft', 'rejected_by' => 'chair', 'remarks' => $data['remarks']]);
 
-        $submission->load('section.subject');
+        $submission->load('section.subject', 'faculty');
         AuditLog::record(
             'Grades Chair-Rejected',
             'Department Chair rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
             'GradeSubmission',
             $submission->id
         );
+        \App\Support\SafeNotify::send($submission->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Department Chair', $submission->section, $data['remarks']));
 
         return back()->with('success', 'Grades returned to faculty with remarks.');
     })->name('approver.grades.reject');
