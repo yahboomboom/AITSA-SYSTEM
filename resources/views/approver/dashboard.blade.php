@@ -110,6 +110,12 @@
                             'submittedAgo' => $submission->submitted_at?->diffForHumans(),
                             'approveUrl' => route('approver.grades.approve', $submission),
                             'rejectUrl' => route('approver.grades.reject', $submission),
+                            'items' => $submission->items->map(fn ($item) => [
+                                'name' => $item->user->name,
+                                'loginId' => $item->user->login_id,
+                                'grade' => $item->final_grade,
+                                'status' => $item->status,
+                            ])->values(),
                         ])->values(),
                     ];
                 @endphp

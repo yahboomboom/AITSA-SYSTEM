@@ -106,6 +106,12 @@
                             'studentCount' => $submission->items->count(),
                             'approveUrl' => route('registrar.grades.approve', $submission),
                             'rejectUrl' => route('registrar.grades.reject', $submission),
+                            'items' => $submission->items->map(fn ($item) => [
+                                'name' => $item->user->name,
+                                'loginId' => $item->user->login_id,
+                                'grade' => $item->final_grade,
+                                'status' => $item->status,
+                            ])->values(),
                         ])->values(),
                     ];
                 @endphp

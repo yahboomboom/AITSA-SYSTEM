@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Clearance;
 use App\Models\GradeSubmission;
+use App\Models\GradeSubmissionItem;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
@@ -141,5 +142,22 @@ class RegistrarDashboardIslandTest extends TestCase
         $response->assertOk();
         $response->assertSee('CC102');
         $response->assertSee('Prof. Dizon');
+    }
+
+    public function test_dashboard_context_includes_staged_grade_items_for_drilldown(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $subject = Subject::factory()->create(['code' => 'CC102']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Pedro Reyes']);
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_registrar']);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $student->id, 'final_grade' => '85', 'status' => 'Passed']);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;name&quot;:&quot;Pedro Reyes&quot;', false);
+        $response->assertSee('&quot;grade&quot;:&quot;85&quot;', false);
     }
 }

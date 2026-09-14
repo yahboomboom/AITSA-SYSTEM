@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\GradeSubmission;
+use App\Models\GradeSubmissionItem;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
@@ -119,5 +120,22 @@ class ApproverDashboardIslandTest extends TestCase
         $response->assertOk();
         $response->assertSee('CC101');
         $response->assertSee('Prof. Ramos');
+    }
+
+    public function test_dashboard_context_includes_staged_grade_items_for_drilldown(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $subject = Subject::factory()->create(['code' => 'CC101']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Maria Santos']);
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_chair', 'submitted_at' => now()]);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $student->id, 'final_grade' => '91', 'status' => 'Passed']);
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;name&quot;:&quot;Maria Santos&quot;', false);
+        $response->assertSee('&quot;grade&quot;:&quot;91&quot;', false);
     }
 }

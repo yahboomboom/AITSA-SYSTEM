@@ -450,7 +450,7 @@ Route::middleware('auth')->group(function () {
             ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
         $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
         $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
-        $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'faculty', 'items'])
+        $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'faculty', 'items.user'])
             ->where('status', 'pending_registrar')
             ->latest('chair_at')
             ->get();
@@ -700,7 +700,7 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending')
             ->latest()
             ->get();
-        $pendingGradeSubmissions = GradeSubmission::with(['section.subject', 'faculty', 'items'])
+        $pendingGradeSubmissions = GradeSubmission::with(['section.subject', 'faculty', 'items.user'])
             ->where('status', 'pending_chair')
             ->latest('submitted_at')
             ->get();
