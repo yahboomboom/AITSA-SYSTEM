@@ -876,6 +876,45 @@ Route::middleware('auth')->group(function () {
 
             return redirect()->route('faculty.sections.grades', $section->id)->with('success', 'Grades saved.');
         })->name('faculty.sections.grades.store');
+
+        Route::post('/faculty/sections/{section}/grades/submit', function (Section $section) {
+            abort_unless($section->faculty_id === auth()->id(), 403);
+
+            $submission = GradeSubmission::where('section_id', $section->id)->first();
+            abort_unless($submission && $submission->status === 'draft', 403, 'This section\'s grades are not in a submittable state.');
+
+            $enrolledIds = $section->enrollments()
+                ->where('enrollments.status', '!=', 'rejected')
+                ->with('user')
+                ->get()
+                ->pluck('user.id')
+                ->filter()
+                ->values();
+
+            $gradedIds = $submission->items()->pluck('user_id');
+            $missing = $enrolledIds->diff($gradedIds);
+
+            if ($missing->isNotEmpty()) {
+                return back()->with('error', 'Enter a grade for every enrolled student before submitting.');
+            }
+
+            $section->load('subject');
+            $submission->update([
+                'status' => 'pending_chair',
+                'submitted_at' => now(),
+                'remarks' => null,
+                'rejected_by' => null,
+            ]);
+
+            AuditLog::record(
+                'Grades Submitted for Approval',
+                auth()->user()->name . ' submitted grades for ' . $section->subject->code . ' (Block ' . $section->block_label . ') for Department Chair approval.',
+                'Section',
+                $section->id
+            );
+
+            return redirect()->route('faculty.sections.grades', $section->id)->with('success', 'Grades submitted for approval.');
+        })->name('faculty.sections.grades.submit');
     }); // end role:faculty
 
     // --- DEPARTMENT OFFICER QUEUE ---
