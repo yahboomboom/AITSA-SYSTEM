@@ -635,6 +635,48 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('registrar.dashboard')->with('success', 'Reminder sent to the student.');
     })->name('registrar.documents.remind');
+
+    Route::post('/registrar/grades/{submission}/approve', function (GradeSubmission $submission) {
+        abort_unless($submission->status === 'pending_registrar', 403, 'This submission is not awaiting Registrar approval.');
+
+        $submission->load('items', 'section.subject');
+
+        DB::transaction(function () use ($submission) {
+            foreach ($submission->items as $item) {
+                StudentGrade::updateOrCreate(
+                    ['user_id' => $item->user_id, 'subject_code' => $submission->section->subject->code],
+                    ['status' => $item->status, 'final_grade' => $item->final_grade]
+                );
+            }
+            $submission->update(['status' => 'approved', 'registrar_id' => Auth::id(), 'registrar_at' => now()]);
+        });
+
+        AuditLog::record(
+            'Grades Finalized',
+            'Registrar finalized grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . ').',
+            'GradeSubmission',
+            $submission->id
+        );
+
+        return back()->with('success', 'Grades finalized and posted to student records.');
+    })->name('registrar.grades.approve');
+
+    Route::post('/registrar/grades/{submission}/reject', function (Request $request, GradeSubmission $submission) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        abort_unless($submission->status === 'pending_registrar', 403, 'This submission is not awaiting Registrar approval.');
+
+        $submission->update(['status' => 'draft', 'rejected_by' => 'registrar', 'remarks' => $data['remarks']]);
+
+        $submission->load('section.subject');
+        AuditLog::record(
+            'Grades Registrar-Rejected',
+            'Registrar rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
+            'GradeSubmission',
+            $submission->id
+        );
+
+        return back()->with('success', 'Grades returned to faculty with remarks.');
+    })->name('registrar.grades.reject');
     }); // end role:registrar,admission
 
 
