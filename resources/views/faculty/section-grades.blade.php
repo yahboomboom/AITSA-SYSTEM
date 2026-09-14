@@ -46,8 +46,8 @@
 
         @php
             $context = [
-                'students' => $students->map(function ($student) use ($grades) {
-                    $existing = $grades[$student->id] ?? null;
+                'students' => $students->map(function ($student) use ($items) {
+                    $existing = $items[$student->id] ?? null;
                     return [
                         'id' => $student->id,
                         'name' => $student->name,

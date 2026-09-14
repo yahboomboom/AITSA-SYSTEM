@@ -11,6 +11,8 @@ use App\Models\DocumentSubmission;
 use App\Models\Enrollment;
 use App\Models\EnrollmentAgreement;
 use App\Models\MatriculationChange;
+use App\Models\GradeSubmission;
+use App\Models\GradeSubmissionItem;
 use App\Models\Program;
 use App\Models\Section;
 use App\Models\Setting;
@@ -821,17 +823,24 @@ Route::middleware('auth')->group(function () {
                 ->sortBy('name')
                 ->values();
 
-            $grades = StudentGrade::where('subject_code', $section->subject->code)
-                ->whereIn('user_id', $students->pluck('id'))
-                ->get()
-                ->keyBy('user_id');
+            $submission = GradeSubmission::firstOrCreate(
+                ['section_id' => $section->id],
+                ['faculty_id' => auth()->id(), 'status' => 'draft']
+            );
 
-            return view('faculty.section-grades', compact('section', 'students', 'grades'));
+            $items = $submission->items()->get()->keyBy('user_id');
+
+            return view('faculty.section-grades', compact('section', 'students', 'submission', 'items'));
         })->name('faculty.sections.grades');
 
         Route::post('/faculty/sections/{section}/grades', function (Request $request, Section $section) {
             abort_unless($section->faculty_id === auth()->id(), 403);
-            $section->load('subject');
+
+            $submission = GradeSubmission::firstOrCreate(
+                ['section_id' => $section->id],
+                ['faculty_id' => auth()->id(), 'status' => 'draft']
+            );
+            abort_unless($submission->status === 'draft', 403, 'This section\'s grades are not editable right now.');
 
             $enrolledIds = $section->enrollments()
                 ->where('enrollments.status', '!=', 'rejected')
@@ -849,11 +858,11 @@ Route::middleware('auth')->group(function () {
                 $grade = is_numeric($rawGrade) ? (int) $rawGrade : null;
 
                 if ($grade === null) {
-                    StudentGrade::where('user_id', $userId)->where('subject_code', $section->subject->code)->delete();
+                    GradeSubmissionItem::where('grade_submission_id', $submission->id)->where('user_id', $userId)->delete();
                 } else {
-                    StudentGrade::updateOrCreate(
-                        ['user_id' => $userId, 'subject_code' => $section->subject->code],
-                        ['status' => $grade >= 75 ? 'Passed' : 'Failed', 'final_grade' => (string) $grade]
+                    GradeSubmissionItem::updateOrCreate(
+                        ['grade_submission_id' => $submission->id, 'user_id' => $userId],
+                        ['final_grade' => (string) $grade, 'status' => $grade >= 75 ? 'Passed' : 'Failed']
                     );
                 }
             }
