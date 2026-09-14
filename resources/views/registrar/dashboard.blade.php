@@ -97,6 +97,16 @@
                         'documentsSearchUrl' => route('registrar.documents.search'),
                         'documentsPendingCount' => $documentsPendingCount,
                         'documentsRejectedCount' => $documentsRejectedCount,
+                        'gradeSubmissions' => $pendingGradeApprovals->map(fn ($submission) => [
+                            'id' => $submission->id,
+                            'subjectCode' => $submission->section->subject->code,
+                            'subjectTitle' => $submission->section->subject->title,
+                            'blockLabel' => $submission->section->block_label,
+                            'facultyName' => $submission->faculty->name,
+                            'studentCount' => $submission->items->count(),
+                            'approveUrl' => route('registrar.grades.approve', $submission),
+                            'rejectUrl' => route('registrar.grades.reject', $submission),
+                        ])->values(),
                     ];
                 @endphp
 

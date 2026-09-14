@@ -5,6 +5,7 @@ import ApplicantQueueTable from './registrar-dashboard/ApplicantQueueTable';
 import AdmissionStats from './registrar-dashboard/AdmissionStats';
 import ClearanceQueueTable from './registrar-dashboard/ClearanceQueueTable';
 import DocumentSubmissionsTable from './registrar-dashboard/DocumentSubmissionsTable';
+import GradeSubmissionQueue from './components/GradeSubmissionQueue';
 
 const EMPTY_CONTEXT = {
     applicants: [],
@@ -13,6 +14,7 @@ const EMPTY_CONTEXT = {
     documentsSearchUrl: '',
     documentsPendingCount: 0,
     documentsRejectedCount: 0,
+    gradeSubmissions: [],
 };
 
 function parseContext(raw) {
@@ -25,6 +27,7 @@ function parseContext(raw) {
             documentsSearchUrl: parsed.documentsSearchUrl ?? '',
             documentsPendingCount: parsed.documentsPendingCount ?? 0,
             documentsRejectedCount: parsed.documentsRejectedCount ?? 0,
+            gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -54,6 +57,7 @@ if (el) {
                     rejectedCount={context.documentsRejectedCount}
                     csrfToken={csrfToken}
                 />
+                <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Registrar Approval" approveLabel="Finalize" />
             </div>
         </ErrorBoundary>
     );

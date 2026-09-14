@@ -450,7 +450,11 @@ Route::middleware('auth')->group(function () {
             ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
         $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
         $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount', 'documentsRejectedCount'));
+        $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'faculty', 'items'])
+            ->where('status', 'pending_registrar')
+            ->latest('chair_at')
+            ->get();
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount', 'documentsRejectedCount', 'pendingGradeApprovals'));
     })->name('registrar.dashboard');
 
     Route::get('/registrar/documents/search', function (Request $request) {

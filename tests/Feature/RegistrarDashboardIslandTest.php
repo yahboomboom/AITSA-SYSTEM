@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Clearance;
+use App\Models\GradeSubmission;
+use App\Models\Section;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -123,5 +126,20 @@ class RegistrarDashboardIslandTest extends TestCase
         $response = $this->actingAs($registrar)->get('/registrar/dashboard');
 
         $response->assertSee('&quot;isProvisional&quot;:true', false);
+    }
+
+    public function test_registrar_dashboard_lists_pending_grade_submissions(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $faculty = User::factory()->create(['role' => 'faculty', 'name' => 'Prof. Dizon']);
+        $subject = Subject::factory()->create(['code' => 'CC102']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id, 'block_label' => '2B']);
+        GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_registrar']);
+
+        $response = $this->actingAs($registrar)->get('/registrar/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('CC102');
+        $response->assertSee('Prof. Dizon');
     }
 }
