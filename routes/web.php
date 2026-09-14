@@ -653,7 +653,11 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending')
             ->latest()
             ->get();
-        return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges'));
+        $pendingGradeSubmissions = GradeSubmission::with(['section.subject', 'faculty', 'items'])
+            ->where('status', 'pending_chair')
+            ->latest('submitted_at')
+            ->get();
+        return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges', 'pendingGradeSubmissions'));
     })->name('approver.dashboard');
 
     // Scheduling — sections (day/time/faculty/room) plus faculty/room

@@ -100,6 +100,17 @@
                             'approveUrl' => route('approver.matriculation.approve', $change),
                             'rejectUrl' => route('approver.matriculation.reject', $change),
                         ])->values(),
+                        'gradeSubmissions' => $pendingGradeSubmissions->map(fn ($submission) => [
+                            'id' => $submission->id,
+                            'subjectCode' => $submission->section->subject->code,
+                            'subjectTitle' => $submission->section->subject->title,
+                            'blockLabel' => $submission->section->block_label,
+                            'facultyName' => $submission->faculty->name,
+                            'studentCount' => $submission->items->count(),
+                            'submittedAgo' => $submission->submitted_at?->diffForHumans(),
+                            'approveUrl' => route('approver.grades.approve', $submission),
+                            'rejectUrl' => route('approver.grades.reject', $submission),
+                        ])->values(),
                     ];
                 @endphp
 
