@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Enrollment;
 use App\Models\GradeSubmission;
 use App\Models\GradeSubmissionItem;
 use App\Models\Section;
@@ -15,6 +16,12 @@ class RegistrarGradeApprovalTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function enrollStudentInSection(User $student, Section $section): void
+    {
+        $enrollment = Enrollment::factory()->create(['user_id' => $student->id, 'status' => 'enrolled']);
+        $enrollment->sections()->attach($section->id);
+    }
+
     public function test_registrar_approval_finalizes_grades_into_student_grades(): void
     {
         $registrar = User::factory()->create(['role' => 'registrar']);
@@ -23,6 +30,8 @@ class RegistrarGradeApprovalTest extends TestCase
         $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
         $passing = User::factory()->create(['role' => 'student']);
         $failing = User::factory()->create(['role' => 'student']);
+        $this->enrollStudentInSection($passing, $section);
+        $this->enrollStudentInSection($failing, $section);
         $submission = GradeSubmission::create([
             'section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_registrar',
         ]);
@@ -50,6 +59,8 @@ class RegistrarGradeApprovalTest extends TestCase
         $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
         $goodStudent = User::factory()->create(['role' => 'student']);
         $badStudent = User::factory()->create(['role' => 'student']);
+        $this->enrollStudentInSection($goodStudent, $section);
+        $this->enrollStudentInSection($badStudent, $section);
         $submission = GradeSubmission::create([
             'section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_registrar',
         ]);
@@ -68,6 +79,39 @@ class RegistrarGradeApprovalTest extends TestCase
         $this->assertDatabaseCount('student_grades', 0);
         $submission->refresh();
         $this->assertSame('pending_registrar', $submission->status);
+    }
+
+    public function test_registrar_approval_skips_a_dropped_students_stale_grade(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $subject = Subject::factory()->create(['code' => 'CC103']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
+
+        $stillEnrolled = User::factory()->create(['role' => 'student']);
+        $stillEnrolledEnrollment = Enrollment::factory()->create(['user_id' => $stillEnrolled->id, 'status' => 'enrolled']);
+        $stillEnrolledEnrollment->sections()->attach($section->id);
+
+        $dropped = User::factory()->create(['role' => 'student']);
+        $droppedEnrollment = Enrollment::factory()->create(['user_id' => $dropped->id, 'status' => 'enrolled']);
+        $droppedEnrollment->sections()->attach($section->id);
+
+        $submission = GradeSubmission::create([
+            'section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_registrar',
+        ]);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $stillEnrolled->id, 'final_grade' => '88', 'status' => 'Passed']);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $dropped->id, 'final_grade' => '90', 'status' => 'Passed']);
+
+        // Student drops/swaps out of the section after grading, before Registrar approval.
+        $droppedEnrollment->update(['status' => 'rejected']);
+
+        $response = $this->actingAs($registrar)->post("/registrar/grades/{$submission->id}/approve");
+
+        $response->assertRedirect();
+        $submission->refresh();
+        $this->assertSame('approved', $submission->status);
+        $this->assertDatabaseHas('student_grades', ['user_id' => $stillEnrolled->id, 'subject_code' => 'CC103']);
+        $this->assertDatabaseMissing('student_grades', ['user_id' => $dropped->id]);
     }
 
     public function test_registrar_can_reject_and_it_returns_to_draft(): void

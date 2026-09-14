@@ -81,4 +81,68 @@ class FacultyGradeSubmitTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_faculty_cannot_submit_a_section_with_no_enrolled_students(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'draft']);
+
+        $response = $this->actingAs($faculty)->post("/faculty/sections/{$section->id}/grades/submit");
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertSame('draft', GradeSubmission::where('section_id', $section->id)->first()->status);
+    }
+
+    public function test_submitting_refreshes_faculty_id_to_the_sections_current_instructor(): void
+    {
+        $oldFaculty = User::factory()->create(['role' => 'faculty']);
+        $newFaculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $oldFaculty->id]);
+        $student = User::factory()->create(['role' => 'student']);
+        $this->enrollStudentInSection($student, $section);
+
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $oldFaculty->id, 'status' => 'draft']);
+        \App\Models\GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $student->id, 'final_grade' => '88', 'status' => 'Passed']);
+
+        // Chair reassigns the section to a new instructor before the submit happens.
+        $section->update(['faculty_id' => $newFaculty->id]);
+
+        $response = $this->actingAs($newFaculty)->post("/faculty/sections/{$section->id}/grades/submit");
+
+        $response->assertRedirect();
+        $submission->refresh();
+        $this->assertSame($newFaculty->id, $submission->faculty_id);
+    }
+
+    public function test_resubmitting_after_a_rejection_clears_stale_chair_approval_fields(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $chair = User::factory()->create(['role' => 'chair']);
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        $student = User::factory()->create(['role' => 'student']);
+        $this->enrollStudentInSection($student, $section);
+
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_chair', 'submitted_at' => now()]);
+        \App\Models\GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $student->id, 'final_grade' => '88', 'status' => 'Passed']);
+
+        $this->actingAs($chair)->post("/approver/grades/{$submission->id}/approve");
+        $submission->refresh();
+        $this->assertSame('pending_registrar', $submission->status);
+        $this->assertNotNull($submission->chair_id);
+        $this->assertNotNull($submission->chair_at);
+
+        $this->actingAs($registrar)->post("/registrar/grades/{$submission->id}/reject", ['remarks' => 'Please recheck.']);
+        $submission->refresh();
+        $this->assertSame('draft', $submission->status);
+
+        $this->actingAs($faculty)->post("/faculty/sections/{$section->id}/grades/submit");
+
+        $submission->refresh();
+        $this->assertSame('pending_chair', $submission->status);
+        $this->assertNull($submission->chair_id);
+        $this->assertNull($submission->chair_at);
+    }
 }

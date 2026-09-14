@@ -640,13 +640,26 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('registrar.dashboard')->with('success', 'Reminder sent to the student.');
     })->name('registrar.documents.remind');
 
+    // Once a GradeSubmission reaches 'approved', there is no built-in way to
+    // reopen it (by design — no correction flow), including for the edge
+    // case of a student being re-enrolled into an already-approved section;
+    // that scenario currently requires a direct database intervention.
     Route::post('/registrar/grades/{submission}/approve', function (GradeSubmission $submission) {
         abort_unless($submission->status === 'pending_registrar', 403, 'This submission is not awaiting Registrar approval.');
 
         $submission->load('items', 'section.subject');
+        $enrolledIds = $submission->section->enrolledStudentIds();
 
-        DB::transaction(function () use ($submission) {
+        DB::transaction(function () use ($submission, $enrolledIds) {
             foreach ($submission->items as $item) {
+                if (! $enrolledIds->contains($item->user_id)) {
+                    // Student dropped/swapped out of the section after being
+                    // graded but before Registrar approval — leave the stale
+                    // grade_submission_item row in place, but don't finalize
+                    // it into student_grades.
+                    continue;
+                }
+
                 StudentGrade::updateOrCreate(
                     ['user_id' => $item->user_id, 'subject_code' => $submission->section->subject->code],
                     ['status' => $item->status, 'final_grade' => $item->final_grade]
@@ -671,14 +684,14 @@ Route::middleware('auth')->group(function () {
 
         $submission->update(['status' => 'draft', 'rejected_by' => 'registrar', 'remarks' => $data['remarks']]);
 
-        $submission->load('section.subject', 'faculty');
+        $submission->load('section.subject', 'section.faculty');
         AuditLog::record(
             'Grades Registrar-Rejected',
             'Registrar rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
             'GradeSubmission',
             $submission->id
         );
-        \App\Support\SafeNotify::send($submission->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Registrar', $submission->section, $data['remarks']));
+        \App\Support\SafeNotify::send($submission->section->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Registrar', $submission->section, $data['remarks']));
 
         return back()->with('success', 'Grades returned to faculty with remarks.');
     })->name('registrar.grades.reject');
@@ -834,14 +847,14 @@ Route::middleware('auth')->group(function () {
 
         $submission->update(['status' => 'draft', 'rejected_by' => 'chair', 'remarks' => $data['remarks']]);
 
-        $submission->load('section.subject', 'faculty');
+        $submission->load('section.subject', 'section.faculty');
         AuditLog::record(
             'Grades Chair-Rejected',
             'Department Chair rejected grades for ' . $submission->section->subject->code . ' (Block ' . $submission->section->block_label . '): ' . $data['remarks'],
             'GradeSubmission',
             $submission->id
         );
-        \App\Support\SafeNotify::send($submission->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Department Chair', $submission->section, $data['remarks']));
+        \App\Support\SafeNotify::send($submission->section->faculty, new \App\Notifications\GradeSubmissionRejectedNotification('Department Chair', $submission->section, $data['remarks']));
 
         return back()->with('success', 'Grades returned to faculty with remarks.');
     })->name('approver.grades.reject');
@@ -927,13 +940,7 @@ Route::middleware('auth')->group(function () {
             );
             abort_unless($submission->status === 'draft', 403, 'This section\'s grades are not editable right now.');
 
-            $enrolledIds = $section->enrollments()
-                ->where('enrollments.status', '!=', 'rejected')
-                ->with('user')
-                ->get()
-                ->pluck('user.id')
-                ->filter()
-                ->values();
+            $enrolledIds = $section->enrolledStudentIds();
 
             foreach ($request->input('grades', []) as $userId => $rawGrade) {
                 if (! $enrolledIds->contains((int) $userId)) {
@@ -968,13 +975,11 @@ Route::middleware('auth')->group(function () {
             $submission = GradeSubmission::where('section_id', $section->id)->first();
             abort_unless($submission && $submission->status === 'draft', 403, 'This section\'s grades are not in a submittable state.');
 
-            $enrolledIds = $section->enrollments()
-                ->where('enrollments.status', '!=', 'rejected')
-                ->with('user')
-                ->get()
-                ->pluck('user.id')
-                ->filter()
-                ->values();
+            $enrolledIds = $section->enrolledStudentIds();
+
+            if ($enrolledIds->isEmpty()) {
+                return back()->with('error', 'This section has no enrolled students to submit grades for.');
+            }
 
             $gradedIds = $submission->items()->pluck('user_id');
             $missing = $enrolledIds->diff($gradedIds);
@@ -989,6 +994,9 @@ Route::middleware('auth')->group(function () {
                 'submitted_at' => now(),
                 'remarks' => null,
                 'rejected_by' => null,
+                'faculty_id' => auth()->id(),
+                'chair_id' => null,
+                'chair_at' => null,
             ]);
 
             AuditLog::record(
