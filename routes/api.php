@@ -1,0 +1,62 @@
+<?php
+
+use App\Http\Controllers\Api\Admin\FacultyController;
+use App\Http\Controllers\Api\Admin\ProgramController;
+use App\Http\Controllers\Api\Admin\RoomController;
+use App\Http\Controllers\Api\Admin\SettingController;
+use App\Http\Controllers\Api\Admin\SectionController;
+use App\Http\Controllers\Api\Admin\SubjectController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\MatriculationController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PaymongoWebhookController;
+use App\Http\Controllers\Api\DocuSignWebhookController;
+
+// Public — no login required, since this is called by PayMongo's own
+// servers, not by a logged-in user. The verifySignature() check inside
+// the controller is what confirms the request is genuinely from PayMongo.
+Route::post('/webhooks/paymongo', [PaymongoWebhookController::class, 'handle']);
+Route::middleware(['auth:sanctum', 'role:student'])->group(function () {
+    Route::get('/enrollment/context', [EnrollmentController::class, 'context']);
+    Route::post('/enrollment', [EnrollmentController::class, 'store']);
+    Route::get('/matriculation/context', [MatriculationController::class, 'context']);
+    Route::post('/matriculation', [MatriculationController::class, 'store']);
+});
+
+// Same idea, but for DocuSign Connect — fired by DocuSign's servers whenever
+// an envelope's status changes (e.g. the student finishes signing).
+Route::post('/webhooks/docusign', [DocuSignWebhookController::class, 'handle']);
+
+// Curriculum-editing API — moved from Admin to Registrar (per Admin doing too
+// much; Dept Chair was considered but not included). URL prefix kept as
+// 'admin' to avoid churning every frontend call site in curriculum-app.jsx.
+//
+// 2026-09-12: scheduling (sections/faculty/rooms) split out to the Dept
+// Chair — see docs/superpowers/specs/2026-09-12-scheduling-to-chair-design.md.
+// Registrar keeps Programs/Subjects (curriculum content); Chair browses the
+// same program/subject listing read-only to find what to schedule, so that
+// GET pair is shared rather than duplicated.
+Route::prefix('admin')->group(function () {
+    Route::middleware(['auth:sanctum', 'role:registrar,admission,chair'])->group(function () {
+        Route::get('/programs', [ProgramController::class, 'index']);
+        Route::get('/programs/{program}/subjects', [ProgramController::class, 'subjects']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:registrar,admission'])->group(function () {
+        Route::post('/settings/change-matriculation', [SettingController::class, 'changeMatriculation']);
+        Route::post('/subjects', [SubjectController::class, 'store']);
+        Route::put('/subjects/{subject}', [SubjectController::class, 'update']);
+        Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy']);
+    });
+
+    Route::middleware(['auth:sanctum', 'role:chair'])->group(function () {
+        Route::post('/sections', [SectionController::class, 'store']);
+        Route::put('/sections/{section}', [SectionController::class, 'update']);
+        Route::delete('/sections/{section}', [SectionController::class, 'destroy']);
+        Route::get('/faculty', [FacultyController::class, 'index']);
+        Route::post('/faculty', [FacultyController::class, 'store']);
+        Route::get('/faculty/{user}/schedule', [FacultyController::class, 'schedule']);
+        Route::get('/rooms', [RoomController::class, 'index']);
+        Route::post('/rooms', [RoomController::class, 'store']);
+    });
+});

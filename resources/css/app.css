@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+
+    --color-brandNavy: #0B3C5D;
+    --color-brandGreen: #1D7A46;
+    --color-brandGold: #E2A700;
+    --color-darkBg: #07101C;
+    --color-lightBg: #EFF3F7;
+    --color-panelDark: #0D1B2A;
+    --color-surfaceDark: #111E2E;
+
+    --animate-fade-in-up: fadeInUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    --animate-fade-in: fadeIn 0.55s ease-out forwards;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@keyframes fadeInUp {
+    0%   { opacity: 0; transform: translateY(22px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@layer components {
+    .prog-card { cursor: pointer; transition: all .18s; }
+    .prog-card:hover { transform: translateY(-2px); }
+    .prog-card.selected { outline: 2px solid #1D7A46; outline-offset: 2px; }
+    .form-slide { transition: max-height .4s ease, opacity .3s ease; overflow: hidden; }
+    .form-slide.hidden-anim { max-height: 0; opacity: 0; pointer-events: none; }
+    .form-slide.visible-anim { max-height: 4000px; opacity: 1; }
+}

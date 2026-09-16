@@ -1,0 +1,202 @@
+import { useMemo, useState } from 'react';
+
+const APPLICANT_TYPE_STYLES = {
+    NEW: 'bg-brandGreen/10 text-brandGreen',
+    TRANSFEREE: 'bg-blue-500/10 text-blue-600',
+    RETURNEE: 'bg-amber-500/10 text-amber-600',
+};
+
+// Disables the submit button right after a confirmed action so a slow
+// request can't be triggered twice by an impatient double-click.
+function disableSubmit(form, busyLabel) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = busyLabel;
+    }
+}
+
+export default function ApplicantQueueTable({ applicants, csrfToken }) {
+    const [search, setSearch] = useState('');
+    const query = search.trim().toLowerCase();
+    const filteredApplicants = useMemo(() => query
+        ? applicants.filter((applicant) => `${applicant.name} ${applicant.email}`.toLowerCase().includes(query))
+        : [], [applicants, query]);
+
+    return (
+        <div className="bg-white dark:bg-panelDark/40 border border-brandGold/30 dark:border-amber-500/20 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-brandGold/20 dark:border-amber-500/20 bg-brandGold/5 dark:bg-amber-500/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <h3 className="text-sm font-bold text-brandNavy dark:text-white">Pending Admission Applications</h3>
+                    <span className="px-2 py-0.5 text-[9px] font-black bg-amber-500 text-white rounded-full">{applicants.length} new</span>
+                </div>
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search applicant..."
+                    className="w-full sm:w-64 bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 px-3 py-2 rounded focus:outline-none focus:border-brandGreen"
+                />
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="border-b border-brandNavy/10 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">
+                            <th className="py-3.5 px-6">Applicant Name</th>
+                            <th className="py-3.5 px-6">Contact</th>
+                            <th className="py-3.5 px-6">Program Applied</th>
+                            <th className="py-3.5 px-6">Type</th>
+                            <th className="py-3.5 px-6">Last School</th>
+                            <th className="py-3.5 px-6 text-center">Reservation</th>
+                            <th className="py-3.5 px-6 text-center">Agreement</th>
+                            <th className="py-3.5 px-6 text-center">Date Applied</th>
+                            <th className="py-3.5 px-6 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brandNavy/5 dark:divide-slate-800/40 text-xs">
+                        {filteredApplicants.length === 0 ? (
+                            <tr><td colSpan={9} className="py-12 text-center text-brandNavy/40 dark:text-slate-500">{query ? 'No matching applicants.' : 'Search to view admission applications.'}</td></tr>
+                        ) : filteredApplicants.map((applicant) => (
+                            <tr key={applicant.id} className="hover:bg-amber-50/50 dark:hover:bg-amber-500/5 transition-colors">
+                                <td className="py-4 px-6">
+                                    <p className="font-bold text-brandNavy dark:text-white">{applicant.name}</p>
+                                    <p className="text-brandNavy/50 dark:text-slate-500 text-[11px]">{applicant.email}</p>
+                                    {applicant.dob && (
+                                        <p className="text-brandNavy/40 dark:text-slate-600 text-[10px]">{applicant.sex ?? ''} · {applicant.dob}</p>
+                                    )}
+                                </td>
+                                <td className="py-4 px-6 text-brandNavy/60 dark:text-slate-400">
+                                    <p>{applicant.contactNumber ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600 mt-0.5 max-w-[140px] truncate">{applicant.address ?? ''}</p>
+                                </td>
+                                <td className="py-4 px-6">
+                                    <p className="font-semibold text-brandNavy dark:text-slate-200">{applicant.major ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600">{applicant.programLevel ?? ''}</p>
+                                </td>
+                                <td className="py-4 px-6">
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide ${APPLICANT_TYPE_STYLES[applicant.applicantType] ?? 'bg-slate-100 dark:bg-slate-800 text-brandNavy/50'}`}>
+                                        {applicant.applicantType ?? '—'}
+                                    </span>
+                                </td>
+                                <td className="py-4 px-6 text-brandNavy/60 dark:text-slate-400">
+                                    <p>{applicant.lastSchool ?? '—'}</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600">Grad: {applicant.yearGraduated ?? '—'}</p>
+                                </td>
+                                <td className="py-4 px-6 text-center">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        {applicant.isReserved ? (
+                                            // Green badge: fee has been paid, slot is secured.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGreen/10 text-brandGreen">
+                                                <i className="fa-solid fa-circle-check mr-1" />Reserved
+                                            </span>
+                                        ) : applicant.wantsReservation ? (
+                                            // Gold badge: they said they want to reserve, but haven't paid yet.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGold/10 text-brandGold">
+                                                <i className="fa-solid fa-clock mr-1" />Wants to Reserve
+                                            </span>
+                                        ) : (
+                                            // Gray badge: no interest indicated at all.
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-brandNavy/50 dark:text-slate-500">
+                                                Not Reserved
+                                            </span>
+                                        )}
+
+                                        {/* Admission staff can manually flip is_reserved once payment is confirmed
+                                            (e.g. paid in cash at the counter). */}
+                                        <form
+                                            action={applicant.toggleReservationUrl}
+                                            method="POST"
+                                            onSubmit={(e) => {
+                                                const action = applicant.isReserved ? 'Unmark' : 'Mark';
+                                                if (!window.confirm(`${action} ${applicant.name} as having paid the ₱500 reservation fee?`)) {
+                                                    e.preventDefault();
+                                                    return;
+                                                }
+                                                disableSubmit(e.currentTarget, 'Please wait…');
+                                            }}
+                                        >
+                                            <input type="hidden" name="_token" value={csrfToken} />
+                                            <button
+                                                type="submit"
+                                                className="text-[9px] font-bold text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-slate-300 underline underline-offset-2 transition-colors"
+                                            >
+                                                {applicant.isReserved ? 'Unmark Paid' : 'Mark as Paid'}
+                                            </button>
+                                        </form>
+
+                                        {/* For applicants who never opted into an online/counter reservation
+                                            payment at all — the only path left to give them a student account.
+                                            Styled as a solid button (not an underlined text link) since this is
+                                            an irreversible action that creates real login credentials and emails
+                                            them out — it should not read the same as the cleanup actions nearby. */}
+                                        {!applicant.isReserved && !applicant.wantsReservation && (
+                                            <form
+                                                action={applicant.activateApplicantUrl}
+                                                method="POST"
+                                                onSubmit={(e) => {
+                                                    if (!window.confirm(`Create a student account for ${applicant.name} now? This immediately generates login credentials and emails them to the applicant.`)) {
+                                                        e.preventDefault();
+                                                        return;
+                                                    }
+                                                    disableSubmit(e.currentTarget, 'Activating…');
+                                                }}
+                                            >
+                                                <input type="hidden" name="_token" value={csrfToken} />
+                                                <button
+                                                    type="submit"
+                                                    className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wide text-white bg-brandGreen hover:bg-emerald-700 transition-colors"
+                                                >
+                                                    Activate Account
+                                                </button>
+                                            </form>
+                                        )}
+                                    </div>
+                                </td>
+                                <td className="py-4 px-6 text-center">
+                                    {applicant.agreementSigned ? (
+                                        <a href={applicant.agreementViewUrl} target="_blank" rel="noopener noreferrer"
+                                           className="inline-flex flex-col items-center gap-0.5 text-brandGreen hover:text-emerald-700 transition-colors">
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-brandGreen/10">
+                                                <i className="fa-solid fa-signature mr-1" />Signed
+                                            </span>
+                                            <span className="text-[9px] font-bold underline underline-offset-2">{applicant.agreementSignedAt}</span>
+                                        </a>
+                                    ) : (
+                                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide bg-slate-100 dark:bg-slate-800 text-brandNavy/40 dark:text-slate-500">
+                                            Not Signed
+                                        </span>
+                                    )}
+                                </td>
+                                <td className="py-4 px-6 text-center text-brandNavy/50 dark:text-slate-500">{applicant.createdAtFormatted}</td>
+                                <td className="py-4 px-6 text-center">
+                                    {/* Archives a stale application (never paid, never followed up) so it
+                                        stops cluttering the queue. Not a decline decision — just cleanup. */}
+                                    <form
+                                        action={applicant.archiveApplicantUrl}
+                                        method="POST"
+                                        onSubmit={(e) => {
+                                            if (!window.confirm(`Archive ${applicant.name}'s application? This removes them from the pending queue.`)) {
+                                                e.preventDefault();
+                                                return;
+                                            }
+                                            disableSubmit(e.currentTarget, 'Archiving…');
+                                        }}
+                                    >
+                                        <input type="hidden" name="_token" value={csrfToken} />
+                                        <button
+                                            type="submit"
+                                            className="text-[9px] font-bold text-red-500/70 hover:text-red-600 underline underline-offset-2 transition-colors"
+                                        >
+                                            Archive
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}

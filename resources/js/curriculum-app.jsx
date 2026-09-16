@@ -1,0 +1,126 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import ErrorBoundary from './components/ErrorBoundary';
+import api from './lib/api';
+import SubjectRow from './curriculum/SubjectRow';
+
+function CurriculumApp() {
+    const [programs, setPrograms] = useState([]);
+    const [active, setActive] = useState(null);
+    const [subjects, setSubjects] = useState([]);
+    const [adding, setAdding] = useState(false);
+    const [draft, setDraft] = useState(null);
+    const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [yearFilter, setYearFilter] = useState(1);
+    const [semFilter, setSemFilter] = useState(1);
+    const [windowOpen, setWindowOpen] = useState(false);
+
+    useEffect(() => {
+        api.get('/admin/programs').then((res) => {
+            const enrollable = res.data.programs.filter((p) => p.is_enrollable);
+            setPrograms(enrollable);
+            setWindowOpen(Boolean(res.data.change_matriculation_open));
+            if (enrollable.length > 0) setActive(enrollable[0]);
+        });
+    }, []);
+
+    const loadSubjects = useCallback(() => {
+        if (!active) return;
+        api.get(`/admin/programs/${active.id}/subjects`).then((res) => setSubjects(res.data.subjects));
+    }, [active]);
+
+    useEffect(loadSubjects, [loadSubjects]);
+
+    const createSubject = () => {
+        setError(null);
+        setSaving(true);
+        api.post('/admin/subjects', {
+            ...draft, program_id: active.id, units: Number(draft.units),
+            year_level: yearFilter, semester: semFilter, prerequisite_ids: [],
+        }).then(() => { setAdding(false); setDraft(null); loadSubjects(); })
+            .catch((err) => setError(err.response?.data?.message ?? 'Check the fields and try again.'))
+            .finally(() => setSaving(false));
+    };
+
+    const visible = subjects.filter((s) => s.year_level === yearFilter && s.semester === semFilter);
+
+    const toggleWindow = () => {
+        api.post('/admin/settings/change-matriculation', { open: !windowOpen })
+            .then((res) => setWindowOpen(res.data.change_matriculation_open));
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+                <div className="flex flex-wrap gap-2">
+                    {programs.map((p) => (
+                        <button key={p.id} onClick={() => setActive(p)}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold
+                                ${active?.id === p.id ? 'bg-brandNavy text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                            {p.code}
+                        </button>
+                    ))}
+                </div>
+                <button onClick={toggleWindow}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider
+                        ${windowOpen ? 'bg-brandGreen text-white' : 'bg-white dark:bg-panelDark text-brandNavy dark:text-slate-200 shadow-sm'}`}>
+                    Change of Matriculation: {windowOpen ? 'OPEN' : 'CLOSED'}
+                </button>
+            </div>
+
+            {active && (
+                <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-brandNavy dark:text-slate-100 mb-1">{active.name}</h2>
+                    <div className="flex flex-wrap gap-2 my-3 text-xs">
+                        {[...Array(active.years ?? 4)].map((_, i) => (
+                            <button key={i} onClick={() => setYearFilter(i + 1)}
+                                className={`px-3 py-1.5 rounded ${yearFilter === i + 1 ? 'bg-brandGreen text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                                Year {i + 1}
+                            </button>
+                        ))}
+                        {[1, 2].map((sem) => (
+                            <button key={sem} onClick={() => setSemFilter(sem)}
+                                className={`px-3 py-1.5 rounded ${semFilter === sem ? 'bg-brandGold text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                                Sem {sem}
+                            </button>
+                        ))}
+                    </div>
+
+                    {visible.map((subject) => (
+                        <SubjectRow key={subject.id} subject={subject} allSubjects={subjects}
+                            onChanged={loadSubjects} />
+                    ))}
+
+                    {adding ? (
+                        <div className="flex flex-wrap gap-2 text-xs mt-2">
+                            <input placeholder="Code" value={draft?.code ?? ''} onChange={(e) => setDraft({ ...draft, code: e.target.value })}
+                                className="w-24 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
+                            <input placeholder="Title" value={draft?.title ?? ''} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                                className="flex-1 min-w-48 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
+                            <input type="number" placeholder="Units" value={draft?.units ?? 3} onChange={(e) => setDraft({ ...draft, units: e.target.value })}
+                                className="w-16 px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800" />
+                            <select value={draft?.mode ?? 'F2F'} onChange={(e) => setDraft({ ...draft, mode: e.target.value })}
+                                className="px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800">
+                                <option>F2F</option><option>Online</option>
+                            </select>
+                            <button onClick={createSubject} disabled={saving} className="px-3 py-1.5 rounded bg-brandGreen text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                                {saving ? 'Saving…' : 'Add'}
+                            </button>
+                            <button onClick={() => setAdding(false)} disabled={saving} className="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700 disabled:opacity-50">Cancel</button>
+                            {error && <p className="w-full text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2 py-1.5">{error}</p>}
+                        </div>
+                    ) : (
+                        <button onClick={() => { setAdding(true); setDraft({ code: '', title: '', units: 3, mode: 'F2F' }); }}
+                            className="mt-2 text-sm text-brandGreen font-semibold hover:underline">
+                            + Add Subject to Year {yearFilter}, Sem {semFilter}
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+const el = document.getElementById('curriculum-root');
+if (el) createRoot(el).render(<ErrorBoundary><CurriculumApp /></ErrorBoundary>);

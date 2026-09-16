@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('sections', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
+            $table->string('block_label', 10);
+            $table->json('days');
+            $table->string('start_time', 5);
+            $table->string('end_time', 5);
+            $table->string('room', 50);
+            $table->string('professor', 100);
+            $table->unsignedSmallInteger('capacity');
+            $table->string('school_year', 20);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('sections');
+    }
+};

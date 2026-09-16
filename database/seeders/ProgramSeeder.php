@@ -1,0 +1,34 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Program;
+use App\Models\Setting;
+use Illuminate\Database\Seeder;
+
+class ProgramSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $programs = [
+            ['code' => 'BKNC3',  'name' => 'Bookkeeping NC III',                                   'level' => 'tesda',     'years' => null, 'is_enrollable' => false],
+            ['code' => 'EMNC3',  'name' => 'Events Management NC III',                             'level' => 'tesda',     'years' => null, 'is_enrollable' => false],
+            ['code' => 'FBNC3',  'name' => 'Food & Beverages NC III',                              'level' => 'tesda',     'years' => null, 'is_enrollable' => false],
+            ['code' => 'BOM',    'name' => 'Business Office Management',                           'level' => 'associate', 'years' => 2,    'is_enrollable' => true],
+            ['code' => 'FSM',    'name' => 'Food Service Management',                              'level' => 'associate', 'years' => 2,    'is_enrollable' => true],
+            ['code' => 'BSOA',   'name' => 'Bachelor of Science in Office Administration',         'level' => 'bachelor',  'years' => 4,    'is_enrollable' => true],
+            ['code' => 'BTVTED', 'name' => 'Bachelor in Technical-Vocational Teacher Education',   'level' => 'bachelor',  'years' => 4,    'is_enrollable' => true],
+        ];
+
+        foreach ($programs as $program) {
+            Program::updateOrCreate(['code' => $program['code']], $program);
+        }
+
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '1');
+        Setting::put('tuition_per_unit', '300');
+        Setting::put('misc_fee', '1500');
+        Setting::put('reservation_fee', '500');/**for resertvation  slot fee */
+        Setting::put('tuition_fee_flat', '0');/** 0 = no flat override; tuition falls back to units * tuition_per_unit */
+    }
+}
