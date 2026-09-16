@@ -44,6 +44,12 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 font-bold text-sm flex items-center gap-3">
+                <i class="fa-solid fa-circle-exclamation"></i>{{ session('error') }}
+            </div>
+        @endif
+
         @php
             $context = [
                 'students' => $students->map(function ($student) use ($items) {

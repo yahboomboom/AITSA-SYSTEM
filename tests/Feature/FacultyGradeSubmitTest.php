@@ -60,6 +60,28 @@ class FacultyGradeSubmitTest extends TestCase
         $this->assertSame('draft', GradeSubmission::where('section_id', $section->id)->first()->status);
     }
 
+    public function test_the_missing_grade_error_actually_renders_on_the_grade_entry_page(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create(['faculty_id' => $faculty->id]);
+        $graded = User::factory()->create(['role' => 'student']);
+        $ungraded = User::factory()->create(['role' => 'student']);
+        $this->enrollStudentInSection($graded, $section);
+        $this->enrollStudentInSection($ungraded, $section);
+
+        $this->actingAs($faculty)->post("/faculty/sections/{$section->id}/grades", [
+            'grades' => [$graded->id => '88'],
+        ]);
+
+        $response = $this->actingAs($faculty)
+            ->from("/faculty/sections/{$section->id}/grades")
+            ->followingRedirects()
+            ->post("/faculty/sections/{$section->id}/grades/submit");
+
+        $response->assertOk();
+        $response->assertSee('Enter a grade for every enrolled student before submitting.');
+    }
+
     public function test_faculty_cannot_submit_a_section_they_do_not_teach(): void
     {
         $owner = User::factory()->create(['role' => 'faculty']);

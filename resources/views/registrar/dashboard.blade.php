@@ -97,22 +97,28 @@
                         'documentsSearchUrl' => route('registrar.documents.search'),
                         'documentsPendingCount' => $documentsPendingCount,
                         'documentsRejectedCount' => $documentsRejectedCount,
-                        'gradeSubmissions' => $pendingGradeApprovals->map(fn ($submission) => [
+                        'gradeSubmissions' => $pendingGradeApprovals->map(function ($submission) {
+                            $enrolledIds = $submission->section->enrolledStudentIds();
+                            $gradedIds = $submission->items->pluck('user_id');
+
+                            return [
                             'id' => $submission->id,
                             'subjectCode' => $submission->section->subject->code,
                             'subjectTitle' => $submission->section->subject->title,
                             'blockLabel' => $submission->section->block_label,
-                            'facultyName' => $submission->faculty->name,
+                            'facultyName' => $submission->section->faculty->name ?? '—',
                             'studentCount' => $submission->items->count(),
+                            'missingGrades' => $enrolledIds->diff($gradedIds)->count(),
                             'approveUrl' => route('registrar.grades.approve', $submission),
                             'rejectUrl' => route('registrar.grades.reject', $submission),
                             'items' => $submission->items->map(fn ($item) => [
-                                'name' => $item->user->name,
-                                'loginId' => $item->user->login_id,
+                                'name' => $item->user->name ?? 'Unknown (deleted account)',
+                                'loginId' => $item->user->login_id ?? 'N/A',
                                 'grade' => $item->final_grade,
                                 'status' => $item->status,
                             ])->values(),
-                        ])->values(),
+                            ];
+                        })->values(),
                     ];
                 @endphp
 

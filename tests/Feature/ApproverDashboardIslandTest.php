@@ -138,4 +138,60 @@ class ApproverDashboardIslandTest extends TestCase
         $response->assertSee('&quot;name&quot;:&quot;Maria Santos&quot;', false);
         $response->assertSee('&quot;grade&quot;:&quot;91&quot;', false);
     }
+
+    public function test_dashboard_does_not_crash_when_a_graded_students_account_is_soft_deleted(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $subject = Subject::factory()->create(['code' => 'CC101']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
+        $student = User::factory()->create(['role' => 'student']);
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_chair', 'submitted_at' => now()]);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $student->id, 'final_grade' => '80', 'status' => 'Passed']);
+        $student->delete();
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('Unknown (deleted account)');
+    }
+
+    public function test_dashboard_shows_the_sections_current_faculty_after_reassignment(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $originalFaculty = User::factory()->create(['role' => 'faculty', 'name' => 'Prof. Original']);
+        $newFaculty = User::factory()->create(['role' => 'faculty', 'name' => 'Prof. Replacement']);
+        $subject = Subject::factory()->create(['code' => 'CC101']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $originalFaculty->id]);
+        // faculty_id on the submission is left pointing at the original —
+        // simulates a reassignment happening after the submission was created.
+        GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $originalFaculty->id, 'status' => 'pending_chair', 'submitted_at' => now()]);
+        $section->update(['faculty_id' => $newFaculty->id]);
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('Prof. Replacement');
+        $response->assertDontSee('Prof. Original');
+    }
+
+    public function test_dashboard_flags_a_student_enrolled_after_the_submission_was_graded(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        $subject = Subject::factory()->create(['code' => 'CC101']);
+        $section = Section::factory()->create(['subject_id' => $subject->id, 'faculty_id' => $faculty->id]);
+        $gradedStudent = User::factory()->create(['role' => 'student']);
+        $submission = GradeSubmission::create(['section_id' => $section->id, 'faculty_id' => $faculty->id, 'status' => 'pending_chair', 'submitted_at' => now()]);
+        GradeSubmissionItem::create(['grade_submission_id' => $submission->id, 'user_id' => $gradedStudent->id, 'final_grade' => '85', 'status' => 'Passed']);
+
+        $lateStudent = User::factory()->create(['role' => 'student']);
+        $enrollment = Enrollment::factory()->create(['user_id' => $lateStudent->id, 'status' => 'enrolled']);
+        $enrollment->sections()->attach($section->id);
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;missingGrades&quot;:1', false);
+    }
 }

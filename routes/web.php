@@ -450,7 +450,7 @@ Route::middleware('auth')->group(function () {
             ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
         $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
         $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
-        $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'faculty', 'items.user'])
+        $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'section.faculty', 'items.user'])
             ->where('status', 'pending_registrar')
             ->latest('chair_at')
             ->get();
@@ -645,27 +645,37 @@ Route::middleware('auth')->group(function () {
     // case of a student being re-enrolled into an already-approved section;
     // that scenario currently requires a direct database intervention.
     Route::post('/registrar/grades/{submission}/approve', function (GradeSubmission $submission) {
-        abort_unless($submission->status === 'pending_registrar', 403, 'This submission is not awaiting Registrar approval.');
+        DB::transaction(function () use ($submission) {
+            // Atomic conditional update, not abort-then-update: two concurrent
+            // approve requests both reading 'pending_registrar' before either
+            // writes could otherwise both pass a separate status check and
+            // both finalize. Only one UPDATE...WHERE can match the row.
+            $claimed = GradeSubmission::where('id', $submission->id)
+                ->where('status', 'pending_registrar')
+                ->update(['status' => 'approved', 'registrar_id' => Auth::id(), 'registrar_at' => now()]);
+            abort_unless($claimed === 1, 403, 'This submission is not awaiting Registrar approval.');
 
-        $submission->load('items', 'section.subject');
-        $enrolledIds = $submission->section->enrolledStudentIds();
+            $submission->refresh()->load('items', 'section.subject');
+            $enrolledIds = $submission->section->enrolledStudentIds();
 
-        DB::transaction(function () use ($submission, $enrolledIds) {
-            foreach ($submission->items as $item) {
-                if (! $enrolledIds->contains($item->user_id)) {
-                    // Student dropped/swapped out of the section after being
-                    // graded but before Registrar approval — leave the stale
-                    // grade_submission_item row in place, but don't finalize
-                    // it into student_grades.
-                    continue;
-                }
+            $rows = $submission->items
+                ->filter(fn ($item) => $enrolledIds->contains($item->user_id))
+                // Student dropped/swapped out of the section after being
+                // graded but before Registrar approval — leave the stale
+                // grade_submission_item row in place, but don't finalize
+                // it into student_grades.
+                ->map(fn ($item) => [
+                    'user_id' => $item->user_id,
+                    'subject_code' => $submission->section->subject->code,
+                    'status' => $item->status,
+                    'final_grade' => $item->final_grade,
+                ])
+                ->values()
+                ->all();
 
-                StudentGrade::updateOrCreate(
-                    ['user_id' => $item->user_id, 'subject_code' => $submission->section->subject->code],
-                    ['status' => $item->status, 'final_grade' => $item->final_grade]
-                );
+            if (! empty($rows)) {
+                StudentGrade::upsert($rows, ['user_id', 'subject_code'], ['status', 'final_grade']);
             }
-            $submission->update(['status' => 'approved', 'registrar_id' => Auth::id(), 'registrar_at' => now()]);
         });
 
         AuditLog::record(
@@ -680,9 +690,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/registrar/grades/{submission}/reject', function (Request $request, GradeSubmission $submission) {
         $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
-        abort_unless($submission->status === 'pending_registrar', 403, 'This submission is not awaiting Registrar approval.');
 
-        $submission->update(['status' => 'draft', 'rejected_by' => 'registrar', 'remarks' => $data['remarks']]);
+        $updated = GradeSubmission::where('id', $submission->id)
+            ->where('status', 'pending_registrar')
+            ->update(['status' => 'draft', 'rejected_by' => 'registrar', 'remarks' => $data['remarks']]);
+        abort_unless($updated === 1, 403, 'This submission is not awaiting Registrar approval.');
+        $submission->refresh();
 
         $submission->load('section.subject', 'section.faculty');
         AuditLog::record(
@@ -713,7 +726,7 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending')
             ->latest()
             ->get();
-        $pendingGradeSubmissions = GradeSubmission::with(['section.subject', 'faculty', 'items.user'])
+        $pendingGradeSubmissions = GradeSubmission::with(['section.subject', 'section.faculty', 'items.user'])
             ->where('status', 'pending_chair')
             ->latest('submitted_at')
             ->get();
@@ -826,9 +839,11 @@ Route::middleware('auth')->group(function () {
     })->name('approver.hold');
 
     Route::post('/approver/grades/{submission}/approve', function (GradeSubmission $submission) {
-        abort_unless($submission->status === 'pending_chair', 403, 'This submission is not awaiting Chair approval.');
-
-        $submission->update(['status' => 'pending_registrar', 'chair_id' => Auth::id(), 'chair_at' => now()]);
+        $updated = GradeSubmission::where('id', $submission->id)
+            ->where('status', 'pending_chair')
+            ->update(['status' => 'pending_registrar', 'chair_id' => Auth::id(), 'chair_at' => now()]);
+        abort_unless($updated === 1, 403, 'This submission is not awaiting Chair approval.');
+        $submission->refresh();
 
         $submission->load('section.subject');
         AuditLog::record(
@@ -843,9 +858,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/approver/grades/{submission}/reject', function (Request $request, GradeSubmission $submission) {
         $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
-        abort_unless($submission->status === 'pending_chair', 403, 'This submission is not awaiting Chair approval.');
 
-        $submission->update(['status' => 'draft', 'rejected_by' => 'chair', 'remarks' => $data['remarks']]);
+        $updated = GradeSubmission::where('id', $submission->id)
+            ->where('status', 'pending_chair')
+            ->update(['status' => 'draft', 'rejected_by' => 'chair', 'remarks' => $data['remarks']]);
+        abort_unless($updated === 1, 403, 'This submission is not awaiting Chair approval.');
+        $submission->refresh();
 
         $submission->load('section.subject', 'section.faculty');
         AuditLog::record(
@@ -921,10 +939,18 @@ Route::middleware('auth')->group(function () {
                 ->sortBy('name')
                 ->values();
 
-            $submission = GradeSubmission::firstOrCreate(
-                ['section_id' => $section->id],
-                ['faculty_id' => auth()->id(), 'status' => 'draft']
-            );
+            try {
+                $submission = GradeSubmission::firstOrCreate(
+                    ['section_id' => $section->id],
+                    ['faculty_id' => auth()->id(), 'status' => 'draft']
+                );
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Two requests for a section with no GradeSubmission row yet
+                // (e.g. two tabs) can both miss the initial SELECT and race
+                // on the section_id unique constraint. The loser just re-reads
+                // the row the winner created.
+                $submission = GradeSubmission::where('section_id', $section->id)->firstOrFail();
+            }
 
             $items = $submission->items()->get()->keyBy('user_id');
 
@@ -933,11 +959,16 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/faculty/sections/{section}/grades', function (Request $request, Section $section) {
             abort_unless($section->faculty_id === auth()->id(), 403);
+            $section->load('subject');
 
-            $submission = GradeSubmission::firstOrCreate(
-                ['section_id' => $section->id],
-                ['faculty_id' => auth()->id(), 'status' => 'draft']
-            );
+            try {
+                $submission = GradeSubmission::firstOrCreate(
+                    ['section_id' => $section->id],
+                    ['faculty_id' => auth()->id(), 'status' => 'draft']
+                );
+            } catch (\Illuminate\Database\QueryException $e) {
+                $submission = GradeSubmission::where('section_id', $section->id)->firstOrFail();
+            }
             abort_unless($submission->status === 'draft', 403, 'This section\'s grades are not editable right now.');
 
             $enrolledIds = $section->enrolledStudentIds();

@@ -22,6 +22,12 @@ export default function GradeSubmissionQueue({ rows, csrfToken, title = 'Grade S
                                 <div>
                                     <p className="font-semibold text-brandNavy dark:text-slate-100">{row.subjectCode} — Block {row.blockLabel}</p>
                                     <p className="text-xs text-slate-500">{row.subjectTitle} — {row.facultyName} — {row.studentCount} student(s)</p>
+                                    {row.missingGrades > 0 && (
+                                        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                                            <i className="fa-solid fa-triangle-exclamation mr-1" />
+                                            {row.missingGrades} enrolled student{row.missingGrades > 1 ? 's' : ''} enrolled since submission, missing a grade
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="flex gap-2 items-start">
                                     <button
