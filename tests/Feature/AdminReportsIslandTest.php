@@ -31,6 +31,10 @@ class AdminReportsIslandTest extends TestCase
         $response->assertSee('id="admin-reports-root"', false);
         $response->assertSee('Report Test Student');
         $response->assertSee('&quot;cleared&quot;:1', false);
+        $response->assertSee('Academic Year 2026-2027');
+        $response->assertSee('1st Semester');
+        $response->assertDontSee('2025–2026');
+        $response->assertDontSee('2025-2026');
     }
 
     public function test_reports_page_shows_enrollment_agreement_signing_counts(): void

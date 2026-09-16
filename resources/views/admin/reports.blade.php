@@ -50,8 +50,13 @@
 
             <div class="no-print">
                 <h1 class="text-3xl font-black text-brandNavy dark:text-white">Enrollment & Clearance Report</h1>
+                @php
+                    $reportSemester = (int) \App\Models\Setting::get('semester', '1');
+                    $reportSemesterLabel = [1 => '1st', 2 => '2nd'][$reportSemester] ?? $reportSemester;
+                    $reportSchoolYear = \App\Models\Setting::get('school_year', '2026-2027');
+                @endphp
                 <p class="text-sm text-brandNavy/60 dark:text-slate-400 mt-1">
-                    Academic Year 2025–2026 &nbsp;·&nbsp; 1st Semester &nbsp;·&nbsp;
+                    Academic Year {{ $reportSchoolYear }} &nbsp;·&nbsp; {{ $reportSemesterLabel }} Semester &nbsp;·&nbsp;
                     Generated: {{ now()->format('F d, Y h:i A') }}
                 </p>
             </div>
@@ -103,7 +108,7 @@
 
             {{-- Print footer (only visible when printing) --}}
             <div class="hidden print:block mt-6 pt-4 border-t border-slate-300 text-center text-[10px] text-slate-400">
-                AITSA Enrollment & Clearance Report &nbsp;·&nbsp; AY 2025–2026 1st Sem &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
+                AITSA Enrollment & Clearance Report &nbsp;·&nbsp; AY {{ $reportSchoolYear }} {{ $reportSemesterLabel }} Sem &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
             </div>
 
         </div>

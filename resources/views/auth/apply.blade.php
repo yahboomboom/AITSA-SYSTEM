@@ -30,7 +30,7 @@
     {{-- gradient: near-opaque on the left where text lives, fades right --}}
     <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(11,60,93,0.92) 0%, rgba(11,60,93,0.80) 50%, rgba(11,60,93,0.45) 100%);"></div>
     <div class="relative max-w-5xl mx-auto">
-        <p class="text-brandGold text-xs font-black uppercase tracking-widest mb-3">Academic Year 2025–2026 Enrollment</p>
+        <p class="text-brandGold text-xs font-black uppercase tracking-widest mb-3">Academic Year {{ $schoolYear }} Enrollment</p>
         <h1 class="text-3xl lg:text-5xl font-black leading-tight mb-4" style="text-shadow:0 2px 16px rgba(0,0,0,0.45);">Start Your Journey<br>at <span class="text-brandGold">AITSA</span></h1>
         <p class="text-white/85 text-sm max-w-xl leading-relaxed">
             Apply for admission to any of our TESDA, Associate, or Bachelor programs.
@@ -96,7 +96,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 @foreach([
                     ['id'=>'bk3',  'name'=>'Bookkeeping NC III',       'icon'=>'fa-book-bookmark', 'duration'=>'292 training hours'],
-                    ['id'=>'em3',  'name'=>'Events Management NC III',  'icon'=>'fa-calendar-star', 'duration'=>'108 training hours'],
+                    ['id'=>'em3',  'name'=>'Events Management NC III',  'icon'=>'fa-calendar-days', 'duration'=>'108 training hours'],
                     ['id'=>'fb3',  'name'=>'Food & Beverages NC III',   'icon'=>'fa-utensils',      'duration'=>'230 training hours'],
                 ] as $prog)
                 @php $slot = $slots[$prog['id']] ?? null; @endphp
@@ -350,7 +350,7 @@
 {{-- Footer --}}
 <footer class="border-t border-brandNavy/10 mt-10 py-8 px-6 text-center text-[10px] text-brandNavy/40">
     <p class="font-bold">Asian Institute of Technology, Science and Arts</p>
-    <p>3F Don Onofre St., Brgy. Sala, City of Cabuyao, Laguna · A.Y. 2025–2026</p>
+    <p>3F Don Onofre St., Brgy. Sala, City of Cabuyao, Laguna · A.Y. {{ $schoolYear }}</p>
 </footer>
 
 <script>

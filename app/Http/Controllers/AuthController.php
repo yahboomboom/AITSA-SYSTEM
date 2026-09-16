@@ -159,7 +159,7 @@ class AuthController extends Controller
             ]];
         });
 
-        return view('auth.apply', compact('strands', 'reservationFee', 'slots'));
+        return view('auth.apply', compact('strands', 'reservationFee', 'slots', 'schoolYear'));
     }
 
     // 4. Store incoming application as pending — admin creates the account and emails credentials
