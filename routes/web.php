@@ -295,7 +295,7 @@ Route::middleware('auth')->group(function () {
         // Verify the uploaded file actually shows the submitting student's own name
         // (OCR-read and compared against their account name) before accepting it.
         if (!$docVerifier->verifyNameOnDocument($file, $user->name)) {
-            return redirect()->route('clearance')->with('error', 'Mismatch document. Please resubmit the required file.');
+            return redirect()->route('documents')->with('error', 'Mismatch document. Please resubmit the required file.');
         }
 
         $submission = DocumentSubmission::create([
