@@ -1050,6 +1050,7 @@ Route::middleware('auth')->group(function () {
                 $query->where('school_year', Setting::get('school_year', '2026-2027'))
                     ->where('semester', (int) Setting::get('semester', '1'));
             })
+            ->whereHas('clearance.user')
             ->with('clearance.user')
             ->get();
 
