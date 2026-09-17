@@ -145,7 +145,9 @@ Route::middleware('auth')->group(function () {
             );
         }
 
-        return view('dashboard', compact('clearance'));
+        $context = ['clearancePercent' => $clearance->completionPercent()];
+
+        return view('dashboard', compact('clearance', 'context'));
     })->name('dashboard');
 
     // 2. Student e-Clearance Routing Module
@@ -1132,9 +1134,11 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students');
 
     Route::get('/registrar/reports', function () {
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
         $clearances        = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
             ->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
 
@@ -1149,6 +1153,8 @@ Route::middleware('auth')->group(function () {
             ],
             'pendingApplicants' => $pendingApplicants,
             'dashboardUrl' => route('registrar.dashboard'),
+            'schoolYear' => $schoolYear,
+            'semester' => $semester,
             'rows' => $clearances->values()->map(fn ($c, $i) => [
                 'id' => $c->id,
                 'index' => $i + 1,
@@ -1165,7 +1171,7 @@ Route::middleware('auth')->group(function () {
             ])->values(),
         ];
 
-        return view('registrar.reports', compact('context'));
+        return view('registrar.reports', compact('context', 'schoolYear', 'semester'));
     })->name('registrar.reports');
 
     // Curriculum editing — moved here from Admin (per the adviser's note that

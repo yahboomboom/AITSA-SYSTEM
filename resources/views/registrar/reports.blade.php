@@ -28,7 +28,7 @@
                 <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                     <i class="fa-solid fa-bars text-lg"></i>
                 </button>
-                <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Clearance Routing Report</h2>
+                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Clearance routing report</h2>
             </div>
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-3 border-l border-brandNavy/10 dark:border-slate-700 pl-3">
@@ -38,7 +38,7 @@
                     </button>
                     @include('partials.profile-menu', [
                         'roleLabel' => 'Registrar Portal',
-                        'roleClass' => 'font-mono font-bold uppercase tracking-wider text-brandGreen dark:text-emerald-400',
+                        'roleClass' => 'font-medium text-brandGreen',
                     ])
                 </div>
             </div>
@@ -47,9 +47,9 @@
         <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
             <div>
-                <h1 class="text-2xl font-black text-brandNavy dark:text-white">Clearance Routing Report</h1>
+                <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Clearance routing report</h1>
                 <p class="text-sm text-brandNavy/60 dark:text-slate-400 mt-1">
-                    Academic Year 2025–2026 &nbsp;·&nbsp; 1st Semester &nbsp;·&nbsp;
+                    A.Y. {{ $schoolYear }} &nbsp;·&nbsp; Semester {{ $semester }} &nbsp;·&nbsp;
                     Generated: {{ now()->format('F d, Y h:i A') }}
                 </p>
             </div>
@@ -58,8 +58,8 @@
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
 
-            <div class="hidden print:block mt-6 pt-4 border-t border-slate-300 text-center text-[10px] text-slate-400">
-                AITSA Clearance Routing Report &nbsp;·&nbsp; AY 2025–2026 1st Sem &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
+            <div class="hidden print:block mt-6 pt-4 border-t border-brandNavy/10 text-center text-xs text-brandNavy/40">
+                AITSA Clearance Routing Report &nbsp;·&nbsp; A.Y. {{ $schoolYear }}, Semester {{ $semester }} &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
             </div>
 
         </div>

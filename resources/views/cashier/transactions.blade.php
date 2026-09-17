@@ -21,7 +21,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
+                    <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Cashier operations</span>
                 </div>
                 <div class="flex items-center gap-3">
                     @include('partials.notif-bell')
@@ -35,11 +35,11 @@
 
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                        <h1 class="text-xl font-bold text-brandNavy dark:text-white">Transactions Ledger</h1>
-                        <p class="text-xs text-brandNavy/50 dark:text-slate-400">Historical clearance logging, transaction summaries, and audit records.</p>
+                        <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Transactions ledger</h1>
+                        <p class="text-sm text-brandNavy/50 dark:text-slate-400">Historical clearance logging, transaction summaries, and audit records.</p>
                     </div>
-                    <div class="text-xs font-mono text-brandNavy/50 dark:text-slate-400 bg-lightBg dark:bg-slate-800 border border-brandNavy/8 dark:border-slate-700 px-3 py-2 rounded">
-                        System Date: <span class="text-brandNavy dark:text-white font-bold">{{ date('Y-m-d') }}</span>
+                    <div class="text-xs font-mono text-brandNavy/50 dark:text-slate-400 bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 px-3 py-2 rounded">
+                        System date: <span class="text-brandNavy dark:text-white font-medium">{{ date('Y-m-d') }}</span>
                     </div>
                 </div>
 

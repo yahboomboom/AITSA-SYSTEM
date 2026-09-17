@@ -23,7 +23,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white mr-4">
                         <i class="fa-solid fa-bars text-xl"></i>
                     </button>
-                    <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">Payments</h2>
+                    <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Payments</h2>
                 </div>
 
                 <div class="flex items-center space-x-4 border-l border-brandNavy/10 dark:border-slate-700 pl-4">
@@ -39,13 +39,13 @@
             <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
                 
                 @if(session('success'))
-                    <div class="p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">
+                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
                         <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                     </div>
                 @endif
 
                 @if(session('error'))
-                    <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
+                    <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">
                         <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
                     </div>
                 @endif

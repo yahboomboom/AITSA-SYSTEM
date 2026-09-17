@@ -61,17 +61,15 @@ function EnrollmentApp() {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
-                <h1 className="text-xl font-bold text-brandNavy dark:text-slate-100">Enrollment — A.Y. {term.school_year}, Semester {term.semester}</h1>
-            </div>
+            <p className="text-sm text-brandNavy/50 dark:text-slate-400">A.Y. {term.school_year} &middot; Semester {term.semester}</p>
 
             {!clearance_complete && (
-                <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
-                    <p className="text-sm font-semibold text-amber-600">
+                <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
+                    <p className="text-sm font-medium text-brandGold">
                         <i className="fa-solid fa-lock mr-2" />
                         Enrollment is locked until your clearance is fully approved.
                     </p>
-                    <a href="/clearance" className="inline-block mt-3 text-sm text-brandNavy dark:text-slate-200 underline">
+                    <a href="/clearance" className="inline-block mt-3 text-sm font-medium text-brandNavy dark:text-brandGold hover:underline">
                         View my clearance status
                     </a>
                 </div>
@@ -84,9 +82,8 @@ function EnrollmentApp() {
                         onResubmit={() => setResubmitting(true)}
                         action={enrollment.status === 'enrolled' && mtx?.window_open && !building
                             && (!mtx.request || mtx.request.status === 'approved') ? (
-                            <button onClick={() => setBuilding(true)}
-                                className="mt-2 px-4 py-2 rounded-lg bg-brandGold text-brandNavy text-sm font-semibold hover:opacity-90">
-                                <i className="fa-solid fa-arrows-rotate mr-2" />Request Change of Matriculation
+                            <button onClick={() => setBuilding(true)} className="ui-btn-primary mt-3 bg-brandGold text-brandNavy hover:bg-brandGold/90 transition-colors">
+                                <i className="fa-solid fa-arrows-rotate" />Request change of matriculation
                             </button>
                         ) : null}
                     />

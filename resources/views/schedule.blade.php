@@ -31,11 +31,10 @@
         <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300 flex-shrink-0 no-print">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white"><i class="fa-solid fa-bars text-xl"></i></button>
-                <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">Schedule</h2>
+                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Schedule</h2>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="window.print()"
-                    class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-brandNavy hover:bg-brandGreen text-white transition-all shadow-sm hover:shadow-brandGreen/20 hover:-translate-y-0.5 active:translate-y-0">
+                <button onclick="window.print()" class="ui-btn-primary hidden md:flex bg-brandNavy hover:bg-brandGreen text-white transition-colors">
                     <i class="fa-solid fa-print"></i>Print COR
                 </button>
                 <div class="flex items-center gap-4 border-l border-brandNavy/10 dark:border-slate-700 pl-3">
@@ -56,7 +55,9 @@
                  data-subjects="{{ json_encode($subjects ?? []) }}"
                  data-student-name="{{ Auth::user()->name ?? 'Student' }}"
                  data-student-id="{{ Auth::user()->login_id ?? 'N/A' }}"
-                 data-student-program="{{ Auth::user()->major ?? 'BSIT - Web Development' }}">
+                 data-student-program="{{ Auth::user()->major ?? 'BSIT - Web Development' }}"
+                 data-school-year="{{ $schoolYear }}"
+                 data-semester="{{ $semester }}">
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
 

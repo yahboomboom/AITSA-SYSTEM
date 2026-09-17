@@ -20,7 +20,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">{{ Auth::user()->department->name ?? 'Department' }} Clearance Queue</h2>
+                    <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">{{ Auth::user()->department->name ?? 'Department' }} clearance queue</h2>
                 </div>
                 <div class="flex items-center space-x-3 border-l border-brandNavy/10 dark:border-slate-700 pl-4">
                     @include('partials.notif-bell')
@@ -33,10 +33,10 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
                 @if(session('success'))
-                    <div class="p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">{{ session('success') }}</div>
+                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">{{ session('success') }}</div>
                 @endif
                 @if ($errors->any())
-                    <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">{{ $errors->first() }}</div>
+                    <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">{{ $errors->first() }}</div>
                 @endif
 
                 @php

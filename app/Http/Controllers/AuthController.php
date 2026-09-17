@@ -485,7 +485,10 @@ class AuthController extends Controller
             ])->all()
             : [];
 
-        return view('schedule', compact('user', 'student', 'subjects'));
+        $schoolYear = $enrollment->school_year ?? Setting::get('school_year', '2026-2027');
+        $semester = $enrollment->semester ?? (int) Setting::get('semester', '1');
+
+        return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
     }
 
     // 7. Process administrative clearance override and write long-term transaction ledger records

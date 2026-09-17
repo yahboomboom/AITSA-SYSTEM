@@ -14,16 +14,18 @@ function parseSubjects(raw) {
     }
 }
 
-function ScheduleApp({ subjects, studentName, studentId, studentProgram }) {
+function ScheduleApp({ subjects, studentName, studentId, studentProgram, schoolYear, semester }) {
     return (
         <div className="space-y-6">
-            <CorHeader studentId={studentId} studentProgram={studentProgram} />
+            <CorHeader studentId={studentId} studentProgram={studentProgram} schoolYear={schoolYear} semester={semester} />
             <WeeklyTimetable subjects={subjects} />
             <ScheduleQRCode
                 subjects={subjects}
                 studentName={studentName}
                 studentId={studentId}
                 studentProgram={studentProgram}
+                schoolYear={schoolYear}
+                semester={semester}
             />
         </div>
     );
@@ -35,6 +37,8 @@ if (el) {
     const studentName = el.dataset.studentName ?? 'Student';
     const studentId = el.dataset.studentId ?? 'N/A';
     const studentProgram = el.dataset.studentProgram ?? 'BSIT - Web Development';
+    const schoolYear = el.dataset.schoolYear ?? '2026-2027';
+    const semester = el.dataset.semester ?? '1';
     createRoot(el).render(
         <ErrorBoundary>
             <ScheduleApp
@@ -42,6 +46,8 @@ if (el) {
                 studentName={studentName}
                 studentId={studentId}
                 studentProgram={studentProgram}
+                schoolYear={schoolYear}
+                semester={semester}
             />
         </ErrorBoundary>
     );
