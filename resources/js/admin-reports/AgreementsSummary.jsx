@@ -1,26 +1,26 @@
 export default function AgreementsSummary({ agreements }) {
     return (
-        <div className="bg-white dark:bg-panelDark rounded-2xl border border-brandNavy/10 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="bg-lightBg dark:bg-slate-800/60 px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800">
-                <span className="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
-                    <i className="fa-solid fa-file-signature mr-2 text-brandGreen" />Enrollment Agreements (DocuSign)
-                </span>
+        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-brandNavy/10 dark:border-slate-800">
+                <h3 className="font-heading text-sm font-semibold text-brandNavy dark:text-white">
+                    <i className="fa-solid fa-file-signature mr-2 text-brandGreen" />Enrollment agreements (DocuSign)
+                </h3>
             </div>
             <div className="grid grid-cols-3 divide-x divide-brandNavy/8 dark:divide-slate-700">
-                <div className="p-5 text-center">
-                    <p className="text-[9px] font-bold text-brandGreen/80 uppercase tracking-wider mb-1">Signed</p>
-                    <p className="text-3xl font-black text-brandGreen">{agreements.signed}</p>
-                    <p className="text-[9px] text-brandNavy/40 dark:text-slate-500 mt-1">Completed via DocuSign</p>
+                <div className="p-5 text-center space-y-1">
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Signed</p>
+                    <p className="font-heading text-2xl font-semibold text-brandGreen">{agreements.signed}</p>
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Completed via DocuSign.</p>
                 </div>
-                <div className="p-5 text-center">
-                    <p className="text-[9px] font-bold text-brandGold/80 uppercase tracking-wider mb-1">Awaiting Signature</p>
-                    <p className="text-3xl font-black text-brandGold">{agreements.awaiting}</p>
-                    <p className="text-[9px] text-brandNavy/40 dark:text-slate-500 mt-1">Sent, not yet completed</p>
+                <div className="p-5 text-center space-y-1">
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Awaiting signature</p>
+                    <p className="font-heading text-2xl font-semibold text-brandGold">{agreements.awaiting}</p>
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Sent, not yet completed.</p>
                 </div>
-                <div className="p-5 text-center">
-                    <p className="text-[9px] font-bold text-red-500/80 uppercase tracking-wider mb-1">Declined / Voided</p>
-                    <p className="text-3xl font-black text-red-500">{agreements.declinedOrVoided}</p>
-                    <p className="text-[9px] text-brandNavy/40 dark:text-slate-500 mt-1">Needs follow-up</p>
+                <div className="p-5 text-center space-y-1">
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Declined / voided</p>
+                    <p className="font-heading text-2xl font-semibold text-red-500">{agreements.declinedOrVoided}</p>
+                    <p className="text-xs text-brandNavy/40 dark:text-slate-500">Needs follow-up.</p>
                 </div>
             </div>
         </div>
