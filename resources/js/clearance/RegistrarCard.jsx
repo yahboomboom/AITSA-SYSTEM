@@ -42,12 +42,12 @@ export default function RegistrarCard({ registrarCleared, submission, documentsU
                             </a>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <p className="text-sm font-medium text-brandNavy dark:text-slate-200">Resolve this hold</p>
                                 <p className="text-xs text-brandNavy/60 dark:text-slate-500 mt-0.5">Upload a scanned copy of your Form 137 or equivalent document directly to the Registrar.</p>
                             </div>
-                            <a href={documentsUrl} className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors flex-shrink-0">
+                            <a href={documentsUrl} className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors flex-shrink-0 self-start">
                                 Submit documents
                             </a>
                         </div>

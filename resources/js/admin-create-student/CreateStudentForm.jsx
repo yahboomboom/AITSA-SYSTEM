@@ -241,7 +241,7 @@ export default function CreateStudentForm({ applicant, programs, old, csrfToken,
                 </div>
 
                 {/* Submit */}
-                <div className="flex items-center justify-between gap-4 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
                     <p className="text-xs text-brandNavy/40 dark:text-slate-500">Fields marked <span className="text-red-500">*</span> are required. A clearance record will be automatically created for this student.</p>
                     <button
                         type="submit"

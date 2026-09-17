@@ -6,7 +6,7 @@ export default function AdmissionPipeline({ pipeline }) {
                     <i className="fa-solid fa-arrows-turn-right mr-2 text-brandGreen" />Admission pipeline
                 </h3>
             </div>
-            <div className="grid grid-cols-3 divide-x divide-brandNavy/8 dark:divide-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-brandNavy/8 dark:divide-slate-700">
                 <div className="p-5 text-center space-y-1">
                     <p className="text-xs text-brandNavy/40 dark:text-slate-500">Pending review</p>
                     <p className="font-heading text-2xl font-semibold text-brandGold">{pipeline.pendingApplicants}</p>
