@@ -135,7 +135,7 @@ export default function SubmitRequirementModal({ open, onClose, csrfToken, submi
                                         <i className="fa-solid fa-cloud-arrow-up text-brandNavy/40 dark:text-slate-500 text-lg" />
                                     </div>
                                     <p className="text-xs font-semibold text-brandNavy/70 dark:text-slate-400">Drag &amp; drop your file here, or <span className="text-brandGreen dark:text-brandGold font-bold">browse</span></p>
-                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600 mt-1">Accepted: PDF, JPG, PNG — Max 10 MB</p>
+                                    <p className="text-[10px] text-brandNavy/40 dark:text-slate-600 mt-1">Accepted: PDF, JPG, PNG — Max 15 MB</p>
                                 </div>
                             ) : (
                                 <div>

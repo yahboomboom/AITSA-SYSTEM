@@ -54,6 +54,17 @@ class Section extends Model
         return $this->enrollments()->where('enrollments.status', '!=', 'rejected')->count();
     }
 
+    public function enrolledStudentIds(): \Illuminate\Support\Collection
+    {
+        return $this->enrollments()
+            ->where('enrollments.status', '!=', 'rejected')
+            ->with('user')
+            ->get()
+            ->pluck('user.id')
+            ->filter()
+            ->values();
+    }
+
     public function seatsLeft(): int
     {
         return max(0, $this->capacity - $this->enrolledCount());

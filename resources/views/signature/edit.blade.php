@@ -1,49 +1,55 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AITSA Portal | My Signature</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('partials.theme-init')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
+<div class="min-h-screen flex flex-col">
 
-@section('content')
-<div class="max-w-md mx-auto py-10">
-    <a href="{{ $homeUrl }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-4 transition-colors">
-        <i class="fa-solid fa-arrow-left"></i> Back to Home
-    </a>
-    <h1 class="text-lg font-bold text-slate-800 mb-4">My Signature</h1>
-    {{-- Display a success message if the signature was successfully updated --}}
-    @if (session('success'))
-        <div class="mb-4 p-3 rounded bg-green-50 text-green-700 text-xs border border-green-200">
-            {{ session('success') }}
+    <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10">
+        <div class="flex items-center gap-3">
+            <a href="{{ $homeUrl }}" title="Back to Home"
+               class="w-9 h-9 flex items-center justify-center rounded-lg text-brandNavy/60 hover:text-brandNavy hover:bg-brandNavy/5 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover">
+            <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">My Signature</h2>
         </div>
-    @endif
-        {{-- Display the current signature if it exists, or a message prompting the user to upload one if it doesn't --}}
-    @if ($user->signature_path)
-        <div class="mb-4 p-4 border border-slate-200 rounded-xl bg-white">
-            <p class="text-[10px] uppercase text-slate-400 mb-2 font-bold tracking-wider">Current Signature</p>
-            <img src="{{ Storage::url($user->signature_path) }}" alt="Signature" class="h-16">
-            <p class="text-[11px] text-slate-500 mt-3">You already have a signature saved. Uploading a new one below will replace it.</p>
+        <div class="flex items-center gap-4">
+            @include('partials.notif-bell')
+            <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
+                <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+            </button>
+            @include('partials.profile-menu')
         </div>
-    @else
-        <div class="mb-4 p-3 rounded bg-amber-50 text-amber-700 text-xs border border-amber-200">
-            You haven't uploaded a signature yet. Please upload one below.
-        </div>
-    @endif
-        {{-- Form to upload or re-upload the user's signature image, with a file input and a submit button. The form uses POST method and multipart/form-data encoding for file upload. --}}
-    <form action="{{ route('signature.update') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-        @csrf
-        <label class="block cursor-pointer">
-            <div class="w-full text-xs border-2 border-dashed border-slate-300 rounded-xl p-6 bg-white hover:bg-slate-50 text-center transition-colors">
-                <p class="font-semibold text-slate-600" id="fileLabel">
-                    {{ $user->signature_path ? 'Click to re-upload a new signature image' : 'Click to upload signature image' }}
-                </p>
-                <p class="text-slate-400 mt-1">PNG or JPG, max 1MB</p>
+    </header>
+
+    <main class="flex-1 p-6 lg:p-10 max-w-md w-full mx-auto space-y-6">
+        @if (session('success'))
+            <div class="p-3.5 rounded-lg bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-xs font-bold">
+                <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
             </div>
-            <input type="file" name="signature" accept="image/png,image/jpeg" required
-                   class="hidden"
-                   onchange="document.getElementById('fileLabel').textContent = this.files[0] ? this.files[0].name : '{{ $user->signature_path ? 'Click to re-upload a new signature image' : 'Click to upload signature image' }}'">
-        </label>
-        @error('signature')
-            <p class="text-red-500 text-xs">{{ $message }}</p>
-        @enderror
-        <button type="submit" class="w-full px-5 py-3 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors">
-            {{ $user->signature_path ? 'Re-upload Signature' : 'Save Signature' }}
-        </button>
-    </form>
+        @endif
+
+        <div id="signature-root" data-context="{{ json_encode([
+            'signaturePath' => $user->signature_path ? Storage::url($user->signature_path) : null,
+            'hasSignature' => (bool) $user->signature_path,
+            'updateUrl' => route('signature.update'),
+            'csrfToken' => csrf_token(),
+            'errors' => $errors->messages(),
+        ]) }}">
+            <p class="text-sm text-slate-500">Loading…</p>
+        </div>
+    </main>
 </div>
-@endsection
+
+@include('partials.notif-script')
+@viteReactRefresh
+@vite('resources/js/signature-app.jsx')
+</body>
+</html>

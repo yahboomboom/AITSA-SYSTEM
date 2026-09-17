@@ -22,7 +22,7 @@ function parseContext(raw) {
     }
 }
 
-function CashierDashboardApp({ context, csrfToken, approveUrl, holdUrl }) {
+function CashierDashboardApp({ context, csrfToken, approveUrl, holdUrl, waiveDownPaymentUrl }) {
     const [reviewing, setReviewing] = useState(null);
 
     return (
@@ -41,6 +41,7 @@ function CashierDashboardApp({ context, csrfToken, approveUrl, holdUrl }) {
                 csrfToken={csrfToken}
                 approveUrl={approveUrl}
                 holdUrl={holdUrl}
+                waiveDownPaymentUrl={waiveDownPaymentUrl}
             />
         </div>
     );
@@ -52,10 +53,11 @@ if (el) {
     const csrfToken = el.dataset.csrfToken ?? '';
     const approveUrl = el.dataset.approveUrl ?? '';
     const holdUrl = el.dataset.holdUrl ?? '';
+    const waiveDownPaymentUrl = el.dataset.waiveDownPaymentUrl ?? '';
 
     createRoot(el).render(
         <ErrorBoundary>
-            <CashierDashboardApp context={context} csrfToken={csrfToken} approveUrl={approveUrl} holdUrl={holdUrl} />
+            <CashierDashboardApp context={context} csrfToken={csrfToken} approveUrl={approveUrl} holdUrl={holdUrl} waiveDownPaymentUrl={waiveDownPaymentUrl} />
         </ErrorBoundary>
     );
 }

@@ -33,12 +33,24 @@ class Clearance extends Model
         'cashier_signed_at',
         'registrar_signed_by',
         'registrar_signed_at',
+        'is_provisional',
+        'provisional_reason',
+        'provisional_granted_by',
+        'provisional_granted_at',
+        'down_payment_waived',
+        'down_payment_waived_reason',
+        'down_payment_waived_by',
+        'down_payment_waived_at',
     ];
     
     protected $casts = [
         'chair_signed_at' => 'datetime',
         'cashier_signed_at' => 'datetime',
         'registrar_signed_at' => 'datetime',
+        'is_provisional' => 'boolean',
+        'provisional_granted_at' => 'datetime',
+        'down_payment_waived' => 'boolean',
+        'down_payment_waived_at' => 'datetime',
     ];
 
     /**

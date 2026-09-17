@@ -5,12 +5,16 @@ import ApplicantQueueTable from './registrar-dashboard/ApplicantQueueTable';
 import AdmissionStats from './registrar-dashboard/AdmissionStats';
 import ClearanceQueueTable from './registrar-dashboard/ClearanceQueueTable';
 import DocumentSubmissionsTable from './registrar-dashboard/DocumentSubmissionsTable';
+import GradeSubmissionQueue from './components/GradeSubmissionQueue';
 
 const EMPTY_CONTEXT = {
     applicants: [],
     stats: { total: 0, approvedToday: 0, pending: 0 },
     clearances: [],
-    documents: [],
+    documentsSearchUrl: '',
+    documentsPendingCount: 0,
+    documentsRejectedCount: 0,
+    gradeSubmissions: [],
 };
 
 function parseContext(raw) {
@@ -20,7 +24,10 @@ function parseContext(raw) {
             applicants: Array.isArray(parsed.applicants) ? parsed.applicants : [],
             stats: parsed.stats ?? EMPTY_CONTEXT.stats,
             clearances: Array.isArray(parsed.clearances) ? parsed.clearances : [],
-            documents: Array.isArray(parsed.documents) ? parsed.documents : [],
+            documentsSearchUrl: parsed.documentsSearchUrl ?? '',
+            documentsPendingCount: parsed.documentsPendingCount ?? 0,
+            documentsRejectedCount: parsed.documentsRejectedCount ?? 0,
+            gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -44,7 +51,13 @@ if (el) {
                     pending={context.stats.pending}
                 />
                 <ClearanceQueueTable rows={context.clearances} csrfToken={csrfToken} />
-                <DocumentSubmissionsTable documents={context.documents} csrfToken={csrfToken} />
+                <DocumentSubmissionsTable
+                    searchUrl={context.documentsSearchUrl}
+                    pendingCount={context.documentsPendingCount}
+                    rejectedCount={context.documentsRejectedCount}
+                    csrfToken={csrfToken}
+                />
+                <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Registrar Approval" approveLabel="Finalize" />
             </div>
         </ErrorBoundary>
     );

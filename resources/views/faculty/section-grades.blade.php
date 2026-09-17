@@ -45,10 +45,16 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 font-bold text-sm flex items-center gap-3">
+                <i class="fa-solid fa-circle-exclamation"></i>{{ session('error') }}
+            </div>
+        @endif
+
         @php
             $context = [
-                'students' => $students->map(function ($student) use ($grades) {
-                    $existing = $grades[$student->id] ?? null;
+                'students' => $students->map(function ($student) use ($items) {
+                    $existing = $items[$student->id] ?? null;
                     return [
                         'id' => $student->id,
                         'name' => $student->name,
@@ -57,6 +63,9 @@
                         'status' => $existing->status ?? null,
                     ];
                 })->values(),
+                'submissionStatus' => $submission->status,
+                'rejectedBy' => $submission->rejected_by,
+                'remarks' => $submission->remarks,
             ];
         @endphp
 
@@ -65,6 +74,7 @@
             data-context="{{ json_encode($context) }}"
             data-csrf-token="{{ csrf_token() }}"
             data-store-url="{{ route('faculty.sections.grades.store', $section->id) }}"
+            data-submit-url="{{ route('faculty.sections.grades.submit', $section->id) }}"
         >
             <p class="text-sm text-slate-500">Loading…</p>
         </div>

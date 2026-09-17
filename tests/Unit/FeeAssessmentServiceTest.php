@@ -144,4 +144,53 @@ class FeeAssessmentServiceTest extends TestCase
         $this->assertEqualsWithDelta(1500.0, (float) $b['assessment'], 0.001);
         $this->assertFalse($b['fully_paid']);
     }
+
+    public function test_down_payment_required_is_a_percentage_of_assessment(): void
+    {
+        $this->seed(ProgramSeeder::class);
+        \App\Models\Setting::put('down_payment_percent', '30');
+        \App\Models\Setting::clearCache();
+        $student = $this->makeStudent();
+        $this->makeBlockSection(5); // assessment 1500 tuition + 1500 misc = 3000
+
+        $b = app(FeeAssessmentService::class)->breakdownFor($student);
+
+        $this->assertEqualsWithDelta(900.0, (float) $b['down_payment_required'], 0.001); // 30% of 3000
+        $this->assertFalse($b['down_payment_met']);
+    }
+
+    public function test_down_payment_met_once_paid_amount_reaches_the_threshold(): void
+    {
+        $this->seed(ProgramSeeder::class);
+        \App\Models\Setting::put('down_payment_percent', '30');
+        \App\Models\Setting::clearCache();
+        $student = $this->makeStudent();
+        $this->makeBlockSection(5); // assessment 3000, threshold 900
+        TransactionLedger::factory()->create([
+            'user_id' => $student->id, 'status' => 'Settled', 'amount' => 900.00,
+        ]);
+
+        $b = app(FeeAssessmentService::class)->breakdownFor($student);
+
+        $this->assertTrue($b['down_payment_met']);
+        $this->assertFalse($b['fully_paid']); // still owes the remaining 2100
+    }
+
+    public function test_down_payment_met_defaults_to_false_on_a_zero_assessment(): void
+    {
+        $this->seed(ProgramSeeder::class);
+        \App\Models\Setting::put('down_payment_percent', '30');
+        \App\Models\Setting::clearCache();
+        $type = DiscountType::factory()->create(['name' => 'Full Ride', 'percent' => 100]);
+        $student = $this->makeStudent(['discount_type_id' => $type->id]);
+        // No sections enrolled/blocked -> 0 units -> 0 tuition; misc_fee setting itself would still
+        // apply unless also zeroed, so zero it out here to produce a genuine 0 assessment.
+        \App\Models\Setting::put('misc_fee', '0');
+        \App\Models\Setting::clearCache();
+
+        $b = app(FeeAssessmentService::class)->breakdownFor($student);
+
+        $this->assertEqualsWithDelta(0.0, (float) $b['assessment'], 0.001);
+        $this->assertFalse($b['down_payment_met']);
+    }
 }

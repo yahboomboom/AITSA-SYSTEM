@@ -4,11 +4,13 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ClearanceApprovalTable from './approver-dashboard/ClearanceApprovalTable';
 import EnrollmentApprovalQueue from './approver-dashboard/EnrollmentApprovalQueue';
 import MatriculationChangeQueue from './approver-dashboard/MatriculationChangeQueue';
+import GradeSubmissionQueue from './components/GradeSubmissionQueue';
 
 const EMPTY_CONTEXT = {
     clearances: [],
     enrollments: [],
     changes: [],
+    gradeSubmissions: [],
 };
 
 function parseContext(raw) {
@@ -18,6 +20,7 @@ function parseContext(raw) {
             clearances: Array.isArray(parsed.clearances) ? parsed.clearances : [],
             enrollments: Array.isArray(parsed.enrollments) ? parsed.enrollments : [],
             changes: Array.isArray(parsed.changes) ? parsed.changes : [],
+            gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -35,6 +38,7 @@ if (el) {
                 <ClearanceApprovalTable rows={context.clearances} csrfToken={csrfToken} />
                 <EnrollmentApprovalQueue rows={context.enrollments} csrfToken={csrfToken} />
                 <MatriculationChangeQueue rows={context.changes} csrfToken={csrfToken} />
+                <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Chair Approval" />
             </>
         </ErrorBoundary>
     );

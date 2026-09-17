@@ -51,6 +51,22 @@ class CurriculumApiTest extends TestCase
             ->assertJsonCount(1, 'subjects.0.sections');
     }
 
+    public function test_chair_can_browse_programs_and_subjects_read_only(): void
+    {
+        // The Dept Chair browses this same listing (read-only) to find what
+        // to schedule, but has no write access to Subjects/Programs.
+        $program = Program::factory()->create(['code' => 'BSOA']);
+        $chair = User::factory()->create(['role' => 'chair']);
+
+        $this->actingAs($chair)->getJson('/api/admin/programs')
+            ->assertOk()->assertJsonPath('programs.0.code', 'BSOA');
+
+        $this->actingAs($chair)->postJson('/api/admin/subjects', [
+            'program_id' => $program->id, 'code' => 'OA201', 'title' => 'X',
+            'units' => 3, 'year_level' => 1, 'semester' => 1, 'mode' => 'F2F',
+        ])->assertForbidden();
+    }
+
     public function test_admin_creates_subject_with_prerequisites(): void
     {
         $program = Program::factory()->create();
@@ -79,25 +95,18 @@ class CurriculumApiTest extends TestCase
         $this->assertDatabaseHas('subjects', ['id' => $section->subject_id]);
     }
 
-    public function test_section_crud_and_delete_guard(): void
+    public function test_registrar_can_no_longer_write_sections(): void
     {
+        // Section scheduling moved to the Dept Chair — see
+        // tests/Feature/Api/SectionConflictTest.php for the chair-side CRUD
+        // coverage that used to live here.
         $subject = Subject::factory()->create();
 
-        $create = $this->actingAs($this->admin)->postJson('/api/admin/sections', [
+        $this->actingAs($this->admin)->postJson('/api/admin/sections', [
             'subject_id' => $subject->id, 'block_label' => 'A', 'days' => ['M', 'W'],
             'start_time' => '08:00', 'end_time' => '09:30', 'room' => 'Rm 101',
             'professor' => 'J. Dela Cruz', 'capacity' => 40, 'school_year' => '2026-2027',
             'delivery_mode' => 'Face-to-Face',
-        ]);
-        $create->assertCreated();
-        $sectionId = $create->json('section.id');
-
-        $this->actingAs($this->admin)->putJson("/api/admin/sections/{$sectionId}", [
-            'room' => 'Rm 202',
-        ])->assertOk();
-        $this->assertSame('Rm 202', Section::find($sectionId)->room);
-
-        Enrollment::factory()->create(['status' => 'enrolled'])->sections()->attach($sectionId);
-        $this->actingAs($this->admin)->deleteJson("/api/admin/sections/{$sectionId}")->assertStatus(409);
+        ])->assertForbidden();
     }
 }

@@ -101,6 +101,29 @@
                             'approveUrl' => route('approver.matriculation.approve', $change),
                             'rejectUrl' => route('approver.matriculation.reject', $change),
                         ])->values(),
+                        'gradeSubmissions' => $pendingGradeSubmissions->map(function ($submission) {
+                            $enrolledIds = $submission->section->enrolledStudentIds();
+                            $gradedIds = $submission->items->pluck('user_id');
+
+                            return [
+                                'id' => $submission->id,
+                                'subjectCode' => $submission->section->subject->code,
+                                'subjectTitle' => $submission->section->subject->title,
+                                'blockLabel' => $submission->section->block_label,
+                                'facultyName' => $submission->section->faculty->name ?? '—',
+                                'studentCount' => $submission->items->count(),
+                                'missingGrades' => $enrolledIds->diff($gradedIds)->count(),
+                                'submittedAgo' => $submission->submitted_at?->diffForHumans(),
+                                'approveUrl' => route('approver.grades.approve', $submission),
+                                'rejectUrl' => route('approver.grades.reject', $submission),
+                                'items' => $submission->items->map(fn ($item) => [
+                                    'name' => $item->user->name ?? 'Unknown (deleted account)',
+                                    'loginId' => $item->user->login_id ?? 'N/A',
+                                    'grade' => $item->final_grade,
+                                    'status' => $item->status,
+                                ])->values(),
+                            ];
+                        })->values(),
                     ];
                 @endphp
 

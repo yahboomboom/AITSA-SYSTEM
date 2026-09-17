@@ -1,15 +1,25 @@
 import { useMemo, useState } from 'react';
+import { peso } from '../utils/format';
+
+const DEFAULT_VISIBLE = 10;
 
 export default function AccountsTable({ rows, reviewUrl }) {
     const [search, setSearch] = useState('');
 
     const filtered = useMemo(() => {
-        const term = search.toLowerCase();
+        const term = search.trim().toLowerCase();
         if (!term) return rows;
         return rows.filter((r) =>
-            r.studentName.toLowerCase().includes(term) || r.referenceNo.toLowerCase().includes(term)
+            r.studentName.toLowerCase().includes(term) ||
+            (r.studentNo ?? '').toLowerCase().includes(term) ||
+            (r.studentEmail ?? '').toLowerCase().includes(term) ||
+            (r.referenceNo ?? '').toLowerCase().includes(term)
         );
     }, [rows, search]);
+
+    // Show only the first 10 accounts until the cashier searches for someone specific —
+    // keeps the registry short by default while staying fully searchable by name or student no.
+    const visible = search.trim() ? filtered : filtered.slice(0, DEFAULT_VISIBLE);
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
@@ -24,7 +34,7 @@ export default function AccountsTable({ rows, reviewUrl }) {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search student…"
+                        placeholder="Search by student no. or name…"
                         className="w-full text-sm bg-lightBg dark:bg-slate-900 text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded pl-9 pr-4 py-2 outline-none focus:border-brandGreen/40 transition-colors"
                     />
                 </div>
@@ -34,29 +44,40 @@ export default function AccountsTable({ rows, reviewUrl }) {
                 <table className="ui-table">
                     <thead>
                         <tr className="border-brandNavy/8 dark:border-slate-800 text-brandNavy/50 dark:text-slate-500">
-                            <th className="border-brandNavy/8 dark:border-slate-800">Profile ID</th>
+                            <th className="border-brandNavy/8 dark:border-slate-800">Student No.</th>
                             <th className="border-brandNavy/8 dark:border-slate-800">Student</th>
-                            <th className="border-brandNavy/8 dark:border-slate-800">Reference</th>
+                            <th className="border-brandNavy/8 dark:border-slate-800">Last Payment</th>
                             <th className="border-brandNavy/8 dark:border-slate-800">Clearance</th>
                             <th className="border-brandNavy/8 dark:border-slate-800 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.length === 0 && (
+                        {visible.length === 0 && (
                             <tr>
                                 <td colSpan={5} className="border-brandNavy/8 dark:border-slate-800 p-8 text-center text-brandNavy/40 dark:text-slate-500">
-                                    {rows.length === 0 ? 'No account records found.' : 'No matching records.'}
+                                    {rows.length === 0 ? 'No accounts pending review.' : 'No matching students.'}
                                 </td>
                             </tr>
                         )}
-                        {filtered.map((a) => (
+                        {visible.map((a) => (
                             <tr key={a.id}>
-                                <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.profileId}</td>
+                                <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.studentNo}</td>
                                 <td className="border-brandNavy/8 dark:border-slate-800">
                                     <div className="font-medium text-brandNavy dark:text-white">{a.studentName}</div>
                                     <div className="text-xs text-brandNavy/40 dark:text-slate-500">{a.studentEmail}</div>
                                 </td>
-                                <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.referenceNo}</td>
+                                <td className="border-brandNavy/8 dark:border-slate-800">
+                                    {a.referenceNo ? (
+                                        <>
+                                            <div className="font-mono text-brandNavy/70 dark:text-slate-300">{a.referenceNo}</div>
+                                            <div className="text-xs text-brandNavy/40 dark:text-slate-500">
+                                                {peso(a.lastPaymentAmount)} · {a.lastPaymentDate}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span className="text-brandNavy/30 dark:text-slate-600 italic">No payment yet</span>
+                                    )}
+                                </td>
                                 <td className="border-brandNavy/8 dark:border-slate-800">
                                     {a.cashierStatus === 'Approved' ? (
                                         <span className="ui-badge-outline border-brandGreen text-brandGreen">Approved</span>
@@ -79,6 +100,11 @@ export default function AccountsTable({ rows, reviewUrl }) {
                         ))}
                     </tbody>
                 </table>
+                {!search.trim() && filtered.length > DEFAULT_VISIBLE && (
+                    <div className="px-4 py-3 text-center text-[11px] text-brandNavy/40 dark:text-slate-500 border-t border-brandNavy/8 dark:border-slate-800">
+                        Showing {DEFAULT_VISIBLE} of {filtered.length} — search by student no. or name to find someone else.
+                    </div>
+                )}
             </div>
         </div>
     );

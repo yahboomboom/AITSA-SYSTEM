@@ -1,3 +1,5 @@
+import { useMemo, useState } from 'react';
+
 const APPLICANT_TYPE_STYLES = {
     NEW: 'border-brandGreen text-brandGreen',
     TRANSFEREE: 'border-blue-500 text-blue-600',
@@ -15,15 +17,27 @@ function disableSubmit(form, busyLabel) {
 }
 
 export default function ApplicantQueueTable({ applicants, csrfToken }) {
+    const [search, setSearch] = useState('');
+    const query = search.trim().toLowerCase();
+    const filteredApplicants = useMemo(() => query
+        ? applicants.filter((applicant) => `${applicant.name} ${applicant.email}`.toLowerCase().includes(query))
+        : [], [applicants, query]);
+
     return (
         <div className="bg-white dark:bg-panelDark border border-brandGold/30 dark:border-amber-500/20 rounded-lg shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-brandGold/20 dark:border-amber-500/20 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-brandGold/20 dark:border-amber-500/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                     <h3 className="font-heading text-sm font-semibold text-brandNavy dark:text-white">Pending admission applications</h3>
                     <span className="ui-badge-outline border-amber-500 text-amber-600">{applicants.length} new</span>
                 </div>
-                <p className="text-xs text-brandNavy/50 dark:text-slate-400">A student account is created automatically once the reservation fee is confirmed paid.</p>
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search applicant…"
+                    className="w-full sm:w-64 bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 outline-none focus:border-brandGreen/40 transition-colors"
+                />
             </div>
             <div className="overflow-x-auto">
                 <table className="ui-table">
@@ -41,7 +55,9 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {applicants.map((applicant) => (
+                        {filteredApplicants.length === 0 ? (
+                            <tr><td colSpan={9} className="border-brandNavy/8 dark:border-slate-800 p-8 text-center text-brandNavy/40 dark:text-slate-500">{query ? 'No matching applicants.' : 'Search to view admission applications.'}</td></tr>
+                        ) : filteredApplicants.map((applicant) => (
                             <tr key={applicant.id}>
                                 <td className="border-brandNavy/8 dark:border-slate-800">
                                     <p className="font-medium text-brandNavy dark:text-white">{applicant.name}</p>

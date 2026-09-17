@@ -17,7 +17,7 @@ function lockReviewModal(form, busyLabel) {
     }
 }
 
-export default function ClearanceReviewModal({ open, student, onClose, csrfToken, approveUrl, holdUrl }) {
+export default function ClearanceReviewModal({ open, student, onClose, csrfToken, approveUrl, holdUrl, waiveDownPaymentUrl }) {
     if (!open || !student) return null;
 
     return (
@@ -87,6 +87,29 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                             <i className="fa-solid fa-circle-pause" />Hold with remarks
                         </button>
                     </form>
+
+                    {!student.isDownPaymentMet && !student.isDownPaymentWaived && !student.isHeld && (
+                        <form
+                            action={waiveDownPaymentUrl}
+                            method="POST"
+                            className="grid grid-cols-1 gap-2 mt-2"
+                            onSubmit={(e) => lockReviewModal(e.currentTarget, 'Processing…')}
+                        >
+                            <input type="hidden" name="_token" value={csrfToken} />
+                            <input type="hidden" name="user_id" value={student.userId} />
+                            <input
+                                type="text"
+                                name="reason"
+                                required
+                                maxLength={1000}
+                                placeholder="Reason (e.g. financial hardship)"
+                                className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-sm text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500"
+                            />
+                            <button type="submit" className="ui-btn-primary w-full justify-center bg-cyan-600 hover:bg-cyan-700 text-white transition-colors disabled:opacity-50">
+                                <i className="fa-solid fa-hand-holding-heart" />Waive down payment
+                            </button>
+                        </form>
+                    )}
 
                     <button type="button" onClick={onClose} className="ui-btn-primary w-full justify-center bg-transparent border border-brandNavy/20 dark:border-slate-600 text-brandNavy/60 dark:text-slate-400 hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors mt-2">
                         Cancel

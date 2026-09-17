@@ -46,10 +46,16 @@
 
         <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
+            @php
+                $reportSemester = (int) \App\Models\Setting::get('semester', '1');
+                $reportSemesterLabel = [1 => '1st', 2 => '2nd'][$reportSemester] ?? $reportSemester;
+                $reportSchoolYear = \App\Models\Setting::get('school_year', '2026-2027');
+            @endphp
+
             <div>
                 <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Clearance routing report</h1>
                 <p class="text-sm text-brandNavy/60 dark:text-slate-400 mt-1">
-                    A.Y. {{ $schoolYear }} &nbsp;·&nbsp; Semester {{ $semester }} &nbsp;·&nbsp;
+                    Academic Year {{ $reportSchoolYear }} &nbsp;·&nbsp; {{ $reportSemesterLabel }} Semester &nbsp;·&nbsp;
                     Generated: {{ now()->format('F d, Y h:i A') }}
                 </p>
             </div>
@@ -59,7 +65,7 @@
             </div>
 
             <div class="hidden print:block mt-6 pt-4 border-t border-brandNavy/10 text-center text-xs text-brandNavy/40">
-                AITSA Clearance Routing Report &nbsp;·&nbsp; A.Y. {{ $schoolYear }}, Semester {{ $semester }} &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
+                AITSA Clearance Routing Report &nbsp;·&nbsp; A.Y. {{ $reportSchoolYear }}, {{ $reportSemesterLabel }} Semester &nbsp;·&nbsp; Printed {{ now()->format('F d, Y h:i A') }}
             </div>
 
         </div>

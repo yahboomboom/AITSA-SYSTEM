@@ -159,7 +159,7 @@ class AuthController extends Controller
             ]];
         });
 
-        return view('auth.apply', compact('strands', 'reservationFee', 'slots'));
+        return view('auth.apply', compact('strands', 'reservationFee', 'slots', 'schoolYear'));
     }
 
     // 4. Store incoming application as pending — admin creates the account and emails credentials
@@ -195,11 +195,19 @@ class AuthController extends Controller
             );
         }
 
+        // `major` must be the Program's `code` (e.g. "BSOA"), not the display
+        // name from the form — User::program() resolves a student's program
+        // by looking up that code, and the enrollment block/section lookup
+        // (and therefore the whole Enrollment page) silently comes up empty
+        // for anyone whose major doesn't match a real program code.
+        $programCode = collect(config('curricula'))->firstWhere('id', $request->input('program_key'))['program_code']
+            ?? $request->input('program_name');
+
         $applicant = User::create([
             'name'              => $request->input('name'),
             'email'             => $request->input('email'),
             'login_id'          => 'APPL-' . strtoupper(Str::random(8)),
-            'major'             => $request->input('program_name'),
+            'major'             => $programCode,
             'program_key'       => $request->input('program_key'),
             'role'              => 'applicant',
             'password'          => Hash::make(Str::random(32)),
@@ -357,7 +365,7 @@ class AuthController extends Controller
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
-        $clearances = Clearance::with('user.discountType')
+        $clearances = Clearance::has('user')->with('user.discountType')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
@@ -376,7 +384,7 @@ class AuthController extends Controller
             ->map(fn ($group) => $group->first());
 
         $rows = $clearances->map(function ($clearance) use ($fees, $latestSettledByUser) {
-            $balance = $clearance->user ? (float) $fees->breakdownFor($clearance->user)['balance'] : 0.0;
+            $breakdown = $clearance->user ? $fees->breakdownFor($clearance->user) : ['balance' => 0.0, 'down_payment_met' => false];
 
             $latestSettled = $latestSettledByUser->get($clearance->user_id);
 
@@ -385,8 +393,11 @@ class AuthController extends Controller
                 'userId' => $clearance->user_id,
                 'studentName' => $clearance->user->name ?? 'Unknown Student',
                 'studentEmail' => $clearance->user->email ?? 'N/A',
-                'balance' => $balance,
+                'balance' => (float) $breakdown['balance'],
                 'isApproved' => $clearance->cashier_status === 'Approved',
+                'isDownPaymentMet' => (bool) $breakdown['down_payment_met'],
+                'isDownPaymentWaived' => (bool) $clearance->down_payment_waived,
+                'isHeld' => $clearance->cashier_status === 'Hold',
                 'referenceNo' => $latestSettled->reference_no ?? null,
             ];
         })->values();
@@ -414,12 +425,15 @@ class AuthController extends Controller
         $context = [
             'rows' => $transactions->map(fn ($t) => [
                 'id' => $t->id,
+                'userId' => $t->user_id,
                 'studentName' => $t->user->name ?? 'Unknown Student',
+                'studentNo' => $t->user->login_id ?? 'N/A',
                 'referenceNo' => $t->reference_no ?? 'N/A',
                 'amount' => (float) ($t->amount ?? 3500),
                 'status' => $t->status ?? 'Success',
                 'processorName' => $t->processor->name ?? 'System Override',
                 'timestamp' => $t->created_at ? $t->created_at->format('Y-m-d H:i') : now()->format('Y-m-d H:i'),
+                'createdAt' => $t->created_at ? $t->created_at->toIso8601String() : now()->toIso8601String(),
             ])->values(),
         ];
 
@@ -431,21 +445,40 @@ class AuthController extends Controller
      */
     public function showCashierAccounts()
     {
-        $accounts = Clearance::with('user')
+        $accounts = Clearance::has('user')->with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('cashier_status', '!=', 'Approved')
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Only the most recent settled payment per student is relevant here —
+        // older ledger entries for the same student are just noise on this screen.
+        $latestSettledByUser = TransactionLedger::where('status', 'Settled')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn ($group) => $group->first());
+
         $context = [
-            'rows' => $accounts->map(fn ($a) => [
-                'id' => $a->id,
-                'profileId' => '#' . sprintf('%04d', $a->id),
-                'studentName' => $a->user->name ?? 'Unknown Student',
-                'studentEmail' => $a->user->email ?? 'N/A',
-                'referenceNo' => 'TXN-' . (10000 + ($a->user_id ?? 0)) . '-WIT',
-                'cashierStatus' => $a->cashier_status,
-            ])->values(),
+            'rows' => $accounts->map(function ($a) use ($latestSettledByUser) {
+                $latestSettled = $latestSettledByUser->get($a->user_id);
+
+                return [
+                    'id' => $a->id,
+                    'profileId' => '#' . sprintf('%04d', $a->id),
+                    'studentName' => $a->user->name ?? 'Unknown Student',
+                    'studentEmail' => $a->user->email ?? 'N/A',
+                    'studentNo' => $a->user->login_id ?? 'N/A',
+                    'referenceNo' => $latestSettled->reference_no ?? null,
+                    'lastPaymentAmount' => $latestSettled ? (float) $latestSettled->amount : null,
+                    'lastPaymentDate' => $latestSettled && $latestSettled->created_at
+                        ? $latestSettled->created_at->format('Y-m-d')
+                        : null,
+                    'cashierStatus' => $a->cashier_status,
+                ];
+            })->values(),
             'reviewUrl' => route('cashier.dashboard'),
         ];
 
@@ -464,12 +497,17 @@ class AuthController extends Controller
         $user = Auth::user();
         $student = Student::where('user_id', $user->id)->first();
 
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
+
         $palette = ['bg-blue-600', 'bg-emerald-600', 'bg-violet-600', 'bg-orange-500', 'bg-cyan-600', 'bg-teal-600', 'bg-rose-500', 'bg-amber-500', 'bg-brandGreen'];
 
         $enrollment = Enrollment::with('sections.subject')
             ->where('user_id', $user->id)
-            ->where('status', 'enrolled')
-            ->latest()
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
+            ->whereIn('status', ['pending', 'enrolled'])
+            ->latest('id')
             ->first();
 
         $subjects = $enrollment

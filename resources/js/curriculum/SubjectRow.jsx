@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import api from '../lib/api';
-import SectionEditor from './SectionEditor';
 
-export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, rooms, onChanged, onListsChanged }) {
-    const [open, setOpen] = useState(false);
+export default function SubjectRow({ subject, allSubjects, onChanged }) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(null);
     const [error, setError] = useState(null);
@@ -82,10 +80,8 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
                                 {prereqCodes.length > 0 && <> · requires {prereqCodes.join(', ')}</>}
                             </span>
                         </p>
-                        <span className="flex gap-3 text-xs">
-                            <button onClick={() => setOpen(!open)} className="text-brandNavy dark:text-slate-300 hover:underline">
-                                {open ? 'Hide' : 'Show'} sections ({subject.sections.length})
-                            </button>
+                        <span className="flex items-center gap-3 text-xs">
+                            <span className="text-slate-400">{subject.sections.length} section(s) — scheduled by the Dept Chair</span>
                             <button onClick={startEdit} className="text-brandNavy dark:text-slate-300 hover:underline">Edit</button>
                             <button onClick={remove} disabled={removing} className="text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">
                                 {removing ? 'Deleting…' : 'Delete'}
@@ -95,8 +91,6 @@ export default function SubjectRow({ subject, allSubjects, schoolYear, faculty, 
                     </>
                 )}
             </div>
-            {open && <SectionEditor subject={subject} schoolYear={schoolYear} faculty={faculty} rooms={rooms}
-                onChanged={onChanged} onListsChanged={onListsChanged} />}
         </div>
     );
 }

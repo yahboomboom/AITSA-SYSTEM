@@ -63,6 +63,7 @@
                     data-csrf-token="{{ csrf_token() }}"
                     data-approve-url="{{ route('cashier.approve') }}"
                     data-hold-url="{{ route('cashier.hold') }}"
+                    data-waive-down-payment-url="{{ route('cashier.waive-down-payment') }}"
                 >
                     <p class="text-sm text-slate-500">Loading…</p>
                 </div>

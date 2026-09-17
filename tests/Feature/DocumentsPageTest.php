@@ -107,4 +107,27 @@ class DocumentsPageTest extends TestCase
             ->assertSee('"remarks":"Scan is blurry."')
             ->assertDontSee('someone-elses.pdf');
     }
+
+    public function test_resubmission_replaces_the_previous_rejected_document_in_the_student_view(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        DocumentSubmission::factory()->create([
+            'user_id' => $student->id,
+            'document_type' => 'form137',
+            'original_name' => 'old-form137.pdf',
+            'status' => 'rejected',
+            'created_at' => now()->subMinute(),
+        ]);
+        DocumentSubmission::factory()->create([
+            'user_id' => $student->id,
+            'document_type' => 'form137',
+            'original_name' => 'new-form137.pdf',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($student)->get('/documents')
+            ->assertOk()
+            ->assertSee('new-form137.pdf')
+            ->assertDontSee('old-form137.pdf');
+    }
 }

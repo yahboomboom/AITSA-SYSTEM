@@ -5,13 +5,16 @@ export default function ClearanceQueueTable({ rows, onReview }) {
     const [searchTerm, setSearchTerm] = useState('');
 
     const term = searchTerm.trim().toLowerCase();
+    // Approved clearances are done — they'd just clutter the queue of
+    // students still needing review. Searching can still surface them
+    // (e.g. to double-check a settled account), just not by default.
     const filtered = term
         ? rows.filter((row) => (
             row.studentName.toLowerCase().includes(term) ||
             row.studentEmail.toLowerCase().includes(term) ||
             (row.referenceNo ?? '').toLowerCase().includes(term)
         ))
-        : rows;
+        : rows.filter((row) => !row.isApproved);
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
@@ -44,10 +47,10 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.length === 0 ? (
+                        {filtered.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="border-brandNavy/8 dark:border-slate-800 p-8 text-center text-brandNavy/40 dark:text-slate-500">
-                                    No students pending clearance.
+                                    {term ? 'No matching students.' : 'No students pending clearance.'}
                                 </td>
                             </tr>
                         ) : (
@@ -66,6 +69,10 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                                     <td className="border-brandNavy/8 dark:border-slate-800">
                                         {row.isApproved ? (
                                             <span className="ui-badge-outline border-brandGreen text-brandGreen">Approved</span>
+                                        ) : row.isHeld ? (
+                                            <span className="ui-badge-outline border-red-600 text-red-600">Hold</span>
+                                        ) : (row.isDownPaymentMet || row.isDownPaymentWaived) ? (
+                                            <span className="ui-badge-outline border-cyan-600 text-cyan-600">Enrollable</span>
                                         ) : (
                                             <span className="ui-badge-outline border-brandGold text-brandGold">Pending</span>
                                         )}

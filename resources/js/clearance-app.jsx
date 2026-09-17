@@ -28,6 +28,7 @@ function parseContext(raw) {
     try {
         const parsed = JSON.parse(raw ?? '{}');
         return {
+            schoolYear: parsed.schoolYear ?? null,
             isCleared: !!parsed.isCleared,
             printUrl: parsed.printUrl ?? null,
             cashierCleared: !!parsed.cashierCleared,
@@ -38,7 +39,6 @@ function parseContext(raw) {
             items: Array.isArray(parsed.items) ? parsed.items : [],
             submission: parsed.submission ?? EMPTY_CONTEXT.submission,
             documentsUrl: parsed.documentsUrl ?? EMPTY_CONTEXT.documentsUrl,
-            schoolYear: parsed.schoolYear ?? null,
         };
     } catch {
         return EMPTY_CONTEXT;

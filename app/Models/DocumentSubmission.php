@@ -18,7 +18,6 @@ class DocumentSubmission extends Model
         'id_photo_2x2' => '2x2 ID Photo',
         'transcript_of_records' => 'Transcript of Records',
         'honorable_dismissal' => 'Honorable Dismissal',
-        'other' => 'Other Supporting Document',
     ];
 
     protected $fillable = [

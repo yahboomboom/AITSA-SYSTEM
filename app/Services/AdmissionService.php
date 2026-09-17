@@ -20,9 +20,9 @@ use Illuminate\Support\Str;
 class AdmissionService
 {
     /**
-     * @return array{login_id: string, password: string}|null  null if the
-     *   user isn't an applicant awaiting activation (already converted, or
-     *   never was an applicant) — safe to call more than once.
+     * @return array{login_id: string, password: string, email_sent: bool}|null
+     *   null if the user isn't an applicant awaiting activation (already
+     *   converted, or never was an applicant) — safe to call more than once.
      */
     public function activateStudentAccount(User $applicant): ?array
     {
@@ -40,6 +40,8 @@ class AdmissionService
             'year_level' => $applicant->year_level ?? '1st Year',
         ]);
 
+        $isFirstEverClearance = Clearance::where('user_id', $applicant->id)->doesntExist();
+
         Clearance::initializeFor(
             $applicant->id,
             \App\Models\Setting::get('school_year', '2026-2027'),
@@ -49,6 +51,7 @@ class AdmissionService
                 'chair_status' => 'Pending',
                 'cashier_status' => 'Pending',
                 'registrar_status' => 'Pending',
+                'is_provisional' => $isFirstEverClearance,
             ]
         );
 
@@ -65,13 +68,21 @@ class AdmissionService
         // on local dev setups) would otherwise throw here and abort the
         // request after the DB writes above already committed, leaving the
         // applicant flipped to "student" with no visible confirmation.
+        // credentials_email_sent_at lets the receipt screen (a separate
+        // request — the browser-return redirect, possibly after the
+        // PayMongo webhook already ran this) know whether to trust its own
+        // "we emailed your credentials" message.
+        $emailSent = false;
         try {
             Mail::to($applicant->email)->send(new ApplicantAccountCreated($applicant, $loginId, $password));
+            $emailSent = true;
+            $applicant->credentials_email_sent_at = now();
+            $applicant->save();
         } catch (\Throwable $e) {
             Log::error('Failed to email new student credentials to ' . $applicant->email . ': ' . $e->getMessage());
         }
 
-        return ['login_id' => $loginId, 'password' => $password];
+        return ['login_id' => $loginId, 'password' => $password, 'email_sent' => $emailSent];
     }
 
     private function generateUniqueLoginId(): string

@@ -86,24 +86,36 @@
                             'studentId' => $row->user->login_id ?? '—',
                             'program' => $row->user->major ?? '—',
                             'isApproved' => ($row->registrar_status ?? 'Pending') === 'Approved',
+                            'isProvisional' => (bool) $row->is_provisional,
                             'signUrl' => route('registrar.sign', $row->id),
                             'holdUrl' => route('registrar.hold', $row->id),
+                            'grantProvisionalUrl' => route('registrar.grant-provisional', $row->id),
                         ])->values(),
-                        'documents' => $documentSubmissions->map(fn ($doc) => [
-                            'id' => $doc->id,
-                            'studentName' => $doc->user->name ?? '—',
-                            'studentId' => $doc->user->login_id ?? '—',
-                            'typeLabel' => $doc->typeLabel(),
-                            'documentUrl' => route('documents.show', $doc),
-                            'originalName' => $doc->original_name,
-                            'sizeKb' => number_format($doc->size / 1024, 0),
-                            'notes' => $doc->notes,
-                            'status' => $doc->status,
-                            'remarks' => $doc->remarks,
-                            'createdAtFormatted' => $doc->created_at->format('M d, Y g:i A'),
-                            'acceptUrl' => route('registrar.documents.accept', $doc),
-                            'rejectUrl' => route('registrar.documents.reject', $doc),
-                        ])->values(),
+                        'documentsSearchUrl' => route('registrar.documents.search'),
+                        'documentsPendingCount' => $documentsPendingCount,
+                        'documentsRejectedCount' => $documentsRejectedCount,
+                        'gradeSubmissions' => $pendingGradeApprovals->map(function ($submission) {
+                            $enrolledIds = $submission->section->enrolledStudentIds();
+                            $gradedIds = $submission->items->pluck('user_id');
+
+                            return [
+                            'id' => $submission->id,
+                            'subjectCode' => $submission->section->subject->code,
+                            'subjectTitle' => $submission->section->subject->title,
+                            'blockLabel' => $submission->section->block_label,
+                            'facultyName' => $submission->section->faculty->name ?? '—',
+                            'studentCount' => $submission->items->count(),
+                            'missingGrades' => $enrolledIds->diff($gradedIds)->count(),
+                            'approveUrl' => route('registrar.grades.approve', $submission),
+                            'rejectUrl' => route('registrar.grades.reject', $submission),
+                            'items' => $submission->items->map(fn ($item) => [
+                                'name' => $item->user->name ?? 'Unknown (deleted account)',
+                                'loginId' => $item->user->login_id ?? 'N/A',
+                                'grade' => $item->final_grade,
+                                'status' => $item->status,
+                            ])->values(),
+                            ];
+                        })->values(),
                     ];
                 @endphp
 
