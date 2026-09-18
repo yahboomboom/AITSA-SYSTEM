@@ -9,10 +9,10 @@ function lockSubmit(form, busyLabel) {
 
 export default function NewSemesterForm({ old, errors, csrfToken, actionUrl }) {
     return (
-        <div className="bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded-xl p-5 space-y-3">
+        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6 space-y-3">
             <div>
-                <h2 className="text-sm font-extrabold text-brandNavy dark:text-white">Start New Semester</h2>
-                <p className="text-xs text-brandNavy/50 dark:text-slate-400">
+                <h2 className="font-heading text-sm font-semibold text-brandNavy dark:text-white">Start new semester</h2>
+                <p className="text-sm text-brandNavy/50 dark:text-slate-400">
                     Creates a fresh, Pending clearance for every active College student (Associate and Bachelor programs — TESDA is not affected) and advances the current term. This cannot be undone from this screen.
                 </p>
             </div>
@@ -30,28 +30,28 @@ export default function NewSemesterForm({ old, errors, csrfToken, actionUrl }) {
             >
                 <input type="hidden" name="_token" value={csrfToken} />
                 <div>
-                    <label className="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1">School Year</label>
+                    <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">School year</label>
                     <input
                         type="text" name="school_year" required defaultValue={old.school_year}
-                        className="w-32 bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs"
+                        className="w-32 bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded px-2 py-1.5 text-sm"
                     />
                 </div>
                 <div>
-                    <label className="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1">Semester</label>
+                    <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">Semester</label>
                     <select
                         name="semester" required defaultValue={old.semester ?? '1'}
-                        className="bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs"
+                        className="bg-lightBg dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-700 rounded px-2 py-1.5 text-sm"
                     >
-                        <option value="1">1st Semester</option>
-                        <option value="2">2nd Semester</option>
+                        <option value="1">1st semester</option>
+                        <option value="2">2nd semester</option>
                     </select>
                 </div>
-                <button type="submit" className="text-[11px] font-bold text-white bg-brandGreen hover:bg-emerald-700 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Start New Semester
+                <button type="submit" className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Start new semester
                 </button>
             </form>
             {errors.semester && (
-                <p className="text-xs text-red-600 font-semibold">{errors.semester}</p>
+                <p className="text-sm text-red-600 font-medium">{errors.semester}</p>
             )}
         </div>
     );

@@ -94,7 +94,7 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // The 5 institutional accounts above are production-required and must always be
+        // The institutional accounts above are production-required and must always be
         // seeded. Everything below this point is demo/dev-only data with weak passwords —
         // never seed it outside local/dev environments.
         if (app()->environment('production')) {

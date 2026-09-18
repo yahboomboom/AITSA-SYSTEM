@@ -1,8 +1,10 @@
+import DocCheck from '../components/DocCheck';
+
 const STATUS_STYLES = {
-    missing: { label: 'Missing', className: 'bg-slate-100 dark:bg-slate-800 text-brandNavy/50 dark:text-slate-500' },
-    pending: { label: 'Pending', className: 'bg-brandGold/10 text-brandGold border border-brandGold/20' },
-    accepted: { label: 'Verified', className: 'bg-brandGreen/10 text-brandGreen border border-brandGreen/20' },
-    rejected: { label: 'Rejected', className: 'bg-red-600/10 text-red-600 border border-red-600/20' },
+    missing: { label: 'Missing', tone: 'pending', badge: 'border-brandNavy/20 text-brandNavy/50 dark:border-slate-600 dark:text-slate-500' },
+    pending: { label: 'Awaiting review', tone: 'pending', badge: 'border-brandGold text-brandGold' },
+    accepted: { label: 'Verified', tone: 'done', badge: 'border-brandGreen text-brandGreen' },
+    rejected: { label: 'Rejected', tone: 'hold', badge: 'border-red-500 text-red-600' },
 };
 
 export default function RequirementRow({ requirement, onUpload }) {
@@ -10,28 +12,25 @@ export default function RequirementRow({ requirement, onUpload }) {
     const buttonLabel = requirement.status === 'missing' ? 'Upload' : requirement.status === 'rejected' ? 'Resubmit' : 'Replace';
 
     return (
-        <div className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-                <p className="text-xs font-bold text-brandNavy dark:text-slate-200">{requirement.label}</p>
-                {requirement.originalName && (
-                    <p className="text-[11px] text-brandNavy/50 dark:text-slate-500 font-mono mt-0.5 truncate max-w-[260px]">
-                        <i className="fa-solid fa-paperclip mr-1" />{requirement.originalName} · {requirement.createdAt}
-                    </p>
-                )}
-                {requirement.status === 'rejected' && requirement.remarks && (
-                    <p className="text-[11px] text-red-500 mt-1"><i className="fa-solid fa-comment-dots mr-1" />Registrar: {requirement.remarks}</p>
-                )}
+        <div className="ui-doc-row border-brandNavy/8 dark:border-slate-800 justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+                <DocCheck tone={status.tone} />
+                <div className="min-w-0">
+                    <p className="text-sm font-medium text-brandNavy dark:text-slate-200">{requirement.label}</p>
+                    {requirement.originalName && (
+                        <p className="text-xs text-brandNavy/50 dark:text-slate-500 font-mono mt-0.5 truncate max-w-64">
+                            <i className="fa-solid fa-paperclip mr-1" />{requirement.originalName} · {requirement.createdAt}
+                        </p>
+                    )}
+                    {requirement.status === 'rejected' && requirement.remarks && (
+                        <p className="text-xs text-red-500 mt-1"><i className="fa-solid fa-comment-dots mr-1" />Registrar: {requirement.remarks}</p>
+                    )}
+                </div>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-                <span className={`inline-flex items-center px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${status.className}`}>
-                    {status.label}
-                </span>
-                <button
-                    type="button"
-                    onClick={() => onUpload(requirement.type, requirement.label)}
-                    className="px-3 py-1.5 text-[11px] font-bold text-white bg-brandNavy hover:bg-brandGreen rounded-lg transition-colors whitespace-nowrap"
-                >
-                    <i className="fa-solid fa-upload mr-1.5" />{buttonLabel}
+                <span className={`ui-badge-outline ${status.badge}`}>{status.label}</span>
+                <button type="button" onClick={() => onUpload(requirement.type, requirement.label)} className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors">
+                    <i className="fa-solid fa-upload" />{buttonLabel}
                 </button>
             </div>
         </div>

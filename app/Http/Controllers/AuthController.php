@@ -159,7 +159,7 @@ class AuthController extends Controller
             ]];
         });
 
-        return view('auth.apply', compact('strands', 'reservationFee', 'slots'));
+        return view('auth.apply', compact('strands', 'reservationFee', 'slots', 'schoolYear'));
     }
 
     // 4. Store incoming application as pending — admin creates the account and emails credentials
@@ -522,6 +522,9 @@ class AuthController extends Controller
                 'color' => $palette[$i % count($palette)],
             ])->all()
             : [];
+
+        $schoolYear = $enrollment->school_year ?? Setting::get('school_year', '2026-2027');
+        $semester = $enrollment->semester ?? (int) Setting::get('semester', '1');
 
         return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
     }

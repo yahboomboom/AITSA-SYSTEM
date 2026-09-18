@@ -6,6 +6,7 @@
     <title>AITSA Admin | Create Student Account</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -26,36 +27,36 @@
                     <i class="fa-solid fa-chevron-left mr-1"></i>Dashboard
                 </a>
                 <span class="text-brandNavy/20 dark:text-slate-700">/</span>
-                <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Create Student Account</h2>
+                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Create student account</h2>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 @include('partials.notif-bell')
-                <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
+                <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>
                 @include('partials.profile-menu', ['roleLabel' => 'Administrator'])
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 lg:p-10">
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
             @if(session('success'))
-            <div class="mb-6 p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-sm flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-lg"></i>
-                <div>
-                    <p class="font-black">Account Created Successfully</p>
-                    <p class="font-normal text-xs mt-0.5">{{ session('success') }}</p>
+                <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm flex items-start gap-3">
+                    <i class="fa-solid fa-circle-check mt-0.5"></i>
+                    <div>
+                        <p class="font-medium">Account created successfully</p>
+                        <p class="text-xs mt-0.5">{{ session('success') }}</p>
+                    </div>
                 </div>
-            </div>
             @endif
 
             @if($errors->any())
-            <div class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-semibold">
-                <p class="font-black flex items-center gap-2 mb-1"><i class="fa-solid fa-triangle-exclamation"></i>Please fix the following:</p>
-                <ul class="list-disc pl-5 space-y-0.5">
-                    @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
-                </ul>
-            </div>
+                <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">
+                    <p class="font-medium flex items-center gap-2 mb-1"><i class="fa-solid fa-triangle-exclamation"></i>Please fix the following:</p>
+                    <ul class="list-disc pl-5 space-y-0.5 text-xs">
+                        @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                    </ul>
+                </div>
             @endif
 
             @php

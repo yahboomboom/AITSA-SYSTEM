@@ -165,7 +165,9 @@ Route::middleware('auth')->group(function () {
             );
         }
 
-        return view('dashboard', compact('clearance'));
+        $context = ['clearancePercent' => $clearance->completionPercent()];
+
+        return view('dashboard', compact('clearance', 'context'));
     })->name('dashboard');
 
     // 2. Student e-Clearance Routing Module
@@ -295,7 +297,7 @@ Route::middleware('auth')->group(function () {
         // Verify the uploaded file actually shows the submitting student's own name
         // (OCR-read and compared against their account name) before accepting it.
         if (!$docVerifier->verifyNameOnDocument($file, $user->name)) {
-            return redirect()->route('clearance')->with('error', 'Mismatch document. Please resubmit the required file.');
+            return redirect()->route('documents')->with('error', 'Mismatch document. Please resubmit the required file.');
         }
 
         $submission = DocumentSubmission::create([
@@ -1050,6 +1052,7 @@ Route::middleware('auth')->group(function () {
                 $query->where('school_year', Setting::get('school_year', '2026-2027'))
                     ->where('semester', (int) Setting::get('semester', '1'));
             })
+            ->whereHas('clearance.user')
             ->with('clearance.user')
             ->get();
 
@@ -1532,9 +1535,11 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students.search');
 
     Route::get('/registrar/reports', function () {
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
         $clearances        = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
             ->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
 
@@ -1549,6 +1554,8 @@ Route::middleware('auth')->group(function () {
             ],
             'pendingApplicants' => $pendingApplicants,
             'dashboardUrl' => route('registrar.dashboard'),
+            'schoolYear' => $schoolYear,
+            'semester' => $semester,
             'rows' => $clearances->values()->map(fn ($c, $i) => [
                 'id' => $c->id,
                 'index' => $i + 1,
@@ -1565,7 +1572,7 @@ Route::middleware('auth')->group(function () {
             ])->values(),
         ];
 
-        return view('registrar.reports', compact('context'));
+        return view('registrar.reports', compact('context', 'schoolYear', 'semester'));
     })->name('registrar.reports');
 
     // Curriculum editing — moved here from Admin (per the adviser's note that

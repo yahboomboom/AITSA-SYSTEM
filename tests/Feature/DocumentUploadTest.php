@@ -87,6 +87,28 @@ class DocumentUploadTest extends TestCase
         ])->assertSessionHasErrors('document_type');
     }
 
+    public function test_a_mismatched_document_stays_on_the_documents_page_with_a_visible_error(): void
+    {
+        Storage::fake('local');
+
+        $this->mock(\App\Services\DocumentVerificationService::class, function ($mock) {
+            $mock->shouldReceive('verifyNameOnDocument')->once()->andReturn(false);
+        });
+
+        $response = $this->actingAs($this->student())->post('/documents/submit-requirement', [
+            'document' => UploadedFile::fake()->create('form137.pdf', 500, 'application/pdf'),
+            'document_type' => 'form137',
+        ]);
+
+        // Every other outcome of this route (missing signature, success) sends
+        // the student back to route('documents'), which is the only page that
+        // actually renders session('error'). A mismatch used to redirect to
+        // route('clearance') instead, which silently swallows the message.
+        $response->assertRedirect(route('documents'));
+        $response->assertSessionHas('error', 'Mismatch document. Please resubmit the required file.');
+        $this->assertSame(0, DocumentSubmission::count());
+    }
+
     public function test_guest_cannot_submit(): void
     {
         Storage::fake('local');

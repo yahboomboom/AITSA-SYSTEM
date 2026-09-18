@@ -37,6 +37,10 @@ class RegistrarReportsIslandTest extends TestCase
         $response->assertSee('Report Test Student');
         $response->assertSee('&quot;total&quot;:1', false);
         $response->assertSee('&quot;registrarSigned&quot;:0', false);
+        $response->assertSee('Academic Year 2026-2027');
+        $response->assertSee('1st Semester');
+        $response->assertDontSee('2025–2026');
+        $response->assertDontSee('2025-2026');
     }
 
     public function test_reports_page_does_not_list_a_students_clearance_from_a_past_term(): void

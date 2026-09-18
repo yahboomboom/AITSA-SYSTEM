@@ -17,68 +17,55 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
     const showDownPaymentOption = !settled && remainingDownPayment > 0 && remainingDownPayment < (b.balance ?? 0);
 
     return (
-        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-            <div className="bg-lightBg dark:bg-slate-800/60 px-6 py-3.5 border-b border-brandNavy/10 dark:border-slate-800 flex justify-between items-center">
-                <span className="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
-                    <i className="fa-solid fa-wallet mr-2" />Account Balance
-                </span>
-                <span className="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest">Accounting Office</span>
-            </div>
-            <div className="p-6 lg:p-8 flex flex-col md:flex-row items-start justify-between gap-6">
-                <div className="space-y-2 text-center md:text-left">
-                    {settled ? (
-                        <>
-                            <p className="text-[10px] font-bold text-brandGreen uppercase tracking-widest">Outstanding Balance</p>
-                            <h3 className="text-4xl font-black text-brandGreen">₱ 0.00</h3>
-                            <p className="text-xs text-brandNavy/60 dark:text-slate-400">Your account has been fully settled with the Accounting Office.</p>
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-[10px] font-bold text-brandGold uppercase tracking-widest">Outstanding Balance</p>
-                            <h3 className="text-4xl font-black text-brandGold dark:text-amber-400">{peso(b.balance)}</h3>
-                            <p className="text-xs text-brandNavy/60 dark:text-slate-400">Settle your balance to clear the cashier hold before enrollment.</p>
-                        </>
-                    )}
+        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
+            <h3 className="font-heading text-sm font-semibold text-brandNavy dark:text-white mb-1">Accounting Office</h3>
 
-                    <div className="mt-4 bg-lightBg dark:bg-slate-900/40 border border-brandNavy/5 dark:border-slate-800 rounded-xl p-4 text-xs space-y-1.5 w-full md:w-80">
-                        <p className="text-[10px] font-bold text-brandNavy/50 dark:text-slate-400 uppercase tracking-widest mb-2">Assessment Breakdown</p>
-                        <div className="flex justify-between">
-                            <span className="text-brandNavy/60 dark:text-slate-400">Tuition ({b.units} units × {peso(b.rate)})</span>
-                            <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.tuition)}</span>
+            <div className="ui-headline-stat border-brandNavy/10 dark:border-slate-700">
+                <span className={`ui-headline-num font-heading ${settled ? 'text-brandGreen' : 'text-brandGold'} dark:text-white`}>
+                    {settled ? peso(0) : peso(b.balance)}
+                </span>
+                <span className="text-sm text-brandNavy/60 dark:text-slate-400 pb-1.5">
+                    {settled ? 'fully settled with the Accounting Office' : 'outstanding balance'}
+                </span>
+            </div>
+
+            <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+                <div className="divide-y divide-brandNavy/8 dark:divide-slate-800 text-sm w-full md:max-w-md">
+                    <div className="flex justify-between py-2">
+                        <span className="text-brandNavy/70 dark:text-slate-400">Tuition ({b.units} units × {peso(b.rate)})</span>
+                        <span className="text-brandNavy dark:text-slate-200">{peso(b.tuition)}</span>
+                    </div>
+                    {hasDiscount && (
+                        <div className="flex justify-between py-2 text-brandGreen">
+                            <span>{b.discount_name} (−{b.discount_percent}% tuition)</span>
+                            <span>− {peso(b.discount_amount)}</span>
                         </div>
-                        {hasDiscount && (
-                            <div className="flex justify-between text-brandGreen">
-                                <span>{b.discount_name} (−{b.discount_percent}% tuition)</span>
-                                <span className="font-bold">− {peso(b.discount_amount)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between">
-                            <span className="text-brandNavy/60 dark:text-slate-400">Miscellaneous Fee</span>
-                            <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.misc)}</span>
+                    )}
+                    <div className="flex justify-between py-2">
+                        <span className="text-brandNavy/70 dark:text-slate-400">Miscellaneous fee</span>
+                        <span className="text-brandNavy dark:text-slate-200">{peso(b.misc)}</span>
+                    </div>
+                    {(b.reservation_fee ?? 0) > 0 && (
+                        <div className="flex justify-between py-2">
+                            <span className="text-brandNavy/70 dark:text-slate-400">Slot reservation fee <span className="text-brandGreen/80">(already paid)</span></span>
+                            <span className="text-brandNavy dark:text-slate-200">{peso(b.reservation_fee)}</span>
                         </div>
-                        {/* NEW: show the reservation fee as its own line, separate from tuition, so it's
-                            clear it's already been paid and not being billed again inside "Total Assessment" */}
-                        {(b.reservation_fee ?? 0) > 0 && (
-                            <div className="flex justify-between">
-                                <span className="text-brandNavy/60 dark:text-slate-400">Slot Reservation Fee <span className="text-brandGreen/80">(already paid)</span></span>
-                                <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.reservation_fee)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between pt-1.5 border-t border-brandNavy/10 dark:border-slate-800">
-                            <span className="text-brandNavy/60 dark:text-slate-400">Total Assessment</span>
-                            <span className="font-bold text-brandNavy dark:text-slate-200">{peso(b.assessment)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-brandNavy/60 dark:text-slate-400">Payments Made</span>
-                            <span className="font-bold text-brandGreen">− {peso(b.paid)}</span>
-                        </div>
+                    )}
+                    <div className="flex justify-between py-2">
+                        <span className="font-medium text-brandNavy dark:text-slate-100">Total assessment</span>
+                        <span className="font-medium text-brandNavy dark:text-slate-100">{peso(b.assessment)}</span>
+                    </div>
+                    <div className="flex justify-between py-2">
+                        <span className="text-brandNavy/70 dark:text-slate-400">Payments made</span>
+                        <span className="text-brandGreen">− {peso(b.paid)}</span>
                     </div>
                 </div>
-                <div className="flex flex-col gap-3 w-full md:w-auto">
+
+                <div className="flex flex-col gap-3 w-full md:w-auto md:min-w-64">
                     {settled ? (
-                        <button disabled className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-lightBg text-brandNavy/40 dark:bg-slate-800 dark:text-slate-500 font-bold rounded-xl text-xs uppercase tracking-wider cursor-not-allowed border border-brandNavy/10 dark:border-slate-700">
-                            <i className="fa-solid fa-circle-check" />Account Settled
-                        </button>
+                        <span className="ui-badge-outline border-brandGreen text-brandGreen justify-center py-2">
+                            <i className="fa-solid fa-circle-check" />Account settled
+                        </span>
                     ) : (
                         !hasPendingGateway && (
                             <>
@@ -86,15 +73,15 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                                     <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
                                         <input type="hidden" name="_token" value={csrfToken} />
                                         <input type="hidden" name="type" value="down_payment" />
-                                        <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-transparent border border-brandNavy/25 dark:border-slate-600 hover:bg-brandNavy/5 dark:hover:bg-slate-800 text-brandNavy dark:text-slate-200 font-bold rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-                                            <i className="fa-solid fa-unlock" />Pay Down Payment {peso(remainingDownPayment)}
+                                        <button type="submit" className="ui-btn-primary w-full justify-center bg-transparent border border-brandNavy/25 dark:border-slate-600 hover:bg-brandNavy/5 dark:hover:bg-slate-800 text-brandNavy dark:text-slate-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                                            <i className="fa-solid fa-unlock" />Pay down payment {peso(remainingDownPayment)}
                                         </button>
-                                        <p className="text-[10px] text-brandNavy/50 dark:text-slate-500 text-center mt-1.5">Unlocks self-enrollment now; the rest can be settled later.</p>
+                                        <p className="text-xs text-brandNavy/50 dark:text-slate-500 text-center mt-1.5">Unlocks self-enrollment now; the rest can be settled later.</p>
                                     </form>
                                 )}
                                 <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
                                     <input type="hidden" name="_token" value={csrfToken} />
-                                    <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brandGreen hover:bg-emerald-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-md hover:shadow-brandGreen/25 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-none">
+                                    <button type="submit" className="ui-btn-primary w-full justify-center bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                                         <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
                                     </button>
                                 </form>
@@ -105,11 +92,11 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                         <>
                             <form action={verifyUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Verifying…')}>
                                 <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-brandGold/10 hover:bg-brandGold text-brandGold hover:text-white border border-brandGold/30 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                                    <i className="fa-solid fa-rotate" />Verify Payment
+                                <button type="submit" className="ui-btn-primary w-full justify-center bg-transparent border border-brandGold text-brandGold hover:bg-brandGold hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                                    <i className="fa-solid fa-rotate" />Verify payment
                                 </button>
                             </form>
-                            <p className="text-[10px] text-brandNavy/50 dark:text-slate-500 text-center max-w-48">Finished paying on the gateway but the balance did not update? Verify here.</p>
+                            <p className="text-xs text-brandNavy/50 dark:text-slate-500">Finished paying on the gateway but the balance did not update? Verify here.</p>
                         </>
                     )}
                 </div>

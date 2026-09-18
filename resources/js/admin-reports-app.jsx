@@ -8,6 +8,8 @@ import ReportTable from './admin-reports/ReportTable';
 import AgreementsSummary from './admin-reports/AgreementsSummary';
 
 const EMPTY_CONTEXT = {
+    schoolYear: '',
+    semesterLabel: '',
     summary: { total: 0, cleared: 0, pending: 0, cashierOk: 0 },
     pipeline: { pendingApplicants: 0, verifiedApplicants: 0, totalStudents: 0 },
     agreements: { signed: 0, awaiting: 0, declinedOrVoided: 0 },
@@ -19,6 +21,8 @@ function parseContext(raw) {
     try {
         const parsed = JSON.parse(raw ?? '{}');
         return {
+            schoolYear: parsed.schoolYear ?? EMPTY_CONTEXT.schoolYear,
+            semesterLabel: parsed.semesterLabel ?? EMPTY_CONTEXT.semesterLabel,
             summary: parsed.summary ?? EMPTY_CONTEXT.summary,
             pipeline: parsed.pipeline ?? EMPTY_CONTEXT.pipeline,
             agreements: parsed.agreements ?? EMPTY_CONTEXT.agreements,
@@ -41,7 +45,7 @@ if (el) {
                 <AdmissionPipeline pipeline={context.pipeline} />
                 <AgreementsSummary agreements={context.agreements} />
                 <ProgramBreakdown programBreakdown={context.programBreakdown} />
-                <ReportTable rows={context.rows} />
+                <ReportTable rows={context.rows} schoolYear={context.schoolYear} semesterLabel={context.semesterLabel} />
             </div>
         </ErrorBoundary>
     );
