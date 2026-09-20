@@ -107,6 +107,23 @@ class DepartmentOfficerDashboardTest extends TestCase
         $this->assertSame('Pending', $item->fresh()->status);
     }
 
+    public function test_dashboard_excludes_items_for_a_soft_deleted_student(): void
+    {
+        $department = Department::factory()->create();
+        $officer = User::factory()->create(['role' => 'department_officer', 'department_id' => $department->id]);
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Deleted Student']);
+        $clearance = Clearance::create(['user_id' => $student->id]);
+        $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
+        $student->delete();
+
+        $response = $this->actingAs($officer)->get('/department/dashboard');
+
+        $response->assertOk();
+        $response->assertDontSee('Deleted Student');
+        $response->assertDontSee('Unknown');
+        $response->assertViewHas('items', fn ($items) => $items->count() === 0);
+    }
+
     public function test_non_officer_is_forbidden(): void
     {
         $student = User::factory()->create(['role' => 'student']);

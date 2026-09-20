@@ -6,6 +6,7 @@
     <title>AITSA Portal | Documents</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -22,7 +23,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white mr-4">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Documents</h2>
+                    <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Documents</h2>
                 </div>
 
                 <div class="flex items-center space-x-3 border-l border-brandNavy/10 dark:border-slate-700 pl-4">
@@ -38,12 +39,12 @@
             <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
 
                 @if(session('success'))
-                    <div class="p-4 rounded-lg bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">
+                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
                         <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                     </div>
                 @endif
                 @if(session('error'))
-                    <div class="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 font-bold text-xs">
+                    <div class="p-4 rounded bg-red-500/10 border border-red-500/20 text-red-600 text-sm">
                         <i class="fa-solid fa-triangle-exclamation mr-2"></i>{{ session('error') }}
                     </div>
                 @endif

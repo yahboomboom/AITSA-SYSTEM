@@ -6,6 +6,7 @@
     <title>AITSA Admin | Student Registry</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -26,30 +27,30 @@
                     <i class="fa-solid fa-chevron-left mr-1"></i>Dashboard
                 </a>
                 <span class="text-brandNavy/20 dark:text-slate-700">/</span>
-                <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Student Registry</h2>
+                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Student registry</h2>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 @include('partials.notif-bell')
-                <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
+                <button onclick="toggleTheme()" class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>
                 @include('partials.profile-menu', ['roleLabel' => 'Administrator'])
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 lg:p-10">
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8">
 
-            @if(session('success'))
-            <div class="mb-6 p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-sm">
-                {{ session('success') }}
-            </div>
-            @endif
+            <div class="w-full space-y-6">
 
-            <div class="max-w-6xl mx-auto space-y-6">
+                @if(session('success'))
+                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
+                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
+                    </div>
+                @endif
 
                 <div>
-                    <h1 class="text-2xl font-black text-brandNavy dark:text-white">Student Registry</h1>
-                    <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-1">Search, filter, and manage existing student accounts.</p>
+                    <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Student registry</h1>
+                    <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-0.5">Search, filter, and manage existing student accounts.</p>
                 </div>
 
                 @php

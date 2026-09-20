@@ -16,6 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
         $middleware->statefulApi();
+
+        // Railway's edge proxy doesn't publish stable IPs to allowlist, so we trust
+        // forwarded headers only when actually running on Railway (which always sets
+        // this env var) rather than trusting them from any source unconditionally.
+        if (env('RAILWAY_ENVIRONMENT')) {
+            $middleware->trustProxies(at: '*');
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

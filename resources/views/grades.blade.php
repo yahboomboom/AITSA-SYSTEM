@@ -6,6 +6,7 @@
     <title>AITSA Portal | Grades</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -19,7 +20,7 @@
         <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white"><i class="fa-solid fa-bars text-xl"></i></button>
-                <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">Grades</h2>
+                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Grades</h2>
             </div>
             <div class="flex items-center gap-4 border-l border-brandNavy/10 dark:border-slate-700 pl-4">
                 @include('partials.notif-bell')
@@ -33,37 +34,39 @@
 
         <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-5">
 
-            <div class="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
-                <h1 class="text-xl font-bold text-brandNavy dark:text-slate-100">My Grades</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Final grades recorded by your instructors for each subject.</p>
+            <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
+                <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-slate-100">My grades</h1>
+                <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-1">Final grades recorded by your instructors for each subject.</p>
             </div>
 
-            <div class="bg-white dark:bg-panelDark rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
                 @if ($grades->isEmpty())
-                    <p class="text-sm text-slate-500 dark:text-slate-400 p-6">No grades have been recorded yet.</p>
+                    <p class="text-sm text-brandNavy/50 dark:text-slate-400">No grades have been recorded yet.</p>
                 @else
-                    <table class="w-full text-sm">
-                        <thead class="bg-lightBg dark:bg-slate-900/40 text-left text-[10px] uppercase tracking-wider text-brandNavy/50 dark:text-slate-500">
-                            <tr>
-                                <th class="px-6 py-3">Subject Code</th>
-                                <th class="px-6 py-3">Final Grade</th>
-                                <th class="px-6 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-brandNavy/5 dark:divide-slate-800">
-                            @foreach ($grades as $grade)
-                                <tr>
-                                    <td class="px-6 py-3 font-mono font-bold text-brandNavy dark:text-slate-200">{{ $grade->subject_code }}</td>
-                                    <td class="px-6 py-3 text-brandNavy/80 dark:text-slate-300">{{ $grade->final_grade }}</td>
-                                    <td class="px-6 py-3">
-                                        <span class="text-xs font-bold {{ $grade->status === 'Passed' ? 'text-brandGreen' : 'text-red-500' }}">
-                                            {{ $grade->status }}
-                                        </span>
-                                    </td>
+                    <div class="overflow-x-auto">
+                        <table class="ui-table">
+                            <thead>
+                                <tr class="border-brandNavy/8 dark:border-slate-800 text-brandNavy/50 dark:text-slate-500">
+                                    <th class="border-brandNavy/8 dark:border-slate-800">Subject code</th>
+                                    <th class="border-brandNavy/8 dark:border-slate-800">Final grade</th>
+                                    <th class="border-brandNavy/8 dark:border-slate-800">Status</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach ($grades as $grade)
+                                    <tr>
+                                        <td class="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy dark:text-slate-200">{{ $grade->subject_code }}</td>
+                                        <td class="border-brandNavy/8 dark:border-slate-800 text-brandNavy/80 dark:text-slate-300">{{ $grade->final_grade }}</td>
+                                        <td class="border-brandNavy/8 dark:border-slate-800">
+                                            <span class="ui-badge-outline {{ $grade->status === 'Passed' ? 'border-brandGreen text-brandGreen' : 'border-red-500 text-red-600' }}">
+                                                {{ $grade->status }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 @endif
             </div>
 
