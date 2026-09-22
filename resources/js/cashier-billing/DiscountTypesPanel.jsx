@@ -87,9 +87,7 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
                     </button>
                 </form>
 
-<<<<<<< Updated upstream
                 <div className="divide-y divide-brandNavy/5 dark:divide-slate-800/60">
-=======
                 {notice && (
                     <div className={`p-3 rounded border text-xs font-medium ${notice.ok ? 'bg-brandGreen/10 border-brandGreen/20 text-brandGreen' : 'bg-red-600/10 border-red-600/20 text-red-600'}`}>
                         {notice.text}
@@ -97,33 +95,12 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
                 )}
 
                 <div className="divide-y divide-brandNavy/8 dark:divide-slate-800">
->>>>>>> Stashed changes
                     {discountTypes.length === 0 && (
                         <p className="py-3 text-brandNavy/40 dark:text-slate-500">No discount types yet.</p>
                     )}
                     {discountTypes.map((type) => (
                         <div key={type.id} className="py-2.5 flex items-center justify-between gap-2">
                             <div>
-<<<<<<< Updated upstream
-                                <span className="font-bold text-brandNavy dark:text-slate-200">{type.name}</span>
-                                <span className="text-brandGreen font-black ml-2">{type.percent}%</span>
-                                <span className="text-brandNavy/40 dark:text-slate-500 ml-2">{type.studentsCount} student(s)</span>
-                            </div>
-                            <form
-                                action={type.deleteUrl}
-                                method="POST"
-                                onSubmit={(e) => {
-                                    if (!window.confirm(`Remove ${type.name}? Students with this discount will lose it.`)) {
-                                        e.preventDefault();
-                                        return false;
-                                    }
-                                    return lockSubmit(e.currentTarget, 'Removing…');
-                                }}
-                            >
-                                <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-7 h-7 rounded bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
-                                    <i className="fa-solid fa-trash-can text-[10px]" />
-=======
                                 <span className={`font-medium ${type.isActive ? 'text-brandNavy dark:text-slate-200' : 'text-brandNavy/40 dark:text-slate-500 line-through'}`}>{type.name}</span>
                                 <span className="text-brandGreen font-semibold ml-2">{type.percent}%</span>
                                 <span className="text-brandNavy/40 dark:text-slate-500 ml-2">{type.studentsCount} student(s)</span>
@@ -143,11 +120,11 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
                                     className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brandGreen/40 disabled:opacity-50 ${type.isActive ? 'bg-brandGreen' : 'bg-slate-300 dark:bg-slate-700'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${type.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
->>>>>>> Stashed changes
                                 </button>
                             </div>
                         </div>
                     ))}
+                </div>
                 </div>
             </div>
         </div>

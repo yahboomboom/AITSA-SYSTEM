@@ -77,37 +77,6 @@ export default function AccountsTable({ rows }) {
                                 </td>
                             </tr>
                         )}
-<<<<<<< Updated upstream
-                        {visible.map((a) => (
-                            <tr key={a.id} className="hover:bg-lightBg/40 dark:hover:bg-slate-800/20 transition-colors">
-                                <td className="p-4 font-mono text-brandNavy/40 dark:text-slate-500">{a.studentNo}</td>
-                                <td className="p-4">
-                                    <div className="font-bold text-brandNavy dark:text-white">{a.studentName}</div>
-                                    <div className="text-[10px] text-brandNavy/40 dark:text-slate-500">{a.studentEmail}</div>
-                                </td>
-                                <td className="p-4">
-                                    {a.referenceNo ? (
-                                        <>
-                                            <div className="font-mono text-brandNavy/70 dark:text-slate-300">{a.referenceNo}</div>
-                                            <div className="text-[10px] text-brandNavy/40 dark:text-slate-500">
-                                                {peso(a.lastPaymentAmount)} · {a.lastPaymentDate}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <span className="text-brandNavy/30 dark:text-slate-600 italic">No payment yet</span>
-                                    )}
-                                </td>
-                                <td className="p-4">
-                                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-brandGold/10 text-brandGold border border-brandGold/20 rounded">Pending</span>
-                                </td>
-                                <td className="p-4 text-right">
-                                    <a href={reviewUrl} className="inline-block px-3 py-1.5 bg-brandNavy hover:bg-brandGreen text-white rounded transition-colors font-bold text-[11px]">
-                                        <i className="fa-solid fa-arrow-right mr-1" />Review in Cashier Hub
-                                    </a>
-                                </td>
-                            </tr>
-                        ))}
-=======
                         {visible.map((a) => {
                             const payments = a.payments ?? [];
                             const isOpen = !!openIds[a.id];
@@ -205,7 +174,6 @@ export default function AccountsTable({ rows }) {
                                 </Fragment>
                             );
                         })}
->>>>>>> Stashed changes
                     </tbody>
                 </table>
                 {!search.trim() && filtered.length > DEFAULT_VISIBLE && (

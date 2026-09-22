@@ -62,18 +62,6 @@
         },
         {
             "name": "aws/aws-sdk-php",
-<<<<<<< HEAD
-            "version": "3.395.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "d027655c121cc80192275e72d189612efa8dd9a9"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/d027655c121cc80192275e72d189612efa8dd9a9",
-                "reference": "d027655c121cc80192275e72d189612efa8dd9a9",
-=======
             "version": "3.395.3",
             "source": {
                 "type": "git",
@@ -84,7 +72,6 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/22f2bce297541ae41ca9e03207032ede4e805ad4",
                 "reference": "22f2bce297541ae41ca9e03207032ede4e805ad4",
->>>>>>> e54e3241cfd774bf8c6fbe2d8f8f1d705fc6cff8
                 "shasum": ""
             },
             "require": {
@@ -166,15 +153,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-<<<<<<< HEAD
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.395.2"
-            },
-            "time": "2026-09-14T20:04:40+00:00"
-=======
                 "source": "https://github.com/aws/aws-sdk-php/tree/3.395.3"
             },
             "time": "2026-09-15T18:07:56+00:00"
->>>>>>> e54e3241cfd774bf8c6fbe2d8f8f1d705fc6cff8
         },
         {
             "name": "barryvdh/laravel-dompdf",
