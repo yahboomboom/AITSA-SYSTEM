@@ -6,7 +6,6 @@
     <title>AITSA Portal | Cashier Dashboard</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
-    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -21,7 +20,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Cashier operations</span>
+                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
                 </div>
                 <div class="flex items-center gap-3">
                     @include('partials.notif-bell')
@@ -34,14 +33,14 @@
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
                 @if(session('success'))
-                    <div class="bg-brandGreen/10 border border-brandGreen/20 text-brandGreen px-4 py-3 rounded text-sm flex items-center space-x-2">
+                    <div class="bg-brandGreen/8 border border-brandGreen/20 text-brandGreen px-4 py-3 rounded-lg text-xs font-semibold flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check"></i>
                         <span>{{ session('success') }}</span>
                     </div>
                 @endif
 
                 @if(session('error'))
-                    <div class="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded text-sm flex items-center space-x-2">
+                    <div class="bg-red-500/8 border border-red-500/20 text-red-500 px-4 py-3 rounded-lg text-xs font-semibold flex items-center space-x-2">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <span>{{ session('error') }}</span>
                     </div>
@@ -49,11 +48,11 @@
 
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                        <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Cashier console</h1>
-                        <p class="text-sm text-brandNavy/50 dark:text-slate-400">Review student transactions, handle validation workflows, and sign off clearances.</p>
+                        <h1 class="text-xl font-bold text-brandNavy dark:text-white">Cashier Console</h1>
+                        <p class="text-xs text-brandNavy/50 dark:text-slate-400">Review student transactions, handle validation workflows, and sign off clearances.</p>
                     </div>
-                    <div class="text-xs font-mono text-brandNavy/50 dark:text-slate-400 bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 px-3 py-2 rounded">
-                        System date: <span class="text-brandNavy dark:text-white font-medium">{{ date('Y-m-d') }}</span>
+                    <div class="text-xs font-mono text-brandNavy/50 dark:text-slate-400 bg-lightBg dark:bg-slate-800 border border-brandNavy/8 dark:border-slate-700 px-3 py-2 rounded">
+                        System Date: <span class="text-brandNavy dark:text-white font-bold">{{ date('Y-m-d') }}</span>
                     </div>
                 </div>
 

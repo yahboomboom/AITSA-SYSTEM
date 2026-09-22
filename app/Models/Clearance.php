@@ -71,18 +71,6 @@ class Clearance extends Model
     {
         return $this->items->isEmpty() || $this->items->every(fn (ClearanceItem $item) => $item->status === 'Approved');
     }
-
-    public function completionPercent(): int
-    {
-        $stages = ['chair_status', 'cashier_status', 'registrar_status'];
-
-        $approved = collect($stages)->filter(fn (string $stage) => $this->{$stage} === 'Approved')->count();
-        $approved += $this->items->where('status', 'Approved')->count();
-
-        $total = count($stages) + $this->items->count();
-
-        return $total > 0 ? (int) round($approved / $total * 100) : 0;
-    }
   
     public function chairSignedBy(): BelongsTo
     {

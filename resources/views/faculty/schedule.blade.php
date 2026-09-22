@@ -6,7 +6,6 @@
     <title>AITSA Portal | Teaching Schedule</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
-    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -15,11 +14,12 @@
     <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10">
         <div class="flex items-center gap-3">
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover">
-            <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">My teaching schedule</h2>
+            <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">My Teaching Schedule</h2>
         </div>
         <div class="flex items-center gap-4">
-            <a href="{{ route('faculty.sections') }}" class="ui-btn-primary hidden md:flex bg-brandNavy hover:bg-brandGreen text-white transition-colors">
-                <i class="fa-solid fa-pen-to-square"></i>Enter grades
+            <a href="{{ route('faculty.sections') }}"
+               class="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-brandNavy hover:bg-brandGreen text-white transition-colors">
+                <i class="fa-solid fa-pen-to-square"></i>Enter Grades
             </a>
             @include('partials.notif-bell')
             <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">

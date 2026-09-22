@@ -118,10 +118,10 @@ export default function WeeklyTimetable({ subjects }) {
 
     if (subjects.length === 0) {
         return (
-            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm print-area">
-                <div className="px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800">
-                    <span className="font-heading text-sm font-semibold text-brandNavy dark:text-slate-300">
-                        <i className="fa-solid fa-table-cells-large mr-2 text-brandGreen" />Weekly timetable
+            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm print-area">
+                <div className="bg-lightBg dark:bg-slate-800/60 px-5 py-3 border-b border-brandNavy/10 dark:border-slate-800">
+                    <span className="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">
+                        <i className="fa-solid fa-table-cells-large mr-2 text-brandGreen" />Weekly Timetable
                     </span>
                 </div>
                 <div className="p-4 lg:p-6 overflow-x-auto">

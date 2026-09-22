@@ -90,7 +90,24 @@ class CashierBillingTest extends TestCase
         $this->assertNull($student->fresh()->discount_type_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Removed']);
     }
+    public function test_cashier_can_toggle_discount_type_active_state(): void
+    {
+        $type = DiscountType::factory()->create(['name' => 'Barranggay Scholar', 'percent' => 30]);
+        $this->assertTrue($type->fresh()->is_active);
 
+        $this->actingAs($this->cashier)
+            ->post("/cashier/billing/discounts/{$type->id}/toggle")
+            ->assertRedirect(route('cashier.billing'));
+
+        $this->assertFalse($type->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Deactivated']);
+
+        $this->actingAs($this->cashier)
+            ->post("/cashier/billing/discounts/{$type->id}/toggle");
+
+        $this->assertTrue($type->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Activated']);
+    }
     public function test_invalid_percent_and_duplicate_name_are_rejected(): void
     {
         DiscountType::factory()->create(['name' => 'Academic Scholar']);

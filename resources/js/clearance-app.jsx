@@ -21,7 +21,6 @@ const EMPTY_CONTEXT = {
     items: [],
     submission: { hasSubmission: false, submissionPending: false, createdAt: null, originalName: null },
     documentsUrl: '/documents',
-    schoolYear: null,
 };
 
 function parseContext(raw) {
@@ -49,17 +48,23 @@ function ClearanceApp({ context }) {
     return (
         <>
             <div className="space-y-6">
-                <div className="text-center py-2">
-                    <h1 className="font-heading text-2xl font-semibold text-brandNavy dark:text-white">Enrollment Clearance</h1>
-                    {context.isCleared && context.printUrl && (
+                <div className="text-center py-2 relative">
+                    <h1 className="text-2xl font-bold tracking-tight text-brandNavy dark:text-white">Enrollment Clearance</h1>
+{context.isCleared && context.printUrl && (
                         <div className="flex justify-center mt-3">
                             <a href={context.printUrl} target="_blank" rel="noreferrer"
-                               className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors">
+                               className="inline-flex items-center gap-2 text-xs font-black bg-brandGreen text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-emerald-600 transition-all">
                                 <i className="fa-solid fa-print" />
-                                <span>Print clearance certificate</span>
+                                <span>PRINT CLEARANCE CERTIFICATE</span>
                             </a>
                         </div>
                     )}
+                    <div className="hidden justify-center mt-3 animate-bounce">
+                        <a href="/enrollment" className="inline-flex items-center space-x-2 text-xs font-black bg-brandGreen text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-emerald-600 transition-all">
+                            <i className="fa-solid fa-rocket" />
+                            <span>CONGRATULATIONS! CLICK HERE TO PROCEED TO ENROLLMENT</span>
+                        </a>
+                    </div>
                 </div>
 
                 <MasterStatusBadge
@@ -71,15 +76,15 @@ function ClearanceApp({ context }) {
                 />
 
                 {context.remarks && (
-                    <div className="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">
+                    <div className="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 text-xs">
                         <i className="fa-solid fa-triangle-exclamation mr-2" /><strong>Remarks:</strong> {context.remarks}
                     </div>
                 )}
 
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between border-b border-brandNavy/8 dark:border-slate-800 pb-2">
-                        <p className="text-sm font-medium text-brandNavy dark:text-slate-300">Clearance details</p>
-                        <p className="text-xs text-brandNavy/50 dark:text-slate-400">Updates reflect immediately upon administrative action.</p>
+                    <div className="flex items-center justify-between border-b border-brandNavy/5 dark:border-slate-800 pb-2">
+                        <p className="text-xs font-bold text-brandNavy dark:text-slate-300 uppercase tracking-wider">Clearance Details</p>
+                        <p className="text-[10px] text-brandNavy/50 dark:text-slate-400 italic">Updates reflect immediately upon administrative action.</p>
                     </div>
 
                     <AccountingCard cashierCleared={context.cashierCleared} breakdown={context.breakdown} schoolYear={context.schoolYear} />

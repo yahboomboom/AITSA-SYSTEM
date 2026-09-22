@@ -10,7 +10,16 @@ class DiscountType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'percent'];
+    protected $fillable = ['name', 'percent', 'is_active'];
+
+    protected $attributes = ['is_active' => true];
+
+    protected $casts = ['is_active' => 'boolean'];
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     public function students(): HasMany
     {

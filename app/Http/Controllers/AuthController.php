@@ -480,6 +480,7 @@ class AuthController extends Controller
                 ];
             })->values(),
             'reviewUrl' => route('cashier.dashboard'),
+            'historyUrl' => route('cashier.transactions'),   // <-- bago
         ];
 
         return view('cashier.accounts', compact('context'));
@@ -522,9 +523,6 @@ class AuthController extends Controller
                 'color' => $palette[$i % count($palette)],
             ])->all()
             : [];
-
-        $schoolYear = $enrollment->school_year ?? Setting::get('school_year', '2026-2027');
-        $semester = $enrollment->semester ?? (int) Setting::get('semester', '1');
 
         return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
     }

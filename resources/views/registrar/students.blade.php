@@ -6,7 +6,6 @@
     <title>AITSA Staff | Student Records</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
-    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased">
@@ -26,7 +25,7 @@
                     <i class="fa-solid fa-chevron-left mr-1"></i>Dashboard
                 </a>
                 <span class="text-brandNavy/20 dark:text-slate-700">/</span>
-                <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Student records</h2>
+                <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Student Records</h2>
             </div>
             <div class="flex items-center gap-3">
                 @include('partials.notif-bell')
@@ -42,8 +41,8 @@
 
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Student records</h1>
-                        <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-0.5">View academic standing for enrolled students. Grades are recorded by faculty per section.</p>
+                        <h1 class="text-2xl font-black text-brandNavy dark:text-white">Student Records</h1>
+                        <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5">View academic standing for enrolled students. Grades are recorded by faculty per section.</p>
                     </div>
                 </div>
 

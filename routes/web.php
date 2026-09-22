@@ -165,9 +165,7 @@ Route::middleware('auth')->group(function () {
             );
         }
 
-        $context = ['clearancePercent' => $clearance->completionPercent()];
-
-        return view('dashboard', compact('clearance', 'context'));
+        return view('dashboard', compact('clearance'));
     })->name('dashboard');
 
     // 2. Student e-Clearance Routing Module
@@ -1184,6 +1182,20 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
     })->name('cashier.billing.discounts');
 
+        Route::post('/cashier/billing/discounts/{discountType}/toggle', function (Request $request, DiscountType $discountType) {
+        $discountType->update(['is_active' => ! $discountType->is_active]);
+        $state = $discountType->is_active ? 'activated' : 'deactivated';
+        AuditLog::record('Discount Type ' . ucfirst($state), 'Cashier ' . $state . ' discount type "' . $discountType->name . '".', 'DiscountType', $discountType->id);
+
+        $message = 'Discount type ' . $state . '.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['isActive' => (bool) $discountType->is_active, 'message' => $message]);
+        }
+
+        return redirect()->route('cashier.billing')->with('success', $message);
+    })->name('cashier.billing.discounts.toggle');
+
     Route::post('/cashier/billing/discounts/{discountType}/delete', function (DiscountType $discountType) {
         $name = $discountType->name;
         // Detach the discount from any students before deleting the type.
@@ -1198,6 +1210,13 @@ Route::middleware('auth')->group(function () {
         $data = $request->validate([
             'discount_type_id' => ['nullable', 'exists:discount_types,id'],
         ]);
+
+        // Only active discount types can be newly assigned (keeping the current one is always allowed).
+        if (! empty($data['discount_type_id']) && (int) $data['discount_type_id'] !== (int) $student->discount_type_id) {
+            if (! DiscountType::whereKey($data['discount_type_id'])->where('is_active', true)->exists()) {
+                return redirect()->route('cashier.billing')->withErrors(['discount_type_id' => 'That discount type is inactive.']);
+            }
+        }
 
         $student->update(['discount_type_id' => $data['discount_type_id'] ?? null]);
         AuditLog::record('Student Discount Updated', 'Cashier updated discount assignment for student ID ' . $student->id . '.', 'User', $student->id);
@@ -1535,11 +1554,9 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students.search');
 
     Route::get('/registrar/reports', function () {
-        $schoolYear = Setting::get('school_year', '2026-2027');
-        $semester = (int) Setting::get('semester', '1');
         $clearances        = Clearance::has('user')->with('user')
-            ->where('school_year', $schoolYear)
-            ->where('semester', $semester)
+            ->where('school_year', Setting::get('school_year', '2026-2027'))
+            ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
         $pendingApplicants = User::where('role', 'applicant')->count();
 
@@ -1554,8 +1571,6 @@ Route::middleware('auth')->group(function () {
             ],
             'pendingApplicants' => $pendingApplicants,
             'dashboardUrl' => route('registrar.dashboard'),
-            'schoolYear' => $schoolYear,
-            'semester' => $semester,
             'rows' => $clearances->values()->map(fn ($c, $i) => [
                 'id' => $c->id,
                 'index' => $i + 1,
@@ -1572,7 +1587,7 @@ Route::middleware('auth')->group(function () {
             ])->values(),
         ];
 
-        return view('registrar.reports', compact('context', 'schoolYear', 'semester'));
+        return view('registrar.reports', compact('context'));
     })->name('registrar.reports');
 
     // Curriculum editing — moved here from Admin (per the adviser's note that

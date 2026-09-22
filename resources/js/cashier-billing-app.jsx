@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import FeeRatesForm from './cashier-billing/FeeRatesForm';
@@ -28,6 +28,42 @@ function parseContext(raw) {
     }
 }
 
+function BillingApp({ context, csrfToken, feesUrl, discountsUrl }) {
+    // Kept in state so toggling a discount updates the page in place (no reload, no scroll jump).
+    const [discountTypes, setDiscountTypes] = useState(context.discountTypes);
+
+    const handleToggled = (id, isActive) => {
+        setDiscountTypes((prev) => prev.map((t) => (t.id === id ? { ...t, isActive } : t)));
+    };
+
+    return (
+        <div className="space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <FeeRatesForm
+                    feeRates={context.feeRates}
+                    errors={context.errors}
+                    old={context.old}
+                    csrfToken={csrfToken}
+                    actionUrl={feesUrl}
+                />
+                <DiscountTypesPanel
+                    discountTypes={discountTypes}
+                    errors={context.errors}
+                    old={context.old}
+                    csrfToken={csrfToken}
+                    addUrl={discountsUrl}
+                    onToggled={handleToggled}
+                />
+            </div>
+            <StudentDiscountTable
+                students={context.students}
+                discountTypes={discountTypes}
+                csrfToken={csrfToken}
+            />
+        </div>
+    );
+}
+
 const el = document.getElementById('cashier-billing-root');
 if (el) {
     const context = parseContext(el.dataset.context);
@@ -37,29 +73,7 @@ if (el) {
 
     createRoot(el).render(
         <ErrorBoundary>
-            <div className="space-y-5">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <FeeRatesForm
-                        feeRates={context.feeRates}
-                        errors={context.errors}
-                        old={context.old}
-                        csrfToken={csrfToken}
-                        actionUrl={feesUrl}
-                    />
-                    <DiscountTypesPanel
-                        discountTypes={context.discountTypes}
-                        errors={context.errors}
-                        old={context.old}
-                        csrfToken={csrfToken}
-                        addUrl={discountsUrl}
-                    />
-                </div>
-                <StudentDiscountTable
-                    students={context.students}
-                    discountTypes={context.discountTypes}
-                    csrfToken={csrfToken}
-                />
-            </div>
+            <BillingApp context={context} csrfToken={csrfToken} feesUrl={feesUrl} discountsUrl={discountsUrl} />
         </ErrorBoundary>
     );
 }

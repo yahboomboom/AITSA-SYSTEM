@@ -1,22 +1,22 @@
 export default function SystemStatsCards({ totalActiveUsers, clearancesSettled, pendingQueues }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5 space-y-2">
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">Total active users</p>
-                <h3 className="font-heading text-2xl font-semibold text-brandNavy dark:text-white">{totalActiveUsers.toLocaleString()}</h3>
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">Across all role profiles.</p>
+            <div className="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
+                <p className="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Total Active Users</p>
+                <h4 className="text-2xl font-black text-brandNavy dark:text-white">{totalActiveUsers.toLocaleString()}</h4>
+                <p className="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">Across all role profiles</p>
             </div>
 
-            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5 space-y-2">
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">Clearances settled</p>
-                <h3 className="font-heading text-2xl font-semibold text-brandGreen">{clearancesSettled.toLocaleString()}</h3>
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">This term.</p>
+            <div className="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
+                <p className="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Clearances Settled</p>
+                <h4 className="text-2xl font-black text-brandNavy dark:text-white">{clearancesSettled.toLocaleString()}</h4>
+                <p className="text-[11px] text-brandGreen font-medium mt-1">This term</p>
             </div>
 
-            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5 space-y-2">
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">Pending queues</p>
-                <h3 className="font-heading text-2xl font-semibold text-brandNavy dark:text-slate-200">{pendingQueues.toLocaleString()}</h3>
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500">Awaiting staff signature reviews.</p>
+            <div className="bg-white dark:bg-panelDark rounded-lg p-5 border border-brandNavy/8 dark:border-slate-800">
+                <p className="text-brandNavy/50 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Pending Queues</p>
+                <h4 className="text-2xl font-black text-brandNavy dark:text-white">{pendingQueues.toLocaleString()}</h4>
+                <p className="text-[11px] text-brandNavy/40 dark:text-slate-500 mt-1">Awaiting staff signature reviews</p>
             </div>
         </div>
     );

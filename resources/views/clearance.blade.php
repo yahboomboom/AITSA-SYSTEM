@@ -7,7 +7,6 @@
     <title>AITSA Portal | Enrollment Clearance</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
-    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -55,8 +54,8 @@
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
                 <div>
-                    <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Clearance</h2>
-                    <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-1">Student No. {{ Auth::user()->login_id ?? '—' }}</p>
+                    <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">Clearance Routing</h2>
+                    <p class="text-[11px] font-mono text-brandNavy/60 dark:text-slate-400">Student No: {{ Auth::user()->login_id ?? '---' }}</p>
                 </div>
             </div>
 
@@ -75,22 +74,22 @@
         <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
 
             @if(session('success'))
-                <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
+                <div class="p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">
                     <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                 </div>
             @endif
 
             @if ($errors->any())
-                <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">
+                <div class="p-4 rounded-xl bg-red-600/10 border border-red-600/20 text-red-600 font-bold text-xs">
                     <i class="fa-solid fa-circle-xmark mr-2"></i>{{ $errors->first() }}
                 </div>
             @endif
 
             @if($agreement)
-                <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm flex items-center justify-between gap-3">
+                <div class="p-4 rounded-xl bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs flex items-center justify-between gap-3">
                     <span><i class="fa-solid fa-signature mr-2"></i>Enrollment Agreement Signed &mdash; {{ $agreement->signed_at->format('M d, Y') }}</span>
                     <a href="{{ route('agreement.mine') }}" target="_blank" rel="noopener noreferrer"
-                       class="underline underline-offset-2 hover:text-brandGreen/80 transition-colors whitespace-nowrap">View my copy</a>
+                       class="underline underline-offset-2 hover:text-emerald-700 transition-colors whitespace-nowrap">View my copy</a>
                 </div>
             @endif
 
@@ -131,7 +130,6 @@
                         'originalName' => $hasSubmission ? ($submission->original_name ?? null) : null,
                     ],
                     'documentsUrl' => route('documents'),
-                    'schoolYear' => $clearance->school_year,
                 ];
             @endphp
             {{-- Render the clearance React component, passing the prepared context data, CSRF token, and submission URL as props for dynamic interaction and state management --}}

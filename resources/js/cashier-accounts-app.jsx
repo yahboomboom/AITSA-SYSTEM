@@ -9,9 +9,10 @@ function parseContext(raw) {
         return {
             rows: Array.isArray(parsed.rows) ? parsed.rows : [],
             reviewUrl: parsed.reviewUrl ?? '',
+            historyUrl: parsed.historyUrl ?? '',
         };
     } catch {
-        return { rows: [], reviewUrl: '' };
+        return { rows: [], reviewUrl: '', historyUrl: '' };
     }
 }
 
@@ -21,7 +22,7 @@ if (el) {
 
     createRoot(el).render(
         <ErrorBoundary>
-            <AccountsTable rows={context.rows} reviewUrl={context.reviewUrl} />
+            <AccountsTable rows={context.rows} reviewUrl={context.reviewUrl} historyUrl={context.historyUrl} />
         </ErrorBoundary>
     );
 }

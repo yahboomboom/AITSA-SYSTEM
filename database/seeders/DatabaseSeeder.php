@@ -94,14 +94,12 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // The institutional accounts above are production-required and must always be
-        // seeded. Everything below this point is demo/dev-only data with weak passwords —
-        // never seed it outside local/dev environments.
+        // 7. Demo students for the enrollment walkthrough (regular + irregular).
+        // Weak passwords by design — never seed these outside local/dev environments.
         if (app()->environment('production')) {
             return;
         }
 
-        // 7. Demo students for the enrollment walkthrough (regular + irregular).
         $regular = User::firstOrCreate(
             ['login_id' => '2300410'],
             ['name' => 'Demo Regular Student', 'email' => 'regular.demo@aitsa.test', 'password' => Hash::make('password'),

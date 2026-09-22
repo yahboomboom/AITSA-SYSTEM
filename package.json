@@ -16,7 +16,11 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+<<<<<<< HEAD
+        "@aws-sdk/client-s3": "^3.1132.0",
+=======
         "@aws-sdk/client-s3": "^3.1133.0",
+>>>>>>> e54e3241cfd774bf8c6fbe2d8f8f1d705fc6cff8
         "react": "^18.3.1",
         "react-dom": "^18.3.1"
     }

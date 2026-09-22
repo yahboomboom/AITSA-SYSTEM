@@ -36,7 +36,11 @@ class FeeAssessmentService
             $tuition = $flatTuition > 0 ? (float) $flatTuition : round($units * $rate, 2);/**tuiton fee */
         }
 
+        // An inactive (toggled-off) discount type is not applied until it is re-activated.
         $discountType = $user->discountType;
+        if ($discountType && ! $discountType->is_active) {
+            $discountType = null;
+        }
         $percent = $discountType->percent ?? 0;
         $discountAmount = round($tuition * $percent / 100, 2);
 

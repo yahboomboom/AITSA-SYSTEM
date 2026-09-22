@@ -7,44 +7,44 @@ export default function StudentsFilterForm({ filters, programs, actionUrl }) {
         <form
             method="GET"
             action={actionUrl}
-            className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6 flex flex-wrap gap-4 items-end"
+            className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-2xl p-6 flex flex-wrap gap-4 items-end"
         >
             <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">Search</label>
+                <label className="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1.5">Search</label>
                 <input
-                    type="text" name="q" defaultValue={filters.q} placeholder="Name or student ID"
-                    className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 outline-none focus:border-brandGreen/40 transition-colors"
+                    type="text" name="q" defaultValue={filters.q} placeholder="Name or Student ID"
+                    className="w-full border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-slate-900/60 rounded-xl px-4 py-2.5 text-sm text-brandNavy dark:text-slate-200 focus:outline-none focus:border-brandGreen transition-colors"
                 />
             </div>
             <div className="min-w-[180px]">
-                <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">Program</label>
+                <label className="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1.5">Program</label>
                 <select
                     name="program" defaultValue={filters.program}
-                    className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
+                    className="w-full border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-slate-900/60 rounded-xl px-4 py-2.5 text-sm text-brandNavy dark:text-slate-200 focus:outline-none focus:border-brandGreen transition-colors"
                 >
-                    <option value="">All programs</option>
+                    <option value="">All Programs</option>
                     {programs.map((code) => (
                         <option key={code} value={code}>{code}</option>
                     ))}
                 </select>
             </div>
             <div className="min-w-[160px]">
-                <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">Year level</label>
+                <label className="block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1.5">Year Level</label>
                 <select
                     name="year_level" defaultValue={filters.year_level}
-                    className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
+                    className="w-full border border-brandNavy/15 dark:border-slate-700 bg-white dark:bg-slate-900/60 rounded-xl px-4 py-2.5 text-sm text-brandNavy dark:text-slate-200 focus:outline-none focus:border-brandGreen transition-colors"
                 >
-                    <option value="">All years</option>
+                    <option value="">All Years</option>
                     {YEAR_LEVELS.map((level) => (
                         <option key={level} value={level}>{level}</option>
                     ))}
                 </select>
             </div>
-            <button type="submit" className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors">
+            <button type="submit" className="px-6 py-2.5 bg-brandGreen hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors">
                 Filter
             </button>
             {hasActiveFilter && (
-                <a href={actionUrl} className="text-sm font-medium text-brandNavy/50 dark:text-slate-400 hover:text-brandNavy dark:hover:text-white transition-colors px-2 py-2">
+                <a href={actionUrl} className="px-6 py-2.5 text-brandNavy/50 dark:text-slate-400 text-sm font-bold">
                     Clear
                 </a>
             )}

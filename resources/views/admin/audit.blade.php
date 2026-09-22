@@ -6,7 +6,6 @@
     <title>AITSA Admin | Audit Trail</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
-    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -22,7 +21,10 @@
                 <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                     <i class="fa-solid fa-bars text-lg"></i>
                 </button>
-                <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Audit trail</span>
+                <div>
+                    <h2 class="text-sm font-bold text-brandNavy dark:text-slate-100">Audit Trail</h2>
+                    <p class="text-[10px] text-brandNavy/40 dark:text-slate-500">Immutable log of all system actions</p>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 @include('partials.notif-bell')
@@ -31,20 +33,22 @@
                 </button>
                 @include('partials.profile-menu', [
                     'roleLabel'     => 'Root Access Mode',
-                    'roleClass'     => 'font-medium text-red-500',
+                    'roleClass'     => 'text-red-500 uppercase tracking-wider',
                     'avatarClass'   => 'bg-red-500/10 dark:bg-red-500/20 text-red-500',
                     'avatarInitial' => 'A',
                 ])
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
-            <div>
-                <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">System audit trail</h1>
-                <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-0.5">
-                    Immutable log of all system actions &nbsp;·&nbsp; {{ $logs->total() }} total entries &nbsp;·&nbsp; Generated {{ now()->format('F d, Y h:i A') }}
-                </p>
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-xl font-black text-brandNavy dark:text-white">System Audit Trail</h1>
+                    <p class="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5">
+                        {{ $logs->total() }} total entries &nbsp;&middot;&nbsp; Generated {{ now()->format('F d, Y h:i A') }}
+                    </p>
+                </div>
             </div>
 
             @php

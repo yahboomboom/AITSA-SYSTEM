@@ -16,9 +16,13 @@ const el = document.getElementById('cashier-transactions-root');
 if (el) {
     const context = parseContext(el.dataset.context);
 
+    const params = new URLSearchParams(window.location.search);
+    const initialSearch = params.get('search') ?? '';
+    const initialView = params.get('view') === 'full' ? 'full' : 'latest';
+
     createRoot(el).render(
         <ErrorBoundary>
-            <TransactionsTable rows={context.rows} />
+            <TransactionsTable rows={context.rows} initialSearch={initialSearch} initialView={initialView} />
         </ErrorBoundary>
     );
 }

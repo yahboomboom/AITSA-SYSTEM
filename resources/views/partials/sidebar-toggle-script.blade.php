@@ -10,7 +10,6 @@
             if (!aside) return;
             aside.classList.toggle('lg:w-20', collapsed);
             aside.classList.toggle('lg:w-64', !collapsed);
-            aside.classList.toggle('sidebar-collapsed', collapsed);
             document.querySelectorAll('.sidebar-label').forEach(function (el) {
                 el.classList.toggle('lg:hidden', collapsed);
             });
