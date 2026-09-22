@@ -8,15 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('discount_types', function (Blueprint $table) {
-            $table->boolean('is_active')->default(true)->after('percent');
-        });
+        if (!Schema::hasColumn('discount_types', 'is_active')) {
+            Schema::table('discount_types', function (Blueprint $table) {
+                $table->boolean('is_active')->default(true)->after('percent');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('discount_types', function (Blueprint $table) {
-            $table->dropColumn('is_active');
-        });
+        if (Schema::hasColumn('discount_types', 'is_active')) {
+            Schema::table('discount_types', function (Blueprint $table) {
+                $table->dropColumn('is_active');
+            });
+        }
     }
 };
