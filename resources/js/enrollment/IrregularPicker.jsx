@@ -56,15 +56,15 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
     );
 
     return (
-        <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-brandNavy dark:text-slate-100 mb-1">Build Your Schedule</h2>
-            <p className="text-xs text-slate-500 mb-4">
+        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
+            <h2 className="font-heading text-lg font-semibold text-brandNavy dark:text-slate-100 mb-1">Build your schedule</h2>
+            <p className="text-sm text-brandNavy/50 dark:text-slate-400 mb-4">
                 Pick one section per subject. Your selection is submitted to the Department Chair for approval.
             </p>
 
             {years.map((year) => (
                 <div key={year} className="mb-6">
-                    <h3 className="text-sm font-bold text-slate-500 uppercase mb-2">Year {year}</h3>
+                    <h3 className="text-sm font-medium text-brandNavy/60 dark:text-slate-400 mb-2">Year {year}</h3>
                     {catalogue.filter((s) => s.year_level === year).map((subject) => {
                         const picked = picks[subject.id];
                         const isOpen = open.has(subject.id);
@@ -72,7 +72,7 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
 
                         return (
                             <div key={subject.id}
-                                className={`border rounded-xl p-4 mb-3 ${subject.eligible ? 'border-slate-200 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800 opacity-60'}`}>
+                                className={`border rounded p-4 mb-3 ${subject.eligible ? 'border-brandNavy/10 dark:border-slate-700' : 'border-brandNavy/8 dark:border-slate-800 opacity-60'}`}>
                                 {showSummary ? (
                                     <button type="button" onClick={() => toggleOpen(subject.id)}
                                         className="w-full text-left flex items-center justify-between flex-wrap gap-2">
@@ -86,12 +86,12 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
                                         <button type="button" disabled={!subject.eligible}
                                             onClick={() => subject.eligible && toggleOpen(subject.id)}
                                             className="w-full text-left flex items-center justify-between flex-wrap gap-2 disabled:cursor-default">
-                                            <span className="font-semibold text-brandNavy dark:text-slate-100">
+                                            <span className="font-medium text-brandNavy dark:text-slate-100">
                                                 <span className="font-mono">{subject.code}</span> — {subject.title}
-                                                <span className="ml-2 text-xs text-slate-400">{subject.units} units · {subject.mode}</span>
+                                                <span className="ml-2 text-xs text-brandNavy/40 dark:text-slate-500">{subject.units} units · {subject.mode}</span>
                                             </span>
                                             {!subject.eligible && (
-                                                <span className="text-xs font-semibold text-amber-600">
+                                                <span className="text-xs font-medium text-brandGold">
                                                     <i className="fa-solid fa-lock mr-1" />{subject.reason}
                                                 </span>
                                             )}
@@ -104,10 +104,10 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
                                                     return (
                                                         <button key={section.id} disabled={full && !selected}
                                                             onClick={() => toggle(subject, section)}
-                                                            className={`px-3 py-2 rounded-lg border text-xs text-left
-                                                                ${selected ? 'border-brandGreen bg-brandGreen/10 text-brandGreen font-semibold'
-                                                                    : full ? 'border-slate-200 text-slate-400 cursor-not-allowed'
-                                                                    : 'border-slate-300 dark:border-slate-600 hover:border-brandNavy'}`}>
+                                                            className={`px-3 py-2 rounded border text-xs text-left
+                                                                ${selected ? 'border-brandGreen bg-brandGreen/10 text-brandGreen font-medium'
+                                                                    : full ? 'border-brandNavy/10 text-brandNavy/40 cursor-not-allowed'
+                                                                    : 'border-brandNavy/20 dark:border-slate-600 hover:border-brandNavy dark:hover:border-slate-400'}`}>
                                                             <span className="font-semibold">Block {section.block_label}</span>{' '}
                                                             {section.days.join('/')} {section.start_time}–{section.end_time} ·{' '}
                                                             {section.delivery_mode === 'Online' ? 'Online' : section.room}
@@ -139,8 +139,8 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
             <button
                 disabled={submitting || conflict !== null || Object.keys(picks).length === 0}
                 onClick={() => onSubmit(Object.values(picks).map((s) => s.id))}
-                className="px-5 py-2.5 rounded-lg bg-brandNavy text-white font-semibold text-sm hover:opacity-90 disabled:opacity-50">
-                {submitting ? 'Submitting…' : `Submit ${Object.keys(picks).length} Subject(s) for Approval`}
+                className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors disabled:opacity-50">
+                {submitting ? 'Submitting…' : `Submit ${Object.keys(picks).length} subject(s) for approval`}
             </button>
         </div>
     );

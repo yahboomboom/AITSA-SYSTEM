@@ -20,16 +20,16 @@ class RegistrarDocumentReviewTest extends TestCase
         $this->registrar = User::factory()->create(['role' => 'registrar']);
     }
 
-    public function test_dashboard_does_not_preload_document_submissions(): void
+    public function test_documents_page_does_not_preload_document_submissions(): void
     {
         $sub = DocumentSubmission::factory()->create(['status' => 'pending']);
 
-        $response = $this->actingAs($this->registrar)->get('/registrar/dashboard');
+        $response = $this->actingAs($this->registrar)->get('/registrar/documents');
 
         $response->assertOk();
-        $response->assertSee('id="registrar-dashboard-root"', false);
+        $response->assertSee('id="registrar-documents-root"', false);
         $response->assertDontSee($sub->original_name);
-        $this->assertSame(1, $response->viewData('documentsPendingCount'));
+        $response->assertSee('&quot;documentsPendingCount&quot;:1', false);
     }
 
     public function test_documents_search_finds_matching_submission_by_student_name(): void
@@ -111,7 +111,7 @@ class RegistrarDocumentReviewTest extends TestCase
 
         $this->actingAs($this->registrar)
             ->post("/registrar/documents/{$sub->id}/accept")
-            ->assertRedirect(route('registrar.dashboard'));
+            ->assertRedirect(route('registrar.documents'));
 
         $sub->refresh();
         $this->assertSame('accepted', $sub->status);
@@ -133,7 +133,7 @@ class RegistrarDocumentReviewTest extends TestCase
 
         $this->actingAs($this->registrar)
             ->post("/registrar/documents/{$sub->id}/accept")
-            ->assertRedirect(route('registrar.dashboard'));
+            ->assertRedirect(route('registrar.documents'));
 
         $clearance->refresh();
         $this->assertSame('Approved', $clearance->registrar_status);
@@ -145,13 +145,13 @@ class RegistrarDocumentReviewTest extends TestCase
         $sub = DocumentSubmission::factory()->create();
 
         $this->actingAs($this->registrar)
-            ->from('/registrar/dashboard')
+            ->from('/registrar/documents')
             ->post("/registrar/documents/{$sub->id}/reject", [])
             ->assertSessionHasErrors('remarks');
 
         $this->actingAs($this->registrar)
             ->post("/registrar/documents/{$sub->id}/reject", ['remarks' => 'Scan is unreadable, please re-upload.'])
-            ->assertRedirect(route('registrar.dashboard'));
+            ->assertRedirect(route('registrar.documents'));
 
         $sub->refresh();
         $this->assertSame('rejected', $sub->status);
@@ -164,7 +164,7 @@ class RegistrarDocumentReviewTest extends TestCase
 
         $this->actingAs($this->registrar)
             ->post("/registrar/documents/{$sub->id}/reject", ['remarks' => 'Changed my mind.'])
-            ->assertRedirect(route('registrar.dashboard'));
+            ->assertRedirect(route('registrar.documents'));
 
         $this->assertSame('accepted', $sub->fresh()->status);
     }

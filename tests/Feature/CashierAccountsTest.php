@@ -32,6 +32,7 @@ class CashierAccountsTest extends TestCase
         // the safe-path assertion here is that the real dashboard URL (not a form
         // posting fake amounts) reaches the page as data.
         $response->assertSee(route('cashier.dashboard'), false);
+        $response->assertSee(route('cashier.transactions'), false);
     }
 
     public function test_accounts_page_does_not_list_a_students_clearance_from_a_past_term(): void

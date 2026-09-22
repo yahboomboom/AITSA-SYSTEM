@@ -40,10 +40,14 @@ function ApplicationReviewModal({ reservationFee }) {
         const fd = new FormData(form);
         const get = (name) => (fd.get(name) ?? '').toString().trim();
         const progNameEl = document.getElementById('selectedProgName');
+        const lastName = get('last_name');
+        const firstName = get('first_name');
+        const middleName = get('middle_name');
+        const fullName = lastName || firstName ? `${lastName}, ${firstName}${middleName ? ' ' + middleName : ''}` : '';
 
         setData({
             program: get('program_name') || (progNameEl ? progNameEl.textContent : '') || '—',
-            name: get('name') || '—',
+            name: fullName || '—',
             email: get('email') || '—',
             contact: get('contact_number') || '—',
             dob: formatReviewDate(get('date_of_birth')),

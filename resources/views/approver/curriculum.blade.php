@@ -7,13 +7,14 @@
     <title>AITSA Staff | Curriculum Management</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
 
     <div class="flex h-screen overflow-hidden">
 
-        @include('partials.registrar-sidebar')
+        @include('partials.approver-sidebar')
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
 
@@ -22,7 +23,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Curriculum Management</span>
+                    <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Curriculum management</span>
                 </div>
                 <div class="flex items-center space-x-3">
                     @include('partials.notif-bell')
@@ -30,17 +31,18 @@
                         <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                     </button>
                     @include('partials.profile-menu', [
-                        'roleLabel' => 'Registrar Portal',
-                        'roleClass' => 'font-mono font-bold uppercase tracking-wider text-brandGreen dark:text-emerald-400',
+                        'roleLabel'     => 'CCS Academic Approver',
+                        'roleClass'     => 'font-bold uppercase tracking-wider text-brandGreen dark:text-emerald-400',
+                        'avatarInitial' => strtoupper(substr(Auth::user()->name ?? 'C', 0, 1)),
                     ])
                 </div>
             </header>
 
-            <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
+            <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
                 <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-brandNavy dark:text-white">Subject Catalogue</h1>
-                    <p class="text-xs text-brandNavy/60 dark:text-slate-400 mt-1">Select a program to view and manage its subject offerings. Toggle a subject's status to control student enrollment visibility.</p>
+                    <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Subject catalogue</h1>
+                    <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-0.5">Select a program to view and manage its subject offerings. Toggle a subject's status to control student enrollment visibility.</p>
                 </div>
 
                 <div id="curriculum-root">
@@ -53,6 +55,6 @@
 
 @include('partials.notif-script')
 @viteReactRefresh
-@vite('resources/js/curriculum-app.jsx')
+@vite('resources/js/approver-curriculum-app.jsx')
 </body>
 </html>

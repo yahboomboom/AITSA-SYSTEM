@@ -6,6 +6,7 @@
     <title>AITSA Staff | Billing Configuration</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('partials.theme-init')
+    @include('partials.theme-fonts')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
@@ -20,7 +21,7 @@
                     <button onclick="toggleMobileSidebar()" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Cashier Operations</span>
+                    <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Cashier operations</span>
                 </div>
                 <div class="flex items-center gap-3">
                     @include('partials.notif-bell')
@@ -33,12 +34,12 @@
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
                 <div>
-                    <h1 class="text-xl font-bold text-brandNavy dark:text-white">Billing Configuration</h1>
-                    <p class="text-xs text-brandNavy/50 dark:text-slate-400">Fee rates, discount types, and per-student discount assignment.</p>
+                    <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Billing Configuration</h1>
+                    <p class="text-sm text-brandNavy/50 dark:text-slate-400">Fee rates, discount types, and per-student discount assignment.</p>
                 </div>
 
                 @if(session('success'))
-                    <div class="p-4 rounded-lg bg-brandGreen/10 border border-brandGreen/20 text-brandGreen font-bold text-xs">
+                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
                         <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
                     </div>
                 @endif
@@ -56,8 +57,9 @@
                             'id' => $type->id,
                             'name' => $type->name,
                             'percent' => $type->percent,
+                            'isActive' => $type->is_active,
                             'studentsCount' => $type->students_count,
-                            'isActive' => (bool) $type->is_active,
+                            'deleteUrl' => route('cashier.billing.discounts.delete', $type),
                             'toggleUrl' => route('cashier.billing.discounts.toggle', $type),
                         ])->values(),
                         'students' => $students->map(fn ($student) => [

@@ -100,6 +100,21 @@ class FeeAssessmentServiceTest extends TestCase
         $this->assertEqualsWithDelta(3000.0, (float) $b['assessment'], 0.001);
     }
 
+    public function test_inactive_discount_type_is_excluded_from_assessment(): void
+    {
+        $this->seed(ProgramSeeder::class);
+        $type = DiscountType::factory()->create(['name' => 'Academic Scholar', 'percent' => 50, 'is_active' => false]);
+        $student = $this->makeStudent(['discount_type_id' => $type->id]);
+        $this->makeBlockSection(10); // 3000 tuition
+
+        $b = app(FeeAssessmentService::class)->breakdownFor($student);
+
+        $this->assertNull($b['discount_name']);
+        $this->assertSame(0, $b['discount_percent']);
+        $this->assertEqualsWithDelta(0.0, (float) $b['discount_amount'], 0.001);
+        $this->assertEqualsWithDelta(4500.0, (float) $b['assessment'], 0.001); // 3000 tuition + 1500 misc, no discount
+    }
+
     public function test_settled_payments_reduce_balance_and_full_payment_flags(): void
     {
         $this->seed(ProgramSeeder::class);

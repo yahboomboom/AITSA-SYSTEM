@@ -1,52 +1,53 @@
+import DocCheck from '../components/DocCheck';
+
 export default function MasterStatusBadge({ isCleared, cashierCleared, registrarCleared, chairCleared, items }) {
     return (
-        <div id="masterBadgeCard" className={`bg-white dark:bg-panelDark border ${isCleared ? 'border-brandGreen/30' : 'border-brandGold/20'} rounded-xl p-6 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8`}>
-            <div id="masterStatusBadge" className="flex flex-col items-center text-center justify-center md:border-r border-brandNavy/10 dark:border-slate-800 pr-0 md:pr-8 flex-shrink-0 w-full md:w-44">
-                {isCleared ? (
-                    <>
-                        <div className="w-12 h-12 rounded-full bg-brandGreen/10 text-brandGreen flex items-center justify-center text-2xl mb-2">
-                            <i className="fa-solid fa-circle-check" />
-                        </div>
-                        <span className="text-sm font-black text-brandGreen uppercase tracking-wider">Officially Cleared</span>
-                    </>
-                ) : (
-                    <>
-                        <div className="w-12 h-12 rounded-full bg-brandGold/10 text-brandGold flex items-center justify-center text-2xl mb-2 animate-pulse">
-                            <i className="fa-solid fa-circle-exclamation" />
-                        </div>
-                        <span className="text-sm font-black text-brandGold uppercase tracking-wider">Pending Sign-off</span>
-                    </>
-                )}
+        <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-brandNavy/10 dark:border-slate-700 mb-1">
+                <span className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isCleared ? 'border-brandGreen text-brandGreen' : 'border-brandGold text-brandGold'}`}>
+                    {isCleared ? (
+                        <svg viewBox="0 0 16 16" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 8.5 6.5 12 13 4" />
+                        </svg>
+                    ) : (
+                        <span className="w-2 h-2 rounded-full bg-brandGold" />
+                    )}
+                </span>
+                <div>
+                    <p className="font-heading text-lg font-semibold text-brandNavy dark:text-white">
+                        {isCleared ? 'Officially cleared' : 'Pending sign-off'}
+                    </p>
+                    <p className="text-xs text-brandNavy/50 dark:text-slate-400">
+                        {isCleared ? 'Every department has approved your clearance.' : 'One or more departments still need to approve your clearance.'}
+                    </p>
+                </div>
             </div>
-            <div className="flex-1 text-xs space-y-2 w-full">
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconAccounting" className={`fa-solid mt-0.5 ${cashierCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-brandGold'}`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">
-                        Accounting Office — {cashierCleared ? 'Balance assessment cleared.' : 'Balance assessment verification.'}
+
+            <div className="ui-doc-list border-brandNavy/8 dark:border-slate-800">
+                <div className="ui-doc-row border-brandNavy/8 dark:border-slate-800">
+                    <DocCheck tone={cashierCleared ? 'done' : 'pending'} />
+                    <p className="text-sm text-brandNavy/70 dark:text-slate-400">
+                        Accounting Office — {cashierCleared ? 'balance assessment cleared' : 'balance assessment pending'}
                     </p>
                 </div>
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconRegistrar" className={`fa-solid mt-0.5 ${registrarCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-red-500'}`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">
-                        Registrar — {registrarCleared ? 'Administrative documents cleared.' : 'On-hold administrative document verification.'}
+                <div className="ui-doc-row border-brandNavy/8 dark:border-slate-800">
+                    <DocCheck tone={registrarCleared ? 'done' : 'hold'} />
+                    <p className="text-sm text-brandNavy/70 dark:text-slate-400">
+                        Registrar — {registrarCleared ? 'administrative documents cleared' : 'administrative document hold'}
                     </p>
                 </div>
-                <div className="flex items-start space-x-2">
-                    <i id="checkIconChair" className={`fa-solid mt-0.5 ${chairCleared ? 'fa-circle-check text-brandGreen' : 'fa-circle-xmark text-brandGold'}`} />
-                    <p className="text-brandNavy/70 dark:text-slate-400">
-                        Department Head — {chairCleared ? 'Curriculum evaluation cleared.' : 'Curriculum evaluation sign-off.'}
+                <div className="ui-doc-row border-brandNavy/8 dark:border-slate-800">
+                    <DocCheck tone={chairCleared ? 'done' : 'pending'} />
+                    <p className="text-sm text-brandNavy/70 dark:text-slate-400">
+                        Department Head — {chairCleared ? 'curriculum evaluation cleared' : 'curriculum evaluation sign-off pending'}
                     </p>
                 </div>
                 {items.map((item, i) => (
-                    <div key={i} className="flex items-start space-x-2">
-                        <i className={`fa-solid mt-0.5 ${
-                            item.status === 'Approved' ? 'fa-circle-check text-brandGreen'
-                                : item.status === 'Hold' ? 'fa-circle-xmark text-red-500'
-                                : 'fa-circle-xmark text-brandGold'
-                        }`} />
-                        <p className="text-brandNavy/70 dark:text-slate-400">
+                    <div key={i} className="ui-doc-row border-brandNavy/8 dark:border-slate-800">
+                        <DocCheck tone={item.status === 'Approved' ? 'done' : item.status === 'Hold' ? 'hold' : 'pending'} />
+                        <p className="text-sm text-brandNavy/70 dark:text-slate-400">
                             {item.departmentName} —{' '}
-                            {item.status === 'Approved' ? 'Cleared.' : item.status === 'Hold' ? `On hold: ${item.remarks}` : 'Pending review.'}
+                            {item.status === 'Approved' ? 'cleared' : item.status === 'Hold' ? `on hold: ${item.remarks}` : 'pending review'}
                         </p>
                     </div>
                 ))}

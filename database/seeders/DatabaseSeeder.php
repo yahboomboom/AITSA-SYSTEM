@@ -94,12 +94,14 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 7. Demo students for the enrollment walkthrough (regular + irregular).
-        // Weak passwords by design — never seed these outside local/dev environments.
+        // The institutional accounts above are production-required and must always be
+        // seeded. Everything below this point is demo/dev-only data with weak passwords —
+        // never seed it outside local/dev environments.
         if (app()->environment('production')) {
             return;
         }
 
+        // 7. Demo students for the enrollment walkthrough (regular + irregular).
         $regular = User::firstOrCreate(
             ['login_id' => '2300410'],
             ['name' => 'Demo Regular Student', 'email' => 'regular.demo@aitsa.test', 'password' => Hash::make('password'),
@@ -178,5 +180,49 @@ class DatabaseSeeder extends Seeder
 
         // Demo discount type for the cashier billing page
         \App\Models\DiscountType::firstOrCreate(['name' => 'Academic Scholar'], ['percent' => 50]);
+
+        // 9. Demo admission applicants for the Registrar's Applicant Queue — one of
+        // each applicant_type (NEW / TRANSFEREE / RETURNEE), and each left in a
+        // different reservation state so the queue's three badge states (Reserved,
+        // Wants to reserve, Not reserved → Activate account) all have a row to show.
+        User::firstOrCreate(
+            ['email' => 'jasmine.reyes@newapplicant.test'],
+            [
+                'name' => 'Jasmine Reyes', 'login_id' => 'APPL-NEW0001', 'password' => Hash::make('password'),
+                'role' => 'applicant', 'major' => 'BSOA', 'program_key' => 'bsoa', 'program_level' => 'BACHELOR',
+                'contact_number' => '09171234567', 'date_of_birth' => '2008-03-14', 'sex' => 'Female',
+                'address' => 'Blk 5 Lot 12, Brgy. Banay-Banay, City of Cabuyao, Laguna',
+                'last_school' => 'Cabuyao National High School', 'year_graduated' => '2026',
+                'applicant_type' => 'NEW', 'wants_reservation' => true, 'is_reserved' => true,
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'miguel.santos@transferee.test'],
+            [
+                'name' => 'Miguel Santos', 'login_id' => 'APPL-TRF0001', 'password' => Hash::make('password'),
+                'role' => 'applicant', 'major' => 'BOM', 'program_key' => 'bom', 'program_level' => 'ASSOCIATE',
+                'contact_number' => '09181234567', 'date_of_birth' => '2005-11-02', 'sex' => 'Male',
+                'address' => 'Purok 3, Brgy. Pulo, City of Sta. Rosa, Laguna',
+                'last_school' => 'Laguna State Polytechnic University', 'year_graduated' => '2024',
+                'applicant_type' => 'TRANSFEREE', 'year_level' => '2nd Year',
+                'applicant_remarks' => 'Transferring from a BSBA program; requesting credit evaluation.',
+                'wants_reservation' => true, 'is_reserved' => false,
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'karen.villanueva@returnee.test'],
+            [
+                'name' => 'Karen Villanueva', 'login_id' => 'APPL-RET0001', 'password' => Hash::make('password'),
+                'role' => 'applicant', 'major' => 'BTVTED', 'program_key' => 'btvted', 'program_level' => 'BACHELOR',
+                'contact_number' => '09191234567', 'date_of_birth' => '2003-06-20', 'sex' => 'Female',
+                'address' => 'Sitio Maligaya, Brgy. Gulod, City of Calamba, Laguna',
+                'last_school' => 'AITSA', 'year_graduated' => '2024',
+                'applicant_type' => 'RETURNEE', 'year_level' => '3rd Year',
+                'applicant_remarks' => 'Returning after an approved leave of absence (S.Y. 2024-2025).',
+                'wants_reservation' => false, 'is_reserved' => false,
+            ]
+        );
     }
 }

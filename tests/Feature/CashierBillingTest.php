@@ -90,24 +90,7 @@ class CashierBillingTest extends TestCase
         $this->assertNull($student->fresh()->discount_type_id);
         $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Removed']);
     }
-    public function test_cashier_can_toggle_discount_type_active_state(): void
-    {
-        $type = DiscountType::factory()->create(['name' => 'Barranggay Scholar', 'percent' => 30]);
-        $this->assertTrue($type->fresh()->is_active);
 
-        $this->actingAs($this->cashier)
-            ->post("/cashier/billing/discounts/{$type->id}/toggle")
-            ->assertRedirect(route('cashier.billing'));
-
-        $this->assertFalse($type->fresh()->is_active);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Deactivated']);
-
-        $this->actingAs($this->cashier)
-            ->post("/cashier/billing/discounts/{$type->id}/toggle");
-
-        $this->assertTrue($type->fresh()->is_active);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Activated']);
-    }
     public function test_invalid_percent_and_duplicate_name_are_rejected(): void
     {
         DiscountType::factory()->create(['name' => 'Academic Scholar']);
@@ -136,6 +119,52 @@ class CashierBillingTest extends TestCase
             ->post("/cashier/billing/assign/{$student->id}", ['discount_type_id' => null])
             ->assertRedirect(route('cashier.billing'));
         $this->assertNull($student->fresh()->discount_type_id);
+    }
+
+    public function test_cashier_can_toggle_discount_type_active_state(): void
+    {
+        $type = DiscountType::factory()->create(['is_active' => true]);
+
+        $this->actingAs($this->cashier)
+            ->postJson("/cashier/billing/discounts/{$type->id}/toggle")
+            ->assertOk()
+            ->assertJson(['id' => $type->id, 'isActive' => false]);
+
+        $this->assertFalse($type->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Deactivated']);
+
+        $this->actingAs($this->cashier)
+            ->postJson("/cashier/billing/discounts/{$type->id}/toggle")
+            ->assertJson(['isActive' => true]);
+
+        $this->assertTrue($type->fresh()->is_active);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Activated']);
+    }
+
+    public function test_assigning_an_inactive_discount_type_is_rejected(): void
+    {
+        $type = DiscountType::factory()->create(['is_active' => false]);
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($this->cashier)
+            ->from('/cashier/billing')
+            ->post("/cashier/billing/assign/{$student->id}", ['discount_type_id' => $type->id])
+            ->assertSessionHasErrors('discount_type_id');
+
+        $this->assertNull($student->fresh()->discount_type_id);
+    }
+
+    public function test_keeping_a_students_existing_now_inactive_discount_is_allowed(): void
+    {
+        $type = DiscountType::factory()->create(['is_active' => true]);
+        $student = User::factory()->create(['role' => 'student', 'discount_type_id' => $type->id]);
+        $type->update(['is_active' => false]);
+
+        $this->actingAs($this->cashier)
+            ->post("/cashier/billing/assign/{$student->id}", ['discount_type_id' => $type->id])
+            ->assertRedirect(route('cashier.billing'));
+
+        $this->assertSame($type->id, $student->fresh()->discount_type_id);
     }
 
     public function test_non_cashier_roles_are_forbidden(): void

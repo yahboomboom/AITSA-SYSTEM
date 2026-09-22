@@ -28,4 +28,16 @@ class RoomController extends Controller
 
         return response()->json(['room' => $room], 201);
     }
+
+    public function destroy(Room $room): JsonResponse
+    {
+        if ($room->sections()->exists()) {
+            return response()->json(['message' => 'This room is assigned to a section and cannot be deleted.'], 409);
+        }
+
+        AuditLog::record('Room Deleted', "Room {$room->name} deleted.", 'Room', $room->id);
+        $room->delete();
+
+        return response()->json(['message' => 'Deleted.']);
+    }
 }

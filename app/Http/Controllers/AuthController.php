@@ -166,14 +166,16 @@ class AuthController extends Controller
         public function processApplication(Request $request, \App\Services\PaymentService $payments)
     {
         $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
+            'last_name'      => ['required', 'string', 'max:100'],
+            'first_name'     => ['required', 'string', 'max:100'],
+            'middle_name'    => ['nullable', 'string', 'max:100'],
             'email'          => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'contact_number' => ['required', 'string', 'max:20'],
+            'contact_number' => ['required', 'string', 'max:20', 'regex:/^[0-9]+$/'],
             'date_of_birth'  => ['required', 'date'],
             'sex'            => ['required', 'string', Rule::in(['Male', 'Female'])],
             'address'        => ['required', 'string', 'max:500'],
             'last_school'    => ['required', 'string', 'max:255'],
-            'year_graduated' => ['required', 'string', 'max:10'],
+            'year_graduated' => ['required', 'string', 'max:10', 'regex:/^[0-9]+$/'],
             'applicant_type' => ['required', 'string', Rule::in(['NEW', 'TRANSFEREE', 'RETURNEE'])],
             'year_level'     => ['required_if:applicant_type,TRANSFEREE,RETURNEE', 'nullable', 'string', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
             'program_key'    => ['required', 'string', Rule::in(collect(config('curricula'))->pluck('id')->all())],
@@ -183,7 +185,11 @@ class AuthController extends Controller
         ], [
             'email.unique' => 'An application with this email address already exists. If you need help, contact our admissions office.',
             'program_key.in' => 'That program could not be found. Please pick a program from the list.',
+            'contact_number.regex' => 'Contact number may only contain digits.',
         ]);
+
+        $name = trim($request->input('last_name')) . ', ' . trim($request->input('first_name'))
+            . ($request->filled('middle_name') ? ' ' . trim($request->input('middle_name')) : '');
 
         // Enforce the curriculum slot limit set by the Registrar (Admission Slots).
         $schoolYear = Setting::get('school_year', '2026-2027');
@@ -204,7 +210,7 @@ class AuthController extends Controller
             ?? $request->input('program_name');
 
         $applicant = User::create([
-            'name'              => $request->input('name'),
+            'name'              => $name,
             'email'             => $request->input('email'),
             'login_id'          => 'APPL-' . strtoupper(Str::random(8)),
             'major'             => $programCode,
@@ -480,7 +486,7 @@ class AuthController extends Controller
                 ];
             })->values(),
             'reviewUrl' => route('cashier.dashboard'),
-            'historyUrl' => route('cashier.transactions'),   // <-- bago
+            'historyUrl' => route('cashier.transactions'),
         ];
 
         return view('cashier.accounts', compact('context'));
@@ -523,6 +529,9 @@ class AuthController extends Controller
                 'color' => $palette[$i % count($palette)],
             ])->all()
             : [];
+
+        $schoolYear = $enrollment->school_year ?? Setting::get('school_year', '2026-2027');
+        $semester = $enrollment->semester ?? (int) Setting::get('semester', '1');
 
         return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
     }

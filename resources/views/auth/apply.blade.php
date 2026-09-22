@@ -223,19 +223,30 @@
                 <div>
                     <h3 class="text-xs font-black text-brandNavy uppercase tracking-wider mb-4 pb-2 border-b border-brandNavy/8">Personal Information</h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="sm:col-span-2">
-                            <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Full Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="name" value="{{ old('name') }}" required placeholder="Last Name, First Name Middle Name"
+                        <div>
+                            <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Last Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="last_name" value="{{ old('last_name') }}" required placeholder="Dela Cruz" onpaste="return false;"
+                                class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">First Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="first_name" value="{{ old('first_name') }}" required placeholder="Juan" onpaste="return false;"
+                                class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Middle Name <span class="text-brandNavy/30 font-normal normal-case">(Optional)</span></label>
+                            <input type="text" name="middle_name" value="{{ old('middle_name') }}" placeholder="Santos" onpaste="return false;"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Email Address <span class="text-red-500">*</span></label>
-                            <input type="email" name="email" value="{{ old('email') }}" required placeholder="your@email.com"
+                            <input type="email" name="email" value="{{ old('email') }}" required placeholder="your@email.com" onpaste="return false;"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Contact Number <span class="text-red-500">*</span></label>
-                            <input type="text" name="contact_number" value="{{ old('contact_number') }}" required placeholder="09XX-XXX-XXXX"
+                            <input type="text" inputmode="numeric" name="contact_number" value="{{ old('contact_number') }}" required placeholder="09XXXXXXXXX"
+                                onpaste="return false;" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                         <div>
@@ -253,7 +264,7 @@
                         </div>
                         <div class="sm:col-span-2">
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Home Address <span class="text-red-500">*</span></label>
-                            <input type="text" name="address" value="{{ old('address') }}" required placeholder="Street, Barangay, City/Municipality, Province"
+                            <input type="text" name="address" value="{{ old('address') }}" required placeholder="Street, Barangay, City/Municipality, Province" onpaste="return false;"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                     </div>
@@ -265,12 +276,13 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="sm:col-span-2">
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Last School Attended <span class="text-red-500">*</span></label>
-                            <input type="text" name="last_school" value="{{ old('last_school') }}" required placeholder="e.g. Cabuyao National High School"
+                            <input type="text" name="last_school" value="{{ old('last_school') }}" required placeholder="e.g. Cabuyao National High School" onpaste="return false;"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Year Graduated / Last Attended <span class="text-red-500">*</span></label>
-                            <input type="text" name="year_graduated" value="{{ old('year_graduated') }}" required placeholder="e.g. 2024"
+                            <input type="text" inputmode="numeric" name="year_graduated" value="{{ old('year_graduated') }}" required placeholder="e.g. 2024"
+                                onpaste="return false;" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors">
                         </div>
                         <div>
@@ -309,7 +321,7 @@
                 {{-- Remarks --}}
                 <div>
                     <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Additional Remarks <span class="text-brandNavy/30 font-normal normal-case">(Optional)</span></label>
-                    <textarea name="remarks" rows="3" placeholder="Any additional information you'd like to share with our admissions team…"
+                    <textarea name="remarks" rows="3" placeholder="Any additional information you'd like to share with our admissions team…" onpaste="return false;"
                         class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy placeholder-brandNavy/30 focus:outline-none focus:border-brandGreen transition-colors resize-none">{{ old('remarks') }}</textarea>
                 </div>
 

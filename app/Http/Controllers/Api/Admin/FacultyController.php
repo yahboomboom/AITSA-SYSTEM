@@ -50,6 +50,22 @@ class FacultyController extends Controller
         ]], 201);
     }
 
+    public function destroy(User $user): JsonResponse
+    {
+        if ($user->role !== 'faculty') {
+            return response()->json(['message' => 'That user is not a faculty member.'], 422);
+        }
+
+        if ($user->taughtSections()->exists()) {
+            return response()->json(['message' => 'This faculty member is assigned to a section and cannot be deleted.'], 409);
+        }
+
+        AuditLog::record('Faculty Deleted', "Faculty account for {$user->name} ({$user->login_id}) deleted.", 'User', $user->id);
+        $user->delete();
+
+        return response()->json(['message' => 'Deleted.']);
+    }
+
     public function schedule(User $user, EnrollmentService $enrollments): JsonResponse
     {
         if ($user->role !== 'faculty') {

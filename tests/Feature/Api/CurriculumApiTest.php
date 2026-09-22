@@ -19,9 +19,9 @@ class CurriculumApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Curriculum editing moved from Admin to the Registrar workspace — the
-        // property is kept as $admin only to minimize churn across this file.
-        $this->admin = User::factory()->create(['role' => 'registrar']);
+        // Curriculum editing moved from Admin to Registrar to the Dept Chair —
+        // the property is kept as $admin only to minimize churn across this file.
+        $this->admin = User::factory()->create(['role' => 'chair']);
     }
 
     public function test_students_are_forbidden(): void
@@ -49,22 +49,6 @@ class CurriculumApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('subjects.0.id', $subject->id)
             ->assertJsonCount(1, 'subjects.0.sections');
-    }
-
-    public function test_chair_can_browse_programs_and_subjects_read_only(): void
-    {
-        // The Dept Chair browses this same listing (read-only) to find what
-        // to schedule, but has no write access to Subjects/Programs.
-        $program = Program::factory()->create(['code' => 'BSOA']);
-        $chair = User::factory()->create(['role' => 'chair']);
-
-        $this->actingAs($chair)->getJson('/api/admin/programs')
-            ->assertOk()->assertJsonPath('programs.0.code', 'BSOA');
-
-        $this->actingAs($chair)->postJson('/api/admin/subjects', [
-            'program_id' => $program->id, 'code' => 'OA201', 'title' => 'X',
-            'units' => 3, 'year_level' => 1, 'semester' => 1, 'mode' => 'F2F',
-        ])->assertForbidden();
     }
 
     public function test_admin_creates_subject_with_prerequisites(): void
@@ -95,14 +79,21 @@ class CurriculumApiTest extends TestCase
         $this->assertDatabaseHas('subjects', ['id' => $section->subject_id]);
     }
 
-    public function test_registrar_can_no_longer_write_sections(): void
+    public function test_registrar_is_forbidden_from_the_curriculum_api(): void
     {
-        // Section scheduling moved to the Dept Chair — see
-        // tests/Feature/Api/SectionConflictTest.php for the chair-side CRUD
-        // coverage that used to live here.
-        $subject = Subject::factory()->create();
+        // Curriculum content (Programs/Subjects) moved from Registrar to the
+        // Dept Chair — see tests/Feature/Api/SectionConflictTest.php for the
+        // chair-side section CRUD coverage that used to live here.
+        $program = Program::factory()->create();
+        $subject = Subject::factory()->for($program)->create();
+        $registrar = User::factory()->create(['role' => 'registrar']);
 
-        $this->actingAs($this->admin)->postJson('/api/admin/sections', [
+        $this->actingAs($registrar)->getJson('/api/admin/programs')->assertForbidden();
+        $this->actingAs($registrar)->postJson('/api/admin/subjects', [
+            'program_id' => $program->id, 'code' => 'OA201', 'title' => 'X',
+            'units' => 3, 'year_level' => 1, 'semester' => 1, 'mode' => 'F2F',
+        ])->assertForbidden();
+        $this->actingAs($registrar)->postJson('/api/admin/sections', [
             'subject_id' => $subject->id, 'block_label' => 'A', 'days' => ['M', 'W'],
             'start_time' => '08:00', 'end_time' => '09:30', 'room' => 'Rm 101',
             'professor' => 'J. Dela Cruz', 'capacity' => 40, 'school_year' => '2026-2027',

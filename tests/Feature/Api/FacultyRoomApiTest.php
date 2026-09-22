@@ -108,6 +108,68 @@ class FacultyRoomApiTest extends TestCase
         $this->actingAs($student)->postJson('/api/admin/rooms', ['name' => 'X', 'type' => 'physical'])->assertForbidden();
     }
 
+    public function test_chair_can_delete_an_unused_room(): void
+    {
+        $room = Room::create(['name' => 'Rm 999', 'type' => 'physical']);
+
+        $this->actingAs($this->chair)->deleteJson("/api/admin/rooms/{$room->id}")
+            ->assertOk();
+
+        $this->assertDatabaseMissing('rooms', ['id' => $room->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Room Deleted']);
+    }
+
+    public function test_room_assigned_to_a_section_cannot_be_deleted(): void
+    {
+        $room = Room::create(['name' => 'Rm 998', 'type' => 'physical']);
+        Section::factory()->create(['room_id' => $room->id]);
+
+        $this->actingAs($this->chair)->deleteJson("/api/admin/rooms/{$room->id}")
+            ->assertStatus(409);
+
+        $this->assertDatabaseHas('rooms', ['id' => $room->id]);
+    }
+
+    public function test_chair_can_delete_an_unused_faculty_member(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty', 'login_id' => 'faculty-del-01']);
+
+        $this->actingAs($this->chair)->deleteJson("/api/admin/faculty/{$faculty->id}")
+            ->assertOk();
+
+        $this->assertNotNull($faculty->fresh()->deleted_at);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'Faculty Deleted']);
+    }
+
+    public function test_faculty_teaching_a_section_cannot_be_deleted(): void
+    {
+        $faculty = User::factory()->create(['role' => 'faculty']);
+        Section::factory()->create(['faculty_id' => $faculty->id]);
+
+        $this->actingAs($this->chair)->deleteJson("/api/admin/faculty/{$faculty->id}")
+            ->assertStatus(409);
+
+        $this->assertNull($faculty->fresh()->deleted_at);
+    }
+
+    public function test_deleting_a_non_faculty_user_via_faculty_endpoint_is_rejected(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($this->chair)->deleteJson("/api/admin/faculty/{$student->id}")
+            ->assertStatus(422);
+    }
+
+    public function test_students_cannot_delete_faculty_or_rooms(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $room = Room::create(['name' => 'Rm 997', 'type' => 'physical']);
+        $faculty = User::factory()->create(['role' => 'faculty']);
+
+        $this->actingAs($student)->deleteJson("/api/admin/rooms/{$room->id}")->assertForbidden();
+        $this->actingAs($student)->deleteJson("/api/admin/faculty/{$faculty->id}")->assertForbidden();
+    }
+
     public function test_registrar_can_no_longer_use_faculty_or_room_endpoints(): void
     {
         $registrar = User::factory()->create(['role' => 'registrar']);

@@ -2,6 +2,7 @@
 
 use App\Exceptions\PaymentGatewayException;
 use App\Http\Controllers\AuthController;
+use App\Models\Announcement;
 use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\ClearanceItem;
@@ -165,7 +166,18 @@ Route::middleware('auth')->group(function () {
             );
         }
 
-        return view('dashboard', compact('clearance'));
+        $announcements = Announcement::where('is_active', true)->latest()->take(5)->get(['title', 'body', 'created_at']);
+
+        $context = [
+            'clearancePercent' => $clearance->completionPercent(),
+            'announcements' => $announcements->map(fn ($a) => [
+                'title' => $a->title,
+                'body' => $a->body,
+                'postedAt' => $a->created_at->format('M d, Y'),
+            ])->values(),
+        ];
+
+        return view('dashboard', compact('clearance', 'context'));
     })->name('dashboard');
 
     // 2. Student e-Clearance Routing Module
@@ -440,22 +452,34 @@ Route::middleware('auth')->group(function () {
             ->get();
         $applicants = User::where('role', 'applicant')->with('agreements')->orderByDesc('created_at')->get();
 
-        // The submissions list itself is loaded on demand via
-        // registrar.documents.search (see below) so the dashboard payload
-        // doesn't grow with every document ever submitted — only the count
-        // is needed up front, for the "N pending" badge.
-        $latestDocuments = DocumentSubmission::orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->get()
-            ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
-        $documentsPendingCount = $latestDocuments->where('status', 'pending')->count();
-        $documentsRejectedCount = $latestDocuments->where('status', 'rejected')->count();
         $pendingGradeApprovals = GradeSubmission::with(['section.subject', 'section.faculty', 'items.user'])
             ->where('status', 'pending_registrar')
             ->latest('chair_at')
             ->get();
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'documentsPendingCount', 'documentsRejectedCount', 'pendingGradeApprovals'));
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'pendingGradeApprovals'));
     })->name('registrar.dashboard');
+
+    // Document submissions get their own page (moved off the Dashboard, which
+    // was getting crowded) — opens straight to the pending queue by default,
+    // see DocumentSubmissionsTable's initialSearch/statusFilter.
+    Route::get('/registrar/documents', function () {
+        // The list itself is loaded on demand via registrar.documents.search
+        // (see below) so the page payload doesn't grow with every document
+        // ever submitted — only the counts are needed up front, for the "N
+        // pending" badge.
+        $latestDocuments = DocumentSubmission::orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique(fn (DocumentSubmission $submission) => $submission->user_id . ':' . $submission->document_type);
+
+        $context = [
+            'documentsSearchUrl' => route('registrar.documents.search'),
+            'documentsPendingCount' => $latestDocuments->where('status', 'pending')->count(),
+            'documentsRejectedCount' => $latestDocuments->where('status', 'rejected')->count(),
+        ];
+
+        return view('registrar.documents', compact('context'));
+    })->name('registrar.documents');
 
     Route::get('/registrar/documents/search', function (Request $request) {
         $q = trim((string) $request->query('q', ''));
@@ -601,7 +625,7 @@ Route::middleware('auth')->group(function () {
     // Document submission review
     Route::post('/registrar/documents/{submission}/accept', function (DocumentSubmission $submission) {
         if ($submission->status !== 'pending') {
-            return redirect()->route('registrar.dashboard')->with('error', 'This document has already been reviewed.');
+            return redirect()->route('registrar.documents')->with('error', 'This document has already been reviewed.');
         }
 
         $submission->update(['status' => 'accepted', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
@@ -611,14 +635,14 @@ Route::middleware('auth')->group(function () {
             $clearance->update(['registrar_status' => 'Approved', 'remarks' => null]);
         }
 
-        return redirect()->route('registrar.dashboard')->with('success', 'Document accepted.');
+        return redirect()->route('registrar.documents')->with('success', 'Document accepted.');
     })->name('registrar.documents.accept');
 
     Route::post('/registrar/documents/{submission}/reject', function (Request $request, DocumentSubmission $submission) {
         $request->validate(['remarks' => ['required', 'string', 'max:500']]);
 
         if ($submission->status !== 'pending') {
-            return redirect()->route('registrar.dashboard')->with('error', 'This document has already been reviewed.');
+            return redirect()->route('registrar.documents')->with('error', 'This document has already been reviewed.');
         }
 
         $submission->update(['status' => 'rejected', 'remarks' => $request->input('remarks'), 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
@@ -629,7 +653,7 @@ Route::middleware('auth')->group(function () {
             $clearance->update(['registrar_status' => 'Hold', 'remarks' => $request->input('remarks')]);
         }
 
-        return redirect()->route('registrar.dashboard')->with('success', 'Document rejected and returned to the student.');
+        return redirect()->route('registrar.documents')->with('success', 'Document rejected and returned to the student.');
     })->name('registrar.documents.reject');
 
     Route::post('/registrar/documents/{submission}/remind', function (DocumentSubmission $submission) {
@@ -637,7 +661,7 @@ Route::middleware('auth')->group(function () {
 
         \App\Support\SafeNotify::send($submission->user, new DocumentStatusReminderNotification($submission));
 
-        return redirect()->route('registrar.dashboard')->with('success', 'Reminder sent to the student.');
+        return redirect()->route('registrar.documents')->with('success', 'Reminder sent to the student.');
     })->name('registrar.documents.remind');
 
     // Once a GradeSubmission reaches 'approved', there is no built-in way to
@@ -734,13 +758,20 @@ Route::middleware('auth')->group(function () {
     })->name('approver.dashboard');
 
     // Scheduling — sections (day/time/faculty/room) plus faculty/room
-    // management, moved here from the Registrar's Curriculum page. Programs
-    // and Subjects (curriculum content) stay Registrar-only; this page's
-    // React island browses that same read-only subject list via the shared
-    // GET /api/admin/programs endpoints to find what to schedule.
+    // management, moved here from the Registrar's Curriculum page. This
+    // page's React island browses the subject list read-only (via the same
+    // GET /api/admin/programs endpoints Curriculum below uses) to find what
+    // to schedule.
     Route::get('/approver/scheduling', function () {
         return view('approver.scheduling');
     })->name('approver.scheduling');
+
+    // Curriculum editing — moved here from the Registrar (who inherited it
+    // from Admin) so Programs/Subjects content and section scheduling live
+    // under the same Dept Chair workspace.
+    Route::get('/approver/curriculum', function () {
+        return view('approver.curriculum');
+    })->name('approver.curriculum');
 
     Route::post('/approver/enrollments/{enrollment}/approve', function (Enrollment $enrollment) {
         if ($enrollment->status !== 'pending') {
@@ -1182,20 +1213,6 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
     })->name('cashier.billing.discounts');
 
-        Route::post('/cashier/billing/discounts/{discountType}/toggle', function (Request $request, DiscountType $discountType) {
-        $discountType->update(['is_active' => ! $discountType->is_active]);
-        $state = $discountType->is_active ? 'activated' : 'deactivated';
-        AuditLog::record('Discount Type ' . ucfirst($state), 'Cashier ' . $state . ' discount type "' . $discountType->name . '".', 'DiscountType', $discountType->id);
-
-        $message = 'Discount type ' . $state . '.';
-
-        if ($request->expectsJson()) {
-            return response()->json(['isActive' => (bool) $discountType->is_active, 'message' => $message]);
-        }
-
-        return redirect()->route('cashier.billing')->with('success', $message);
-    })->name('cashier.billing.discounts.toggle');
-
     Route::post('/cashier/billing/discounts/{discountType}/delete', function (DiscountType $discountType) {
         $name = $discountType->name;
         // Detach the discount from any students before deleting the type.
@@ -1206,19 +1223,36 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('cashier.billing')->with('success', 'Discount type removed.');
     })->name('cashier.billing.discounts.delete');
 
+    Route::post('/cashier/billing/discounts/{discountType}/toggle', function (Request $request, DiscountType $discountType) {
+        $discountType->update(['is_active' => ! $discountType->is_active]);
+        AuditLog::record(
+            $discountType->is_active ? 'Discount Type Activated' : 'Discount Type Deactivated',
+            'Cashier ' . ($discountType->is_active ? 'activated' : 'deactivated') . ' discount type "' . $discountType->name . '".',
+            'DiscountType',
+            $discountType->id
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['id' => $discountType->id, 'isActive' => $discountType->is_active]);
+        }
+
+        return redirect()->route('cashier.billing')->with('success', 'Discount type updated.');
+    })->name('cashier.billing.discounts.toggle');
+
     Route::post('/cashier/billing/assign/{student}', function (Request $request, User $student) {
         $data = $request->validate([
             'discount_type_id' => ['nullable', 'exists:discount_types,id'],
         ]);
 
-        // Only active discount types can be newly assigned (keeping the current one is always allowed).
-        if (! empty($data['discount_type_id']) && (int) $data['discount_type_id'] !== (int) $student->discount_type_id) {
-            if (! DiscountType::whereKey($data['discount_type_id'])->where('is_active', true)->exists()) {
+        $newTypeId = $data['discount_type_id'] ?? null;
+        if ($newTypeId && (int) $newTypeId !== (int) $student->discount_type_id) {
+            $isActive = DiscountType::whereKey($newTypeId)->where('is_active', true)->exists();
+            if (! $isActive) {
                 return redirect()->route('cashier.billing')->withErrors(['discount_type_id' => 'That discount type is inactive.']);
             }
         }
 
-        $student->update(['discount_type_id' => $data['discount_type_id'] ?? null]);
+        $student->update(['discount_type_id' => $newTypeId]);
         AuditLog::record('Student Discount Updated', 'Cashier updated discount assignment for student ID ' . $student->id . '.', 'User', $student->id);
 
         return redirect()->route('cashier.billing')->with('success', 'Student discount updated.');
@@ -1279,8 +1313,18 @@ Route::middleware('auth')->group(function () {
     })->name('admin.students.create');
 
     Route::post('/admin/students/create', function (Request $request) {
+        // The applicant-activation path (applicant_id present) still submits a
+        // single pre-filled, read-only `name` — it's copied verbatim from the
+        // applicant's own application, not re-typed. A fresh walk-in
+        // registration has no such record to copy, so it's split into
+        // last/first/middle name fields instead.
+        $isApplicant = $request->filled('applicant_id');
+
         $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
+            'name'           => [$isApplicant ? 'required' : 'nullable', 'string', 'max:255'],
+            'last_name'      => [$isApplicant ? 'nullable' : 'required', 'string', 'max:100'],
+            'first_name'     => [$isApplicant ? 'nullable' : 'required', 'string', 'max:100'],
+            'middle_name'    => ['nullable', 'string', 'max:100'],
             'email'          => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'login_id'       => ['required', 'string', 'max:50', 'unique:users,login_id'],
             'password'       => ['required', 'string', 'min:8', 'confirmed'],
@@ -1288,18 +1332,24 @@ Route::middleware('auth')->group(function () {
             'year_level'     => ['required', 'string'],
             'section'        => ['nullable', 'string', 'max:50'],
             'sex'            => ['nullable', 'string'],
-            'contact_number' => ['nullable', 'string', 'max:20'],
+            'contact_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/'],
             'date_of_birth'  => ['nullable', 'date'],
             'address'        => ['nullable', 'string', 'max:500'],
             'applicant_type' => ['nullable', 'string'],
         ], [
-            'email.unique'       => 'This email is already registered.',
-            'login_id.unique'    => 'This Student ID is already taken.',
-            'password.confirmed' => 'Password and confirmation do not match.',
+            'email.unique'          => 'This email is already registered.',
+            'login_id.unique'       => 'This Student ID is already taken.',
+            'password.confirmed'    => 'Password and confirmation do not match.',
+            'contact_number.regex'  => 'Contact number may only contain digits.',
         ]);
 
+        $name = $isApplicant
+            ? $request->input('name')
+            : trim($request->input('last_name')) . ', ' . trim($request->input('first_name'))
+                . ($request->filled('middle_name') ? ' ' . trim($request->input('middle_name')) : '');
+
         $student = User::create([
-            'name'           => $request->input('name'),
+            'name'           => $name,
             'email'          => $request->input('email'),
             'login_id'       => $request->input('login_id'),
             'password'       => $request->input('password'),
@@ -1444,6 +1494,37 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('admin.departments')->with('success', 'Officer account created for ' . $officer->name . '.');
     })->name('admin.departments.officers.store');
+
+    Route::get('/admin/announcements', function () {
+        return view('admin.announcements', [
+            'announcements' => Announcement::with('poster')->latest()->get(),
+        ]);
+    })->name('admin.announcements');
+
+    Route::post('/admin/announcements', function (Request $request) {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:150'],
+            'body' => ['required', 'string'],
+        ]);
+
+        $announcement = Announcement::create([
+            'title' => $data['title'],
+            'body' => $data['body'],
+            'posted_by' => Auth::id(),
+            'is_active' => true,
+        ]);
+        AuditLog::record('Announcement Posted', 'Admin posted announcement "' . $announcement->title . '".', 'Announcement', $announcement->id);
+
+        return redirect()->route('admin.announcements')->with('success', 'Announcement posted.');
+    })->name('admin.announcements.store');
+
+    Route::post('/admin/announcements/{announcement}/delete', function (Announcement $announcement) {
+        $title = $announcement->title;
+        $announcement->delete();
+        AuditLog::record('Announcement Deleted', 'Admin deleted announcement "' . $title . '".', 'Announcement', null);
+
+        return redirect()->route('admin.announcements')->with('success', 'Announcement deleted.');
+    })->name('admin.announcements.delete');
     }); // end role:admin
 
     // Student Records — list all students (Registrar). Grade entry is faculty-only
@@ -1512,8 +1593,8 @@ Route::middleware('auth')->group(function () {
             // account on hold, not just the rejected case. The badge shown
             // to the registrar only ever reads "Pending" or "Cleared" — the
             // on-hold/plain-pending distinction is kept as `needsAttention`
-            // (for gating the Sign button) and as the `status=hold` filter,
-            // without cluttering the visible status with a third label.
+            // for the `status=hold` filter below, without cluttering the
+            // visible status with a third label.
             $clearance = $clearances->get($s->id);
             $hasPendingAccount = $clearance && $clearance->registrar_status !== 'Approved';
             $hasPendingDocument = $documents->get($s->id, collect())
@@ -1531,7 +1612,6 @@ Route::middleware('auth')->group(function () {
                 'isIrregular' => $failedStudentIds->contains($s->id),
                 'adminStatus' => $isCleared ? 'Cleared' : 'Pending',
                 'needsAttention' => $needsAttention,
-                'signUrl' => $clearance ? route('registrar.sign', $clearance->id) : null,
                 'documents' => $documents->get($s->id, collect())->map(fn ($document) => [
                     'id' => $document->id,
                     'typeLabel' => $document->typeLabel(),
@@ -1554,11 +1634,12 @@ Route::middleware('auth')->group(function () {
     })->name('registrar.students.search');
 
     Route::get('/registrar/reports', function () {
+        $schoolYear = Setting::get('school_year', '2026-2027');
+        $semester = (int) Setting::get('semester', '1');
         $clearances        = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
+            ->where('school_year', $schoolYear)
+            ->where('semester', $semester)
             ->get();
-        $pendingApplicants = User::where('role', 'applicant')->count();
 
         $context = [
             'summary' => [
@@ -1569,8 +1650,8 @@ Route::middleware('auth')->group(function () {
                     $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved'
                 )->count(),
             ],
-            'pendingApplicants' => $pendingApplicants,
-            'dashboardUrl' => route('registrar.dashboard'),
+            'schoolYear' => $schoolYear,
+            'semester' => $semester,
             'rows' => $clearances->values()->map(fn ($c, $i) => [
                 'id' => $c->id,
                 'index' => $i + 1,
@@ -1583,18 +1664,11 @@ Route::middleware('auth')->group(function () {
                 'registrarStatus' => $c->registrar_status,
                 'registrarSigned' => $c->registrar_status === 'Approved',
                 'isCleared' => $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved',
-                'signUrl' => route('registrar.sign', $c->id),
             ])->values(),
         ];
 
-        return view('registrar.reports', compact('context'));
+        return view('registrar.reports', compact('context', 'schoolYear', 'semester'));
     })->name('registrar.reports');
-
-    // Curriculum editing — moved here from Admin (per the adviser's note that
-    // Admin was carrying too much); Dept Chair was considered but not included.
-    Route::get('/registrar/curriculum', function () {
-        return view('registrar.curriculum');
-    })->name('registrar.curriculum');
 
     /**
      * Mark or unmark whether an applicant has actually PAID the ₱500

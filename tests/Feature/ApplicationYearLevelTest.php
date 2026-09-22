@@ -19,7 +19,8 @@ class ApplicationYearLevelTest extends TestCase
     private function baseApplicationData(array $overrides = []): array
     {
         return array_merge([
-            'name' => 'Juan Dela Cruz',
+            'last_name' => 'Dela Cruz',
+            'first_name' => 'Juan',
             'email' => 'juan@example.com',
             'contact_number' => '09171234567',
             'date_of_birth' => '2000-01-01',

@@ -72,11 +72,11 @@ class AllNavigationLinksTest extends TestCase
 
         $this->assertAllOk($registrar, [
             '/registrar/dashboard',
+            '/registrar/documents',
             '/registrar/students',
             '/registrar/students/search',
             '/registrar/reports',
             '/registrar/slots',
-            '/registrar/curriculum',
             '/registrar/documents/search',
         ]);
     }
@@ -100,6 +100,7 @@ class AllNavigationLinksTest extends TestCase
         $this->assertAllOk($chair, [
             '/approver/dashboard',
             '/approver/scheduling',
+            '/approver/curriculum',
         ]);
     }
 

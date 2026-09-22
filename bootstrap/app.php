@@ -16,6 +16,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
         $middleware->statefulApi();
+
+        // Stops the browser's back/forward cache from redisplaying an
+        // authenticated page after logout (or after the session expires) —
+        // every web response is marked non-cacheable so Back always
+        // re-checks with the server.
+        $middleware->web(append: [
+            \App\Http\Middleware\PreventBackHistoryCache::class,
+        ]);
+
+        // Railway's edge proxy doesn't publish stable IPs to allowlist, so we trust
+        // forwarded headers only when actually running on Railway (which always sets
+        // this env var) rather than trusting them from any source unconditionally.
+        if (env('RAILWAY_ENVIRONMENT')) {
+            $middleware->trustProxies(at: '*');
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

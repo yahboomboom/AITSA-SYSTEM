@@ -29,11 +29,10 @@ function parseContext(raw) {
 }
 
 function BillingApp({ context, csrfToken, feesUrl, discountsUrl }) {
-    // Kept in state so toggling a discount updates the page in place (no reload, no scroll jump).
     const [discountTypes, setDiscountTypes] = useState(context.discountTypes);
 
     const handleToggled = (id, isActive) => {
-        setDiscountTypes((prev) => prev.map((t) => (t.id === id ? { ...t, isActive } : t)));
+        setDiscountTypes((types) => types.map((t) => (t.id === id ? { ...t, isActive } : t)));
     };
 
     return (
