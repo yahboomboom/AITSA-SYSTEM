@@ -59,7 +59,6 @@
                             'percent' => $type->percent,
                             'isActive' => $type->is_active,
                             'studentsCount' => $type->students_count,
-                            'deleteUrl' => route('cashier.billing.discounts.delete', $type),
                             'toggleUrl' => route('cashier.billing.discounts.toggle', $type),
                         ])->values(),
                         'students' => $students->map(fn ($student) => [

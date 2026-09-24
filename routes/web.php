@@ -1213,15 +1213,6 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('cashier.billing')->with('success', 'Discount type added.');
     })->name('cashier.billing.discounts');
 
-    Route::post('/cashier/billing/discounts/{discountType}/delete', function (DiscountType $discountType) {
-        $name = $discountType->name;
-        // Detach the discount from any students before deleting the type.
-        User::where('discount_type_id', $discountType->id)->update(['discount_type_id' => null]);
-        $discountType->delete();
-        AuditLog::record('Discount Type Removed', 'Cashier removed discount type "' . $name . '".', 'DiscountType', null);
-
-        return redirect()->route('cashier.billing')->with('success', 'Discount type removed.');
-    })->name('cashier.billing.discounts.delete');
 
     Route::post('/cashier/billing/discounts/{discountType}/toggle', function (Request $request, DiscountType $discountType) {
         $discountType->update(['is_active' => ! $discountType->is_active]);
@@ -1239,7 +1230,7 @@ Route::middleware('auth')->group(function () {
         return redirect()->route('cashier.billing')->with('success', 'Discount type updated.');
     })->name('cashier.billing.discounts.toggle');
 
-    Route::post('/cashier/billing/assign/{student}', function (Request $request, User $student) {
+        Route::post('/cashier/billing/assign/{student}', function (Request $request, User $student) {
         $data = $request->validate([
             'discount_type_id' => ['nullable', 'exists:discount_types,id'],
         ]);
@@ -1248,6 +1239,9 @@ Route::middleware('auth')->group(function () {
         if ($newTypeId && (int) $newTypeId !== (int) $student->discount_type_id) {
             $isActive = DiscountType::whereKey($newTypeId)->where('is_active', true)->exists();
             if (! $isActive) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'That discount type is inactive.'], 422);
+                }
                 return redirect()->route('cashier.billing')->withErrors(['discount_type_id' => 'That discount type is inactive.']);
             }
         }
@@ -1255,10 +1249,14 @@ Route::middleware('auth')->group(function () {
         $student->update(['discount_type_id' => $newTypeId]);
         AuditLog::record('Student Discount Updated', 'Cashier updated discount assignment for student ID ' . $student->id . '.', 'User', $student->id);
 
+        if ($request->expectsJson()) {
+            return response()->json(['id' => $student->id, 'discountTypeId' => $newTypeId]);
+        }
+
         return redirect()->route('cashier.billing')->with('success', 'Student discount updated.');
     })->name('cashier.billing.assign');
     }); // end role:cashier
-
+    
     // --- MASTER SYSTEM ADMINISTRATIVE LAYER ---
     Route::middleware('role:admin')->group(function () {
     Route::get('/admin/dashboard', function () {

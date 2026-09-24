@@ -3,8 +3,21 @@ import { peso } from '../utils/format';
 
 const DEFAULT_VISIBLE = 10;
 
-export default function AccountsTable({ rows, reviewUrl, historyUrl }) {
+const FEE_TYPE_LABELS = {
+    reservation: 'Reservation',
+    tuition: 'Tuition',
+    misc: 'Miscellaneous',
+    tesda: 'TESDA Tuition',
+};
+
+function feeTypeLabel(feeType) {
+    if (!feeType) return 'Payment';
+    return FEE_TYPE_LABELS[feeType] ?? (feeType.charAt(0).toUpperCase() + feeType.slice(1));
+}
+
+export default function AccountsTable({ rows, historyUrl }) {
     const [search, setSearch] = useState('');
+    const [expandedId, setExpandedId] = useState(null);
 
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -66,45 +79,75 @@ export default function AccountsTable({ rows, reviewUrl, historyUrl }) {
                                 </td>
                             </tr>
                         )}
-                        {visible.map((a) => (
-                            <tr key={a.id}>
-                                <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.studentNo}</td>
-                                <td className="border-brandNavy/8 dark:border-slate-800">
-                                    <div className="font-medium text-brandNavy dark:text-white">{a.studentName}</div>
-                                    <div className="text-xs text-brandNavy/40 dark:text-slate-500">{a.studentEmail}</div>
-                                </td>
-                                <td className="border-brandNavy/8 dark:border-slate-800">
-                                    {a.referenceNo ? (
-                                        <>
-                                            <div className="font-mono text-brandNavy/70 dark:text-slate-300">{a.referenceNo}</div>
-                                            <div className="text-xs text-brandNavy/40 dark:text-slate-500">
-                                                {peso(a.lastPaymentAmount)} · {a.lastPaymentDate}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <span className="text-brandNavy/30 dark:text-slate-600 italic">No payment yet</span>
+                        {visible.map((a) => {
+                            const isOpen = expandedId === a.id;
+                            const hasPayments = (a.payments ?? []).length > 0;
+
+                            return (
+                                <>
+                                    <tr key={a.id}>
+                                        <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.studentNo}</td>
+                                        <td className="border-brandNavy/8 dark:border-slate-800">
+                                            <div className="font-medium text-brandNavy dark:text-white">{a.studentName}</div>
+                                            <div className="text-xs text-brandNavy/40 dark:text-slate-500">{a.studentEmail}</div>
+                                        </td>
+                                        <td className="border-brandNavy/8 dark:border-slate-800">
+                                            {a.referenceNo ? (
+                                                <>
+                                                    <div className="font-mono text-brandNavy/70 dark:text-slate-300">{a.referenceNo}</div>
+                                                    <div className="text-xs text-brandNavy/40 dark:text-slate-500">
+                                                        {peso(a.lastPaymentAmount)} · {a.lastPaymentDate}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <span className="text-brandNavy/30 dark:text-slate-600 italic">No payment yet</span>
+                                            )}
+                                        </td>
+                                        <td className="border-brandNavy/8 dark:border-slate-800">
+                                            {a.cashierStatus === 'Approved' ? (
+                                                <span className="ui-badge-outline border-brandGreen text-brandGreen">Approved</span>
+                                            ) : (
+                                                <span className="ui-badge-outline border-brandGold text-brandGold">Pending</span>
+                                            )}
+                                        </td>
+                                        <td className="border-brandNavy/8 dark:border-slate-800 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedId(isOpen ? null : a.id)}
+                                                disabled={!hasPayments}
+                                                className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-brandNavy"
+                                            >
+                                                <i className={`fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`} />
+                                                Review Transaction History
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {isOpen && hasPayments && (
+                                        <tr key={`${a.id}-history`}>
+                                            <td colSpan={5} className="border-brandNavy/8 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 p-0">
+                                                <div className="p-4">
+                                                    <div className="text-xs font-semibold text-brandNavy/50 dark:text-slate-400 mb-2 uppercase tracking-wide">
+                                                        Payments — {a.studentName}
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        {a.payments.map((p, i) => (
+                                                            <div key={i} className="flex items-center justify-between text-sm bg-white dark:bg-panelDark border border-brandNavy/8 dark:border-slate-800 rounded px-3 py-2">
+                                                                <span className="ui-badge-outline border-brandNavy/20 text-brandNavy dark:border-slate-600 dark:text-slate-300">
+                                                                    {feeTypeLabel(p.feeType)}
+                                                                </span>
+                                                                <span className="font-mono text-brandNavy/50 dark:text-slate-500">{p.referenceNo}</span>
+                                                                <span className="text-brandNavy/40 dark:text-slate-500">{p.date}</span>
+                                                                <span className="font-medium text-brandNavy dark:text-white">{peso(p.amount)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     )}
-                                </td>
-                                <td className="border-brandNavy/8 dark:border-slate-800">
-                                    {a.cashierStatus === 'Approved' ? (
-                                        <span className="ui-badge-outline border-brandGreen text-brandGreen">Approved</span>
-                                    ) : (
-                                        <span className="ui-badge-outline border-brandGold text-brandGold">Pending</span>
-                                    )}
-                                </td>
-                                <td className="border-brandNavy/8 dark:border-slate-800 text-right">
-                                    {a.cashierStatus !== 'Approved' ? (
-                                        <a href={reviewUrl} className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors">
-                                            <i className="fa-solid fa-arrow-right" />Review in Cashier Hub
-                                        </a>
-                                    ) : (
-                                        <span className="ui-badge-outline border-brandNavy/10 text-brandNavy/30 dark:border-slate-700 dark:text-slate-600">
-                                            <i className="fa-solid fa-check" />Settled
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+                                </>
+                            );
+                        })}
                     </tbody>
                 </table>
                 {!search.trim() && filtered.length > DEFAULT_VISIBLE && (

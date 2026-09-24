@@ -1,7 +1,10 @@
+import { useState } from 'react';
+
 function lockSubmit(form, busyLabel) {
     const btn = form.querySelector('button[type="submit"]');
     if (btn) {
         btn.disabled = true;
+        btn.dataset.originalLabel = btn.textContent;
         btn.textContent = busyLabel;
     }
     return true;
@@ -9,8 +12,11 @@ function lockSubmit(form, busyLabel) {
 
 export default function DiscountTypesPanel({ discountTypes, errors, old, csrfToken, addUrl, onToggled }) {
     const firstError = errors.name || errors.percent;
+    const [pendingToggleId, setPendingToggleId] = useState(null);
 
     const handleToggle = async (type) => {
+        if (pendingToggleId) return; // avoid double-clicks firing overlapping requests
+        setPendingToggleId(type.id);
         try {
             const res = await fetch(type.toggleUrl, {
                 method: 'POST',
@@ -24,6 +30,8 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
             onToggled(data.id, data.isActive);
         } catch {
             // Network hiccup — the switch simply won't move; the cashier can retry.
+        } finally {
+            setPendingToggleId(null);
         }
     };
 
@@ -88,28 +96,15 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
                                     type="button"
                                     role="switch"
                                     aria-checked={type.isActive}
+                                    disabled={pendingToggleId === type.id}
                                     title={type.isActive ? 'Deactivate' : 'Activate'}
                                     onClick={() => handleToggle(type)}
-                                    className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${type.isActive ? 'bg-brandGreen' : 'bg-brandNavy/20 dark:bg-slate-700'}`}
+                                    className={`w-10 h-[22px] rounded-full transition-colors relative flex-shrink-0 cursor-pointer disabled:cursor-wait disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brandGreen focus-visible:ring-offset-2 dark:focus-visible:ring-offset-panelDark ${type.isActive ? 'bg-brandGreen' : 'bg-brandNavy/20 dark:bg-slate-700'}`}
                                 >
-                                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${type.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                    <span
+                                        className={`absolute top-0.5 left-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-transform duration-150 ${type.isActive ? 'translate-x-[18px]' : 'translate-x-0'}`}
+                                    />
                                 </button>
-                                <form
-                                    action={type.deleteUrl}
-                                    method="POST"
-                                    onSubmit={(e) => {
-                                        if (!window.confirm(`Remove ${type.name}? Students with this discount will lose it.`)) {
-                                            e.preventDefault();
-                                            return false;
-                                        }
-                                        return lockSubmit(e.currentTarget, 'Removing…');
-                                    }}
-                                >
-                                    <input type="hidden" name="_token" value={csrfToken} />
-                                    <button type="submit" className="w-7 h-7 rounded bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
-                                        <i className="fa-solid fa-trash-can text-xs" />
-                                    </button>
-                                </form>
                             </div>
                         </div>
                     ))}

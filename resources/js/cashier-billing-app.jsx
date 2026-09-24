@@ -30,9 +30,14 @@ function parseContext(raw) {
 
 function BillingApp({ context, csrfToken, feesUrl, discountsUrl }) {
     const [discountTypes, setDiscountTypes] = useState(context.discountTypes);
+    const [students, setStudents] = useState(context.students);
 
     const handleToggled = (id, isActive) => {
         setDiscountTypes((types) => types.map((t) => (t.id === id ? { ...t, isActive } : t)));
+    };
+
+    const handleAssigned = (studentId, discountTypeId) => {
+        setStudents((list) => list.map((s) => (s.id === studentId ? { ...s, discountTypeId } : s)));
     };
 
     return (
@@ -55,9 +60,10 @@ function BillingApp({ context, csrfToken, feesUrl, discountsUrl }) {
                 />
             </div>
             <StudentDiscountTable
-                students={context.students}
+                students={students}
                 discountTypes={discountTypes}
                 csrfToken={csrfToken}
+                onAssigned={handleAssigned}
             />
         </div>
     );

@@ -22,7 +22,7 @@ if (el) {
 
     createRoot(el).render(
         <ErrorBoundary>
-            <AccountsTable rows={context.rows} reviewUrl={context.reviewUrl} historyUrl={context.historyUrl} />
+            <AccountsTable rows={context.rows} historyUrl={context.historyUrl} />
         </ErrorBoundary>
     );
 }

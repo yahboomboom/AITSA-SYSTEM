@@ -458,18 +458,19 @@ class AuthController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Only the most recent settled payment per student is relevant here —
-        // older ledger entries for the same student are just noise on this screen.
-        $latestSettledByUser = TransactionLedger::where('status', 'Settled')
+        // All settled payments per student, most recent first — used to build
+        // the per-student "Review Transaction History" dropdown so cashiers can
+        // see what was paid (reservation, tuition, etc.) without leaving this page.
+        $settledByUser = TransactionLedger::where('status', 'Settled')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
-            ->groupBy('user_id')
-            ->map(fn ($group) => $group->first());
+            ->groupBy('user_id');
 
         $context = [
-            'rows' => $accounts->map(function ($a) use ($latestSettledByUser) {
-                $latestSettled = $latestSettledByUser->get($a->user_id);
+            'rows' => $accounts->map(function ($a) use ($settledByUser) {
+                $payments = $settledByUser->get($a->user_id, collect());
+                $latestSettled = $payments->first();
 
                 return [
                     'id' => $a->id,
@@ -483,6 +484,12 @@ class AuthController extends Controller
                         ? $latestSettled->created_at->format('Y-m-d')
                         : null,
                     'cashierStatus' => $a->cashier_status,
+                    'payments' => $payments->map(fn ($p) => [
+                        'feeType' => $p->fee_type,
+                        'amount' => (float) $p->amount,
+                        'date' => $p->created_at ? $p->created_at->format('Y-m-d') : null,
+                        'referenceNo' => $p->reference_no,
+                    ])->values(),
                 ];
             })->values(),
             'reviewUrl' => route('cashier.dashboard'),
