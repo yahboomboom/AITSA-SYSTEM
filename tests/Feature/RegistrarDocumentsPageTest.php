@@ -17,7 +17,7 @@ class RegistrarDocumentsPageTest extends TestCase
         DocumentSubmission::factory()->create(['status' => 'pending']);
         DocumentSubmission::factory()->create(['status' => 'rejected']);
 
-        $response = $this->actingAs($registrar)->get('/registrar/documents');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/documents');
 
         $response->assertOk();
         $response->assertSee('id="registrar-documents-root"', false);

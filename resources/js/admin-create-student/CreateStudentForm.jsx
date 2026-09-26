@@ -255,8 +255,10 @@ export default function CreateStudentForm({ applicant, programs, old, csrfToken,
                             <label className={labelClass}>Date of birth</label>
                             <input
                                 type="date" name="date_of_birth" defaultValue={old.date_of_birth ?? applicant?.dateOfBirth ?? ''}
+                                max={new Date().toISOString().slice(0, 10)}
                                 className={inputClass}
                             />
+                            <p className="text-[10px] text-brandNavy/40 dark:text-slate-500 mt-1">Format: MM/DD/YYYY</p>
                         </div>
                         <div>
                             <label className={labelClass}>Sex</label>

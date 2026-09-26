@@ -4,58 +4,62 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\PaymentGatewayException;
 use App\Models\EnrollmentAgreement;
+use App\Models\Setting;
 use App\Models\User;
-use App\Services\DocuSignService;
 use App\Services\PaymentService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class AgreementController extends Controller
 {
-    /**
-     * DocuSign redirects the student's browser here once they finish (or
-     * decline) the embedded signing ceremony. We identify which agreement
-     * this is via the random "token" query param we embedded in the return
-     * URL when the envelope was created (see DocuSignService::createEnvelopeForUser) —
-     * not Laravel's signed-URL middleware, because DocuSign appends its own
-     * "?event=..." parameter to our return URL, which would otherwise break
-     * signature validation.
-     */
-    public function returning(User $user, DocuSignService $docusign, PaymentService $payments)
+    /** Show the agreement text + signature pad. Reached via a signed URL so an applicant can sign before they have an account to log into. */
+    public function sign(User $user)
     {
-        $token = request('token');
+        abort_if(EnrollmentAgreement::hasSigned($user), 403, 'You have already signed your enrollment agreement.');
 
-        $agreement = EnrollmentAgreement::where('user_id', $user->id)
-            ->where('return_token', $token)
-            ->latest()->first();
+        return view('agreements.sign', [
+            'student' => $user,
+            'submitUrl' => URL::signedRoute('agreement.sign.submit', ['user' => $user->id]),
+        ]);
+    }
 
-        if (! $agreement) {
-            return redirect()->route('apply')->with('error', 'We could not find your signing session. Please start again.');
+    /** Record the drawn signature + audit trail, then continue straight on to the reservation-fee payment. */
+    public function submit(Request $request, User $user, PaymentService $payments)
+    {
+        abort_if(EnrollmentAgreement::hasSigned($user), 403, 'You have already signed your enrollment agreement.');
+
+        $request->validate([
+            'signature' => ['required', 'string', 'starts_with:data:image/png;base64,'],
+        ]);
+
+        $binary = base64_decode(substr($request->input('signature'), strlen('data:image/png;base64,')), true);
+        if ($binary === false || ! str_starts_with($binary, "\x89PNG\r\n\x1a\n")) {
+            return back()->withErrors(['signature' => 'Please draw your signature before submitting.']);
         }
 
-        // Belt-and-suspenders: poll DocuSign directly in case the Connect
-        // webhook (the primary path) hasn't landed yet by the time the
-        // student's browser gets redirected back to us.
-        try {
-            $agreement = $docusign->syncStatus($agreement);
-        } catch (PaymentGatewayException) {
-            // If DocuSign is briefly unreachable here, we simply fall through
-            // and let the webhook (once it arrives) mark this signed instead.
-        }
+        $agreementHtml = view('agreements.enrollment', ['student' => $user])->render();
 
-        if (! $agreement->isCompleted()) {
-            return redirect()->route('apply')->with('error',
-                'Your enrollment agreement was not completed (' . $agreement->status . '). ' .
-                'Please try signing again, or settle your reservation fee at the cashier window instead.'
-            );
-        }
+        $path = 'agreement-signatures/' . $user->id . '-' . Str::random(20) . '.png';
+        Storage::disk('public')->put($path, $binary);
 
-        // Signed! Now actually continue on to the reservation-fee payment —
-        // PaymentService::startReservationCheckout() will see hasSigned() is
-        // now true and proceed straight to the PayMongo checkout this time.
+        EnrollmentAgreement::create([
+            'user_id' => $user->id,
+            'signature_path' => $path,
+            'ip_address' => $request->ip(),
+            'user_agent' => (string) $request->userAgent(),
+            'agreement_hash' => hash('sha256', $agreementHtml),
+            'signed_at' => now(),
+        ]);
+
         try {
             $checkoutUrl = $payments->startReservationCheckout(
                 $user,
-                \Illuminate\Support\Facades\URL::signedRoute('apply.reservation.return', ['user' => $user->id]),
-                \Illuminate\Support\Facades\URL::signedRoute('apply.reservation.cancel', ['user' => $user->id])
+                URL::signedRoute('apply.reservation.return', ['user' => $user->id]),
+                URL::signedRoute('apply.reservation.cancel', ['user' => $user->id])
             );
         } catch (PaymentGatewayException $e) {
             return redirect()->route('apply')->with('success',
@@ -67,38 +71,36 @@ class AgreementController extends Controller
         return view('auth.redirecting-to-payment', [
             'checkoutUrl' => $checkoutUrl,
             'programName' => $user->major,
-            'reservationFee' => (int) \App\Models\Setting::get('reservation_fee', '500'),
+            'reservationFee' => (int) Setting::get('reservation_fee', '500'),
         ]);
     }
 
-    /** Stream the authenticated user's own signed enrollment agreement back from DocuSign. */
-    public function downloadMine(DocuSignService $docusign)
+    /** Stream the authenticated user's own signed enrollment agreement back as a PDF. */
+    public function downloadMine()
     {
-        return $this->download(\Illuminate\Support\Facades\Auth::user(), $docusign);
+        return $this->download(Auth::user());
     }
 
     /** Same, but for Registrar/Admission staff checking a given applicant's/student's agreement. */
-    public function downloadForUser(int $id, DocuSignService $docusign)
+    public function downloadForUser(int $id)
     {
-        return $this->download(User::findOrFail($id), $docusign);
+        return $this->download(User::findOrFail($id));
     }
 
-    private function download(User $user, DocuSignService $docusign)
+    private function download(User $user)
     {
-        $agreement = $user->agreements()->where('status', 'completed')->latest()->first();
+        $agreement = $user->agreements()->latest()->first();
 
         if (! $agreement) {
             return back()->with('error', 'No signed enrollment agreement was found for this account.');
         }
 
-        try {
-            $document = $docusign->downloadSignedDocument($agreement);
-        } catch (PaymentGatewayException $e) {
-            return back()->with('error', 'Could not retrieve the signed document: ' . $e->getMessage());
-        }
+        $pdf = Pdf::loadView('agreements.signed', [
+            'student' => $user,
+            'agreement' => $agreement,
+            'signaturePath' => Storage::disk('public')->path($agreement->signature_path),
+        ]);
 
-        return response($document, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="enrollment-agreement.pdf"');
+        return $pdf->stream('enrollment-agreement.pdf');
     }
 }

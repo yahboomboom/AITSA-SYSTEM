@@ -36,17 +36,20 @@ export default function ClearanceQueueTable({ rows, csrfToken, documentsPageUrl 
                             className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen dark:focus:border-emerald-500/50 transition-colors"
                         />
                     </div>
-                    <select
-                        value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
-                        className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
-                    >
-                        <option value="">Status</option>
-                        <option value="all">View all students</option>
-                        <option value="pending">Pending review</option>
-                        <option value="provisional">Provisional</option>
-                        <option value="cleared">Cleared</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="clearance-status-filter" className="text-xs font-semibold text-brandNavy/80 dark:text-slate-300 whitespace-nowrap">Status</label>
+                        <select
+                            id="clearance-status-filter"
+                            value={statusFilter}
+                            onChange={(event) => setStatusFilter(event.target.value)}
+                            className="w-full sm:w-auto bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded focus:outline-none focus:border-brandGreen transition-colors"
+                        >
+                            <option value="all">View all students</option>
+                            <option value="pending">Pending review</option>
+                            <option value="provisional">Provisional</option>
+                            <option value="cleared">Cleared</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

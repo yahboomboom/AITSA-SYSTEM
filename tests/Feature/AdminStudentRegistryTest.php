@@ -25,7 +25,7 @@ class AdminStudentRegistryTest extends TestCase
         User::factory()->create(['role' => 'chair', 'name' => 'Bob Chair']);
         User::factory()->create(['role' => 'admin', 'name' => 'Carol Admin']);
 
-        $response = $this->actingAs($this->admin)->get('/admin/students');
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
 
         $response->assertOk();
         $response->assertSee('Alice Student');
@@ -38,7 +38,7 @@ class AdminStudentRegistryTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Deleted Student']);
         $student->delete();
 
-        $response = $this->actingAs($this->admin)->get('/admin/students');
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
 
         $response->assertDontSee('Deleted Student');
     }
@@ -48,11 +48,11 @@ class AdminStudentRegistryTest extends TestCase
         User::factory()->create(['role' => 'student', 'name' => 'Zed Zephyr', 'login_id' => '2026-99001']);
         User::factory()->create(['role' => 'student', 'name' => 'Other Person', 'login_id' => '2026-99002']);
 
-        $byName = $this->actingAs($this->admin)->get('/admin/students?q=Zephyr');
+        $byName = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students?q=Zephyr');
         $byName->assertSee('Zed Zephyr');
         $byName->assertDontSee('Other Person');
 
-        $byId = $this->actingAs($this->admin)->get('/admin/students?q=99002');
+        $byId = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students?q=99002');
         $byId->assertSee('Other Person');
         $byId->assertDontSee('Zed Zephyr');
     }
@@ -62,11 +62,11 @@ class AdminStudentRegistryTest extends TestCase
         User::factory()->create(['role' => 'student', 'name' => 'BSOA First Year', 'major' => 'BSOA', 'year_level' => '1st Year']);
         User::factory()->create(['role' => 'student', 'name' => 'BSIT Second Year', 'major' => 'BSIT', 'year_level' => '2nd Year']);
 
-        $response = $this->actingAs($this->admin)->get('/admin/students?program=BSOA');
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students?program=BSOA');
         $response->assertSee('BSOA First Year');
         $response->assertDontSee('BSIT Second Year');
 
-        $response = $this->actingAs($this->admin)->get('/admin/students?year_level=2nd+Year');
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students?year_level=2nd+Year');
         $response->assertSee('BSIT Second Year');
         $response->assertDontSee('BSOA First Year');
     }
@@ -106,7 +106,7 @@ class AdminStudentRegistryTest extends TestCase
         $maliciousName = "Mallory');window.__xssFired=1;//";
         $student = User::factory()->create(['role' => 'student', 'name' => $maliciousName]);
 
-        $response = $this->actingAs($this->admin)->get('/admin/students');
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
 
         $response->assertOk();
 

@@ -161,7 +161,7 @@
                            placeholder=" " required minlength="8"
                            class="w-full px-4 pr-11 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
                     <label for="password">New Password</label>
-                    <button type="button" class="eye-btn" onclick="togglePassword('password','eyeIcon1')">
+                    <button type="button" class="eye-btn" id="eyeBtn1" onclick="togglePassword('password','eyeIcon1','eyeBtn1')" aria-label="Show password">
                         <i class="fa-regular fa-eye" id="eyeIcon1"></i>
                     </button>
                     <div class="fl-bar"></div>
@@ -175,7 +175,7 @@
                            placeholder=" " required minlength="8"
                            class="w-full px-4 pr-11 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
                     <label for="password_confirmation">Confirm Password</label>
-                    <button type="button" class="eye-btn" onclick="togglePassword('password_confirmation','eyeIcon2')">
+                    <button type="button" class="eye-btn" id="eyeBtn2" onclick="togglePassword('password_confirmation','eyeIcon2','eyeBtn2')" aria-label="Show password">
                         <i class="fa-regular fa-eye" id="eyeIcon2"></i>
                     </button>
                     <div class="fl-bar"></div>
@@ -198,11 +198,13 @@
     </div>
 
     <script>
-        function togglePassword(inputId, iconId) {
+        function togglePassword(inputId, iconId, btnId) {
             const input = document.getElementById(inputId);
             const icon  = document.getElementById(iconId);
+            const btn   = document.getElementById(btnId);
             input.type = input.type === 'password' ? 'text' : 'password';
             icon.className = input.type === 'password' ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+            btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
         }
     </script>
 </body>

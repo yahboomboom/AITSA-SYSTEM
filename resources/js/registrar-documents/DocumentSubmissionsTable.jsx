@@ -132,18 +132,25 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
                             className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded pl-9 pr-4 py-2 outline-none focus:border-brandGreen/40 transition-colors"
                         />
                     </div>
-                    <select
-                        value={statusFilter ?? ''}
-                        onChange={(event) => {
-                            setStatusFilter(event.target.value || null);
-                            setViewAll(false);
-                        }}
-                        className="w-full sm:w-auto bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
-                    >
-                        <option value="">Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="rejected">Reject</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="document-status-filter" className="text-xs font-semibold text-brandNavy/80 dark:text-slate-300 whitespace-nowrap">Status</label>
+                        <select
+                            id="document-status-filter"
+                            value={statusFilter ?? ''}
+                            onChange={(event) => {
+                                setStatusFilter(event.target.value || null);
+                                setViewAll(false);
+                            }}
+                            className="w-full sm:w-auto bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
+                        >
+                            {/* Only shown while viewing a deep-linked search with no status
+                                filter active (see initialSearch above) — disabled so it can't
+                                be clicked back into once a real option has been chosen. */}
+                            {statusFilter === null && <option value="" disabled hidden>Status</option>}
+                            <option value="pending">Pending</option>
+                            <option value="rejected">Reject</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div className="overflow-x-auto">

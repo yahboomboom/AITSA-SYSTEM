@@ -41,4 +41,17 @@ class NoBackButtonCacheTest extends TestCase
         // other unauthenticated request.
         $this->get('/dashboard')->assertRedirect('/');
     }
+
+    public function test_pages_reload_themselves_if_restored_from_the_back_forward_cache(): void
+    {
+        // Belt-and-suspenders for pages the browser cached before this fix
+        // existed, or a browser that ignores Cache-Control: no-store — force
+        // a real reload on pageshow when the page came from bfcache.
+        $student = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($student)->get('/dashboard');
+
+        $response->assertOk();
+        $response->assertSee("event.persisted", false);
+    }
 }

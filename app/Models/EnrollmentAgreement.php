@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EnrollmentAgreement extends Model
 {
-    protected $fillable = ['user_id', 'envelope_id', 'status', 'return_token', 'signed_at'];
+    protected $fillable = ['user_id', 'signature_path', 'ip_address', 'user_agent', 'agreement_hash', 'signed_at'];
 
     protected $casts = ['signed_at' => 'datetime'];
 
@@ -16,8 +16,9 @@ class EnrollmentAgreement extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function isCompleted(): bool
+    /** A row only ever exists once the student has actually signed. */
+    public static function hasSigned(User $user): bool
     {
-        return $this->status === 'completed';
+        return static::where('user_id', $user->id)->exists();
     }
 }

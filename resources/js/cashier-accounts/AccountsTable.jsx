@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { peso } from '../utils/format';
 
 const DEFAULT_VISIBLE = 10;
@@ -84,8 +84,8 @@ export default function AccountsTable({ rows, historyUrl }) {
                             const hasPayments = (a.payments ?? []).length > 0;
 
                             return (
-                                <>
-                                    <tr key={a.id}>
+                                <Fragment key={a.id}>
+                                    <tr>
                                         <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-brandNavy/40 dark:text-slate-500">{a.studentNo}</td>
                                         <td className="border-brandNavy/8 dark:border-slate-800">
                                             <div className="font-medium text-brandNavy dark:text-white">{a.studentName}</div>
@@ -123,7 +123,7 @@ export default function AccountsTable({ rows, historyUrl }) {
                                         </td>
                                     </tr>
                                     {isOpen && hasPayments && (
-                                        <tr key={`${a.id}-history`}>
+                                        <tr>
                                             <td colSpan={5} className="border-brandNavy/8 dark:border-slate-800 bg-lightBg dark:bg-slate-900/40 p-0">
                                                 <div className="p-4">
                                                     <div className="text-xs font-semibold text-brandNavy/50 dark:text-slate-400 mb-2 uppercase tracking-wide">
@@ -145,7 +145,7 @@ export default function AccountsTable({ rows, historyUrl }) {
                                             </td>
                                         </tr>
                                     )}
-                                </>
+                                </Fragment>
                             );
                         })}
                     </tbody>

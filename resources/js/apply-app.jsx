@@ -105,7 +105,7 @@ function ApplicationReviewModal({ reservationFee }) {
                         <h3 className="text-base font-black text-brandNavy">Review Your Application</h3>
                         <p className="text-xs text-brandNavy/50 mt-0.5">Please check that everything below is correct before submitting.</p>
                     </div>
-                    <button type="button" onClick={closeModal} disabled={submitting}
+                    <button type="button" onClick={closeModal} disabled={submitting} aria-label="Close"
                         className="w-8 h-8 rounded-lg text-brandNavy/40 hover:text-brandNavy hover:bg-lightBg flex items-center justify-center transition-colors disabled:opacity-40">
                         <i className="fa-solid fa-xmark" />
                     </button>

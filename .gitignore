@@ -17,6 +17,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+*.pem
 /storage/pail
 /vendor
 Homestead.json
@@ -25,3 +26,4 @@ Thumbs.db
 .worktrees/
 .claude/
 docs/superpowers/
+.superpowers/

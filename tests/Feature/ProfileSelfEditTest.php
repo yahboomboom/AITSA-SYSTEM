@@ -21,6 +21,27 @@ class ProfileSelfEditTest extends TestCase
         $response->assertSee('Cabuyao, Laguna');
     }
 
+    public function test_profile_menu_dropdown_includes_a_reset_password_option(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/profile');
+
+        $response->assertOk();
+        $response->assertSee('Reset Password');
+        $response->assertSee(route('profile.password.reset-link'), false);
+    }
+
+    public function test_profile_page_provides_the_password_update_url_to_the_island(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/profile');
+
+        $response->assertOk();
+        $response->assertSee(e(json_encode(route('profile.password.update'))), false);
+    }
+
     public function test_user_can_update_contact_number_and_address(): void
     {
         $user = User::factory()->create(['contact_number' => '09170000000', 'address' => 'Old Address']);

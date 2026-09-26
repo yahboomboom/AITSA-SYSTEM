@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Clearance;
+use App\Models\EnrollmentAgreement;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +31,7 @@ class RegistrarReportsIslandTest extends TestCase
             'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
         ]);
 
-        $response = $this->actingAs($registrar)->get('/registrar/reports');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/reports');
 
         $response->assertOk();
         $response->assertSee('id="registrar-reports-root"', false);
@@ -53,11 +54,48 @@ class RegistrarReportsIslandTest extends TestCase
         Setting::clearCache();
         $current = Clearance::initializeFor($student->id, '2026-2027', 2);
 
-        $response = $this->actingAs($registrar)->get('/registrar/reports');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/reports');
 
         $response->assertOk();
-        $occurrences = substr_count($response->getContent(), '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $occurrences = substr_count($response->getContent(), '&quot;studentName&quot;:&quot;' . e($student->name) . '&quot;');
         $this->assertSame(1, $occurrences);
+    }
+
+    public function test_reports_page_includes_admissions_pipeline_and_program_breakdown(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        User::factory()->create(['role' => 'applicant']);
+        User::factory()->create(['role' => 'verified_applicant']);
+        User::factory()->create(['role' => 'student', 'major' => 'BSOA']);
+        User::factory()->create(['role' => 'student', 'major' => 'BSOA']);
+
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/reports');
+
+        $response->assertOk();
+        $response->assertSee('&quot;pendingApplicants&quot;:1', false);
+        $response->assertSee('&quot;verifiedApplicants&quot;:1', false);
+        $response->assertSee('&quot;totalStudents&quot;:2', false);
+        $response->assertSee('&quot;major&quot;:&quot;BSOA&quot;,&quot;count&quot;:2', false);
+    }
+
+    public function test_reports_page_shows_enrollment_agreement_signing_counts(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+
+        $signed = User::factory()->create(['role' => 'applicant']);
+        EnrollmentAgreement::create([
+            'user_id' => $signed->id,
+            'signature_path' => 'agreement-signatures/fake.png',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'PHPUnit',
+            'agreement_hash' => hash('sha256', 'fake'),
+            'signed_at' => now(),
+        ]);
+
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/reports');
+
+        $response->assertOk();
+        $response->assertSee('&quot;agreements&quot;:{&quot;signed&quot;:1}', false);
     }
 
     public function test_guest_is_redirected(): void

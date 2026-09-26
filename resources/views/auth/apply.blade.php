@@ -45,23 +45,31 @@
 </section>
 
 
-{{-- ═══ SUCCESS BANNER ═══ --}}
-@if(session('success') && !session('receipt'))
-<div class="bg-brandGreen/10 border-b border-brandGreen/20 px-6 lg:px-16 py-5 flex items-start gap-4">
-    <i class="fa-solid fa-circle-check text-brandGreen text-2xl mt-0.5"></i>
-    <div>
-        <p class="font-bold text-brandGreen">Application Successfully Submitted!</p>
-        <p class="text-sm text-brandGreen/80 mt-0.5">{{ session('success') }}</p>
+{{-- ═══ SNACKBAR (success / error) — the receipt modal further down handles the detailed reservation-paid case ═══ --}}
+@if((session('success') && !session('receipt')) || session('error'))
+    @php
+        $snackbarType = session('error') ? 'error' : 'success';
+        $snackbarMessage = session('error') ?: session('success');
+    @endphp
+    <div id="snackbar" data-type="{{ $snackbarType }}"
+         class="fixed bottom-6 right-6 z-[200] max-w-sm w-[calc(100%-3rem)] sm:w-auto rounded-xl shadow-2xl px-5 py-4 flex items-start gap-3 text-sm font-semibold text-white translate-y-24 opacity-0 transition-all duration-300 {{ $snackbarType === 'error' ? 'bg-red-600' : 'bg-brandGreen' }}">
+        <i class="fa-solid {{ $snackbarType === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check' }} mt-0.5"></i>
+        <span class="flex-1">{{ $snackbarMessage }}</span>
+        <button type="button" onclick="dismissSnackbar()" aria-label="Dismiss notification" class="text-white/70 hover:text-white transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
     </div>
-</div>
-@endif
-
-{{-- NEW: SESSION ERROR BANNER (e.g. reservation payment failed/cancelled) --}}
-@if(session('error'))
-<div class="bg-red-500/10 border-b border-red-500/20 px-6 lg:px-16 py-4 flex items-start gap-4">
-    <i class="fa-solid fa-triangle-exclamation text-red-600 mt-0.5"></i>
-    <p class="text-sm text-red-600 font-semibold">{{ session('error') }}</p>
-</div>
+    <script>
+        (function () {
+            const el = document.getElementById('snackbar');
+            window.dismissSnackbar = function () {
+                el.classList.add('translate-y-24', 'opacity-0');
+                setTimeout(() => el.remove(), 300);
+            };
+            requestAnimationFrame(() => el.classList.remove('translate-y-24', 'opacity-0'));
+            setTimeout(window.dismissSnackbar, 5000);
+        })();
+    </script>
 @endif
 
 {{-- ═══ ERROR BANNER ═══ --}}
@@ -252,7 +260,9 @@
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Date of Birth <span class="text-red-500">*</span></label>
                             <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required
+                                max="{{ now()->format('Y-m-d') }}"
                                 class="w-full border border-brandNavy/15 rounded-xl px-4 py-3 text-sm text-brandNavy focus:outline-none focus:border-brandGreen transition-colors">
+                            <p class="text-[10px] text-brandNavy/40 mt-1">Format: MM/DD/YYYY</p>
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-brandNavy/60 uppercase tracking-wider mb-1.5">Sex <span class="text-red-500">*</span></label>

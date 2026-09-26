@@ -15,7 +15,7 @@ class AdminStudentsIslandTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         User::factory()->create(['role' => 'student', 'name' => 'Island Test Student', 'login_id' => '2026-55555']);
 
-        $response = $this->actingAs($admin)->get('/admin/students');
+        $response = $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
 
         $response->assertOk();
         $response->assertSee('id="admin-students-root"', false);
@@ -27,7 +27,7 @@ class AdminStudentsIslandTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($admin)->get('/admin/students');
+        $response = $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
 
         $response->assertOk();
         $response->assertSee('&quot;students&quot;:[]', false);

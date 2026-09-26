@@ -13,6 +13,7 @@ function CurriculumApp() {
     const [subjects, setSubjects] = useState([]);
     const [draft, setDraft] = useState(null);
     const [yearFilter, setYearFilter] = useState(1);
+    const [yearPicked, setYearPicked] = useState(false);
     const [semFilter, setSemFilter] = useState(1);
     const [windowOpen, setWindowOpen] = useState(false);
 
@@ -65,15 +66,25 @@ function CurriculumApp() {
 
             {active && (
                 <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
-                    <h2 className="font-heading text-sm font-semibold text-brandNavy dark:text-white mb-1">{active.name}</h2>
-                    <div className="flex flex-wrap gap-2 my-3 text-sm">
-                        {[...Array(active.years ?? 4)].map((_, i) => (
-                            <button key={i} onClick={() => setYearFilter(i + 1)}
-                                className={`px-3 py-1.5 rounded transition-colors ${yearFilter === i + 1 ? 'bg-brandGreen text-white' : 'bg-lightBg dark:bg-slate-800 text-brandNavy dark:text-slate-300'}`}>
-                                Year {i + 1}
-                            </button>
-                        ))}
-                        {[1, 2].map((sem) => (
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h2 className="font-heading text-sm font-semibold text-brandNavy dark:text-white">{active.name}</h2>
+                        <button onClick={() => setDraft({ ...EMPTY })}
+                            className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white text-xs transition-colors shadow-sm">
+                            <i className="fa-solid fa-plus" /> Add Subject to Year {yearFilter}, Sem {semFilter}
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 my-3 text-sm items-center">
+                        <select
+                            value={yearFilter}
+                            onFocus={() => setYearPicked(true)}
+                            onChange={(e) => setYearFilter(Number(e.target.value))}
+                            className="px-3 py-1.5 rounded border border-brandNavy/10 dark:border-slate-700 bg-white dark:bg-slate-800 text-brandNavy dark:text-slate-200 font-medium"
+                        >
+                            {[...Array(active.years ?? 4)].map((_, i) => (
+                                <option key={i} value={i + 1}>Year {i + 1}</option>
+                            ))}
+                        </select>
+                        {yearPicked && [1, 2].map((sem) => (
                             <button key={sem} onClick={() => setSemFilter(sem)}
                                 className={`px-3 py-1.5 rounded transition-colors ${semFilter === sem ? 'bg-brandGold text-white' : 'bg-lightBg dark:bg-slate-800 text-brandNavy dark:text-slate-300'}`}>
                                 Sem {sem}
@@ -85,11 +96,6 @@ function CurriculumApp() {
                         <SubjectRow key={subject.id} subject={subject} allSubjects={subjects}
                             onChanged={loadSubjects} onEdit={editSubject} />
                     ))}
-
-                    <button onClick={() => setDraft({ ...EMPTY })}
-                        className="mt-2 text-sm text-brandGreen font-medium hover:underline">
-                        + Add subject to Year {yearFilter}, Sem {semFilter}
-                    </button>
                 </div>
             )}
 

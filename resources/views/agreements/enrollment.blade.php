@@ -14,10 +14,7 @@
         <li>Understand that the reservation fee secures a slot but does not guarantee admission approval.</li>
     </ul>
 
-    {{-- Replace this placeholder document with an actual DocuSign Template
-         (see config('services.docusign.template_id')) once the Registrar's
-         Office finalizes the official agreement wording. --}}
-
-    <p style="margin-top:60px;">Signature: _______________________________</p>
+    {{-- Replace this placeholder wording once the Registrar's Office
+         finalizes the official agreement text. --}}
 </body>
 </html>

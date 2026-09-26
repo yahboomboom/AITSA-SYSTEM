@@ -42,15 +42,15 @@ use Illuminate\Validation\Rule;
 */
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', [AuthController::class, 'showLogin']);
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])->name('login.submit')->middleware('throttle:5,1,login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Password reset — login_id-or-email identifier (same as the login form),
 // resolved internally to the account's email for Laravel's password broker.
 Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
-Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:5,1,forgot-password');
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPasswordForm'])->name('password.reset');
-Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update')->middleware('throttle:5,1,reset-password');
 
 // Open Student Application Sequence Endpoints
 Route::get('/apply', [AuthController::class, 'showApplicationForm'])->name('apply');
@@ -118,13 +118,13 @@ Route::middleware('signed')->group(function () {
         return redirect()->route('apply')->with('error', 'Reservation payment cancelled. Your application was still submitted — you can settle the reservation fee at the cashier window instead.');
     })->name('apply.reservation.cancel');
 
-    // DocuSign redirects the applicant's browser back here after the embedded
-    // signing ceremony. Deliberately NOT inside the 'signed' middleware group —
-    // DocuSign appends its own "?event=..." query param to whatever return URL
-    // we give it, which would otherwise break Laravel's signed-URL validation.
-    // AgreementController verifies the request itself via the "token" param.
-    Route::get('/agreement/{user}/return', [\App\Http\Controllers\AgreementController::class, 'returning'])
-    ->name('agreement.return');
+    // Native enrollment-agreement signing ceremony (canvas signature + audit
+    // trail) — reached before an applicant has an account to log into, so
+    // it lives behind Laravel's own signed-URL middleware instead.
+    Route::get('/agreement/{user}/sign', [\App\Http\Controllers\AgreementController::class, 'sign'])
+        ->name('agreement.sign');
+    Route::post('/agreement/{user}/sign', [\App\Http\Controllers\AgreementController::class, 'submit'])
+        ->name('agreement.sign.submit');
 });
 
 /*
@@ -138,8 +138,18 @@ Route::middleware('auth')->group(function () {
 
      Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
      Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+     Route::post('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update')->middleware('throttle:5,1,profile-password');
+     Route::post('/profile/password/reset-link', [\App\Http\Controllers\ProfileController::class, 'sendPasswordResetLink'])->name('profile.password.reset-link')->middleware('throttle:5,1,profile-password-reset-link');
 
      Route::get('/my-agreement', [\App\Http\Controllers\AgreementController::class, 'downloadMine'])->name('agreement.mine');
+
+     // Step-up re-authentication: a small set of financial/personal-record
+     // pages (see the password.confirm middleware applied further down)
+     // redirect here first if the user hasn't confirmed their password
+     // recently. Deliberately NOT gated by password.confirm itself, or
+     // confirming would redirect back to a page asking to confirm again.
+     Route::get('/confirm-password', [\App\Http\Controllers\ConfirmPasswordController::class, 'show'])->name('password.confirm');
+     Route::post('/confirm-password', [\App\Http\Controllers\ConfirmPasswordController::class, 'store'])->name('password.confirm.store')->middleware('throttle:5,1,confirm-password');
     // 1. Student Dashboard Module
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -213,7 +223,7 @@ Route::middleware('auth')->group(function () {
         // upload UI and submission history now live on the /documents page.
         $submission = DocumentSubmission::where('user_id', $user->id)->latest()->first();
         $breakdown = $fees->breakdownFor($user);
-        $agreement = $user->agreements()->where('status', 'completed')->latest()->first();
+        $agreement = $user->agreements()->latest()->first();
         return view('clearance', compact('clearance', 'submission', 'breakdown', 'agreement'));
     })->name('clearance');
 
@@ -479,7 +489,7 @@ Route::middleware('auth')->group(function () {
         ];
 
         return view('registrar.documents', compact('context'));
-    })->name('registrar.documents');
+    })->name('registrar.documents')->middleware('password.confirm:,900');
 
     Route::get('/registrar/documents/search', function (Request $request) {
         $q = trim((string) $request->query('q', ''));
@@ -526,7 +536,7 @@ Route::middleware('auth')->group(function () {
                 'reminderUrl' => route('registrar.documents.remind', $doc),
             ])->values(),
         ]);
-    })->name('registrar.documents.search');
+    })->name('registrar.documents.search')->middleware('password.confirm:,900');
 
     Route::get('/registrar/applicants/{id}/agreement', [\App\Http\Controllers\AgreementController::class, 'downloadForUser'])
         ->name('registrar.applicant-agreement');
@@ -578,10 +588,6 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('registrar.slots')->with('success', 'Slot limit for ' . $admissionSlotLimit->program_name . ' updated.');
     })->name('registrar.slots.update');
-
-    Route::get('/admission/dashboard', function () {
-        return redirect()->route('registrar.dashboard');
-    })->name('admission.dashboard');
 
     // Action Handlers for Data Handshakes
     Route::post('/admission/approve/{id}', function ($id) {
@@ -742,11 +748,11 @@ Route::middleware('auth')->group(function () {
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
-        $pendingEnrollments = Enrollment::with(['user', 'sections.subject'])
+        $pendingEnrollments = Enrollment::with(['user', 'sections.subject', 'sections.roomEntity'])
             ->where('status', 'pending')
             ->latest()
             ->get();
-        $pendingChanges = MatriculationChange::with(['user', 'items.section.subject', 'items.replacedSection.subject'])
+        $pendingChanges = MatriculationChange::with(['user', 'items.section.subject', 'items.section.roomEntity', 'items.replacedSection.subject'])
             ->where('status', 'pending')
             ->latest()
             ->get();
@@ -1164,8 +1170,8 @@ Route::middleware('auth')->group(function () {
 
         return redirect()->route('cashier.dashboard')->with('success', 'Down payment requirement waived.');
     })->name('cashier.waive-down-payment');
-    Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions');
-    Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts');
+    Route::get('/cashier/transactions', [AuthController::class, 'showCashierTransactions'])->name('cashier.transactions')->middleware('password.confirm:,900');
+    Route::get('/cashier/accounts', [AuthController::class, 'showCashierAccounts'])->name('cashier.accounts')->middleware('password.confirm:,900');
 
         // Billing configuration: fee rates, discount types, student assignment
     Route::get('/cashier/billing', function () {
@@ -1180,7 +1186,7 @@ Route::middleware('auth')->group(function () {
             'discountTypes' => DiscountType::withCount('students')->orderBy('name')->get(),
             'students' => User::where('role', 'student')->with('discountType')->orderBy('name')->get(),
         ]);
-    })->name('cashier.billing');
+    })->name('cashier.billing')->middleware('password.confirm:,900');
 
     Route::post('/cashier/billing/fees', function (Request $request) {
         $request->validate([
@@ -1399,7 +1405,7 @@ Route::middleware('auth')->group(function () {
         $programs = Program::orderBy('level')->orderBy('code')->get();
 
         return view('admin.students.index', compact('students', 'programs'));
-    })->name('admin.students.index');
+    })->name('admin.students.index')->middleware('password.confirm:,900');
 
     Route::delete('/admin/students/{user}', function (User $user) {
         abort_unless($user->role === 'student', 404);
@@ -1416,29 +1422,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/audit', function () {
         $logs = AuditLog::orderByDesc('created_at')->paginate(50);
         return view('admin.audit', compact('logs'));
-    })->name('admin.audit');
-
-    Route::get('/admin/reports', function () {
-        $clearances         = Clearance::has('user')->with('user')
-            ->where('school_year', Setting::get('school_year', '2026-2027'))
-            ->where('semester', (int) Setting::get('semester', '1'))
-            ->get();
-        $pendingApplicants  = User::where('role', 'applicant')->count();
-        $verifiedApplicants = User::where('role', 'verified_applicant')->count();
-        $totalStudents      = User::where('role', 'student')->count();
-        $programBreakdown   = User::where('role', 'student')
-            ->whereNotNull('major')->where('major', '!=', '')
-            ->selectRaw('major, count(*) as count')
-            ->groupBy('major')->orderByDesc('count')->get();
-        $agreementCounts    = EnrollmentAgreement::selectRaw('status, count(*) as count')
-            ->groupBy('status')->pluck('count', 'status');
-        $agreements = [
-            'signed' => (int) ($agreementCounts['completed'] ?? 0),
-            'awaiting' => (int) $agreementCounts->except(['completed', 'declined', 'voided'])->sum(),
-            'declinedOrVoided' => (int) $agreementCounts->only(['declined', 'voided'])->sum(),
-        ];
-        return view('admin.reports', compact('clearances', 'pendingApplicants', 'verifiedApplicants', 'totalStudents', 'programBreakdown', 'agreements'));
-    })->name('admin.reports');
+    })->name('admin.audit')->middleware('password.confirm:,900');
 
     Route::get('/admin/departments', function () {
         return view('admin.departments', [
@@ -1541,7 +1525,7 @@ Route::middleware('auth')->group(function () {
         $context = ['rows' => [], 'searchUrl' => route('registrar.students.search')];
 
         return view('registrar.students', compact('context'));
-    })->name('registrar.students');
+    })->name('registrar.students')->middleware('password.confirm:,900');
 
     Route::get('/registrar/students/search', function (Request $request) {
         $q = trim((string) $request->query('q', ''));
@@ -1629,7 +1613,7 @@ Route::middleware('auth')->group(function () {
         }
 
         return response()->json(['rows' => $rows->take(100)->values()]);
-    })->name('registrar.students.search');
+    })->name('registrar.students.search')->middleware('password.confirm:,900');
 
     Route::get('/registrar/reports', function () {
         $schoolYear = Setting::get('school_year', '2026-2027');
@@ -1638,6 +1622,12 @@ Route::middleware('auth')->group(function () {
             ->where('school_year', $schoolYear)
             ->where('semester', $semester)
             ->get();
+
+        $totalStudents = User::where('role', 'student')->count();
+        $programBreakdown = User::where('role', 'student')
+            ->whereNotNull('major')->where('major', '!=', '')
+            ->selectRaw('major, count(*) as count')
+            ->groupBy('major')->orderByDesc('count')->get();
 
         $context = [
             'summary' => [
@@ -1648,6 +1638,17 @@ Route::middleware('auth')->group(function () {
                     $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved'
                 )->count(),
             ],
+            'pipeline' => [
+                'pendingApplicants' => User::where('role', 'applicant')->count(),
+                'verifiedApplicants' => User::where('role', 'verified_applicant')->count(),
+                'totalStudents' => $totalStudents,
+            ],
+            'agreements' => ['signed' => EnrollmentAgreement::count()],
+            'programBreakdown' => $programBreakdown->map(fn ($prog) => [
+                'major' => $prog->major,
+                'count' => $prog->count,
+                'pct' => $totalStudents > 0 ? round(($prog->count / $totalStudents) * 100) : 0,
+            ])->values(),
             'schoolYear' => $schoolYear,
             'semester' => $semester,
             'rows' => $clearances->values()->map(fn ($c, $i) => [
@@ -1666,7 +1667,7 @@ Route::middleware('auth')->group(function () {
         ];
 
         return view('registrar.reports', compact('context', 'schoolYear', 'semester'));
-    })->name('registrar.reports');
+    })->name('registrar.reports')->middleware('password.confirm:,900');
 
     /**
      * Mark or unmark whether an applicant has actually PAID the ₱500

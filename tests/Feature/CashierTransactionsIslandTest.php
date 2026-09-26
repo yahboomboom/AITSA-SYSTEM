@@ -22,7 +22,7 @@ class CashierTransactionsIslandTest extends TestCase
             'status' => 'Settled',
         ]);
 
-        $response = $this->actingAs($cashier)->get('/cashier/transactions');
+        $response = $this->actingAs($cashier)->withSession(['auth.password_confirmed_at' => time()])->get('/cashier/transactions');
 
         $response->assertOk();
         $response->assertSee('id="cashier-transactions-root"', false);
@@ -34,7 +34,7 @@ class CashierTransactionsIslandTest extends TestCase
     {
         $cashier = User::factory()->create(['role' => 'cashier']);
 
-        $response = $this->actingAs($cashier)->get('/cashier/transactions');
+        $response = $this->actingAs($cashier)->withSession(['auth.password_confirmed_at' => time()])->get('/cashier/transactions');
 
         $response->assertOk();
         $response->assertSee('&quot;rows&quot;:[]', false);

@@ -261,7 +261,7 @@
                                    placeholder=" " required
                                    class="w-full px-4 pr-11 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
                             <label for="password">Password</label>
-                            <button type="button" class="eye-btn" onclick="togglePassword()">
+                            <button type="button" class="eye-btn" onclick="togglePassword()" id="eyeBtn" aria-label="Show password">
                                 <i class="fa-regular fa-eye" id="eyeIcon"></i>
                             </button>
                             <div class="fl-bar"></div>
@@ -331,7 +331,7 @@
                 </div>
                 <p class="text-[10.5px] text-slate-500 dark:text-slate-400 ml-9">Follow these steps to begin enrollment</p>
             </div>
-            <button onclick="toggleAdmissionModal()"
+            <button onclick="toggleAdmissionModal()" aria-label="Close"
                 class="w-8 h-8 rounded bg-slate-100 dark:bg-slate-800 text-slate-400
                        hover:text-brandNavy dark:hover:text-white flex items-center justify-center transition-colors -mt-0.5">
                 <i class="fa-solid fa-xmark text-xs"></i>
@@ -403,8 +403,10 @@
     function togglePassword() {
         const input = document.getElementById('password');
         const icon  = document.getElementById('eyeIcon');
+        const btn   = document.getElementById('eyeBtn');
         input.type = input.type === 'password' ? 'text' : 'password';
         icon.className = input.type === 'password' ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+        btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
     }
 </script>
 </body>

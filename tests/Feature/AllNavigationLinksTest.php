@@ -50,19 +50,18 @@ class AllNavigationLinksTest extends TestCase
         $this->assertAllOk($admin, [
             '/admin/dashboard',
             '/admin/departments',
-            '/admin/reports',
             '/admin/students',
             '/admin/students/create',
             '/admin/audit',
         ]);
     }
 
-    public function test_every_admission_nav_link_loads(): void
+    public function test_admission_role_can_access_the_shared_registrar_dashboard(): void
     {
         $admission = User::factory()->create(['role' => 'admission']);
 
         $this->assertAllOk($admission, [
-            '/admission/dashboard',
+            '/registrar/dashboard',
         ]);
     }
 

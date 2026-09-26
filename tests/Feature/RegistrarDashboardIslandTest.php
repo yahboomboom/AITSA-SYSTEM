@@ -59,7 +59,7 @@ class RegistrarDashboardIslandTest extends TestCase
         $response->assertDontSee('&quot;verifyUrl&quot;', false);
         $response->assertSee('&quot;applicantType&quot;:&quot;NEW&quot;', false);
         $response->assertSee('&quot;isApproved&quot;:false', false);
-        $response->assertSee('&quot;studentName&quot;:&quot;' . $student->name . '&quot;', false);
+        $response->assertSee('&quot;studentName&quot;:&quot;' . e($student->name) . '&quot;', false);
     }
 
     public function test_dashboard_context_includes_a_direct_activation_url_per_applicant(): void
@@ -95,7 +95,7 @@ class RegistrarDashboardIslandTest extends TestCase
         // (the sidebar/header may legitimately repeat the logged-in
         // registrar's own name).
         $json = $response->getContent();
-        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . e($student->name) . '&quot;');
         $this->assertSame(1, $occurrences);
     }
 

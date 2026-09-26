@@ -34,7 +34,6 @@ export default function ReportTable({ rows, schoolYear }) {
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q && status === 'all') return [];
 
         return rows.filter((r) => {
             const matchesStudent = !q || `${r.studentName} ${r.studentNo} ${r.studentEmail}`.toLowerCase().includes(q);

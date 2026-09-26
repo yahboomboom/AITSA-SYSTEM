@@ -6,6 +6,9 @@ use App\Models\Clearance;
 use App\Models\Enrollment;
 use App\Models\GradeSubmission;
 use App\Models\GradeSubmissionItem;
+use App\Models\MatriculationChange;
+use App\Models\MatriculationChangeItem;
+use App\Models\Room;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
@@ -103,7 +106,7 @@ class ApproverDashboardIslandTest extends TestCase
         // The student's name should appear exactly once in the clearances
         // list, not twice (once per term).
         $json = $response->getContent();
-        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . e($student->name) . '&quot;');
         $this->assertSame(1, $occurrences);
     }
 
@@ -173,6 +176,44 @@ class ApproverDashboardIslandTest extends TestCase
         $response->assertOk();
         $response->assertSee('Prof. Replacement');
         $response->assertDontSee('Prof. Original');
+    }
+
+    public function test_dashboard_does_not_crash_on_a_pending_enrollment_with_a_room_assigned(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $room = Room::create(['name' => 'CL-204', 'type' => 'physical']);
+        $section = Section::factory()->create(['room_id' => $room->id]);
+        $enrollment = Enrollment::factory()->create(['status' => 'pending']);
+        $enrollment->sections()->attach($section->id);
+
+        // Re-fetch through the exact same query shape the route uses, so the
+        // Section model is freshly hydrated from the database rather than
+        // still carrying the in-memory "just created" state from the factory —
+        // that's what exposed the roomEntity lazy-loading violation in production.
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;room&quot;:&quot;CL-204&quot;', false);
+    }
+
+    public function test_dashboard_does_not_crash_on_a_pending_matriculation_change_with_a_room_assigned(): void
+    {
+        $chair = User::factory()->create(['role' => 'chair']);
+        $student = User::factory()->create(['role' => 'student']);
+        $enrollment = Enrollment::factory()->create(['user_id' => $student->id]);
+        $room = Room::create(['name' => 'CL-305', 'type' => 'physical']);
+        $section = Section::factory()->create(['room_id' => $room->id]);
+        $change = MatriculationChange::create(['enrollment_id' => $enrollment->id, 'user_id' => $student->id, 'status' => 'pending']);
+        MatriculationChangeItem::create([
+            'matriculation_change_id' => $change->id,
+            'action' => 'add',
+            'section_id' => $section->id,
+        ]);
+
+        $response = $this->actingAs($chair)->get('/approver/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('&quot;room&quot;:&quot;CL-305&quot;', false);
     }
 
     public function test_dashboard_flags_a_student_enrolled_after_the_submission_was_graded(): void

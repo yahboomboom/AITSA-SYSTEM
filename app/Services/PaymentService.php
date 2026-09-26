@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Exceptions\PaymentGatewayException;
 use App\Models\AuditLog;
 use App\Models\Clearance;
+use App\Models\EnrollmentAgreement;
 use App\Models\TransactionLedger;
 use App\Models\User;
 use App\Notifications\ClearanceStatusUpdatedNotification;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PaymentService
@@ -17,7 +19,6 @@ class PaymentService
         private PayMongoService $gateway,
         private FeeAssessmentService $fees,
         private AdmissionService $admissions,
-        private DocuSignService $docusign,
     ) {
     }
 
@@ -108,18 +109,13 @@ public function startReservationCheckout(User $user, ?string $successUrl = null,
         throw new PaymentGatewayException('You have already reserved your slot.');
     }
 
-    // NEW — DocuSign gate: if DocuSign is enabled (config/services.php,
-    // DOCUSIGN_ENABLED in .env) and this applicant hasn't e-signed their
-    // enrollment agreement yet, don't go to PayMongo yet — send them to
-    // DocuSign's signing ceremony first. Once DocuSign redirects them back
-    // (AgreementController::returning), this same method runs again, this
-    // time with hasSigned() === true, and falls through to PayMongo below.
-    // With DOCUSIGN_ENABLED left off, this block is skipped entirely and
-    // the flow behaves exactly as it did before — no DocuSign account needed.
-    if (config('services.docusign.enabled') && ! $this->docusign->hasSigned($user)) {
-        $agreementReturnUrl = route('agreement.return', ['user' => $user->id]);
-
-        return $this->docusign->createEnvelopeForUser($user, $agreementReturnUrl)['signingUrl'];
+    // Enrollment-agreement gate: don't go to PayMongo until the applicant
+    // has signed their enrollment agreement natively in-app (canvas
+    // signature + audit trail). Once AgreementController::submit() records
+    // the signature, this same method runs again, this time with
+    // hasSigned() === true, and falls through to PayMongo below.
+    if (! EnrollmentAgreement::hasSigned($user)) {
+        return URL::signedRoute('agreement.sign', ['user' => $user->id]);
     }
 
     // Create the actual PayMongo checkout session (amount is in centavos).

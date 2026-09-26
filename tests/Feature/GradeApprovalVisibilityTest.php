@@ -39,7 +39,7 @@ class GradeApprovalVisibilityTest extends TestCase
         $this->assertDatabaseMissing('student_grades', ['user_id' => $student->id]);
         $studentGradesPage = $this->actingAs($student)->get('/grades');
         $studentGradesPage->assertDontSee('CC101');
-        $registrarSearch = $this->actingAs($registrar)->get('/registrar/students/search?status=all');
+        $registrarSearch = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/students/search?status=all');
         $registrarSearch->assertJsonMissing(['isIrregular' => true]);
 
         // Chair approves -> pending_registrar: still invisible.
@@ -55,7 +55,7 @@ class GradeApprovalVisibilityTest extends TestCase
         $studentGradesPageAfter = $this->actingAs($student)->get('/grades');
         $studentGradesPageAfter->assertSee('CC101');
 
-        $registrarSearchAfter = $this->actingAs($registrar)->get('/registrar/students/search?status=all');
+        $registrarSearchAfter = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/students/search?status=all');
         $rows = $registrarSearchAfter->json('rows');
         $studentRow = collect($rows)->firstWhere('id', $student->id);
         $this->assertNotNull($studentRow);

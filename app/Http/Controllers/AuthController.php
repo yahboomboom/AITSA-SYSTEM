@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use App\Exceptions\PaymentGatewayException;
 use App\Models\User;
-use App\Models\Student;
 use App\Models\ShsStrand;
 use App\Models\Clearance;
 use App\Models\Enrollment;
@@ -118,15 +117,8 @@ class AuthController extends Controller
             ])->onlyInput('login_id');
         }
 
-        // Give precise feedback: account found but wrong password vs. account not found at all
-        $userExists = User::where('login_id', $login)->orWhere('email', $login)->exists();
-
-        if ($userExists) {
-            return back()->withErrors([
-                'login_id' => 'The password you entered is incorrect. Please verify your credentials and try again.',
-            ])->onlyInput('login_id');
-        }
-
+        // Deliberately identical whether the account exists or the password was
+        // wrong, so this form can't be used to enumerate valid login IDs/emails.
         return back()->withErrors([
             'login_id' => 'The provided credentials do not match our institutional database profiles.',
         ])->onlyInput('login_id');
@@ -509,7 +501,6 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        $student = Student::where('user_id', $user->id)->first();
 
         $schoolYear = Setting::get('school_year', '2026-2027');
         $semester = (int) Setting::get('semester', '1');
@@ -540,7 +531,7 @@ class AuthController extends Controller
         $schoolYear = $enrollment->school_year ?? Setting::get('school_year', '2026-2027');
         $semester = $enrollment->semester ?? (int) Setting::get('semester', '1');
 
-        return view('schedule', compact('user', 'student', 'subjects', 'schoolYear', 'semester'));
+        return view('schedule', compact('user', 'subjects', 'schoolYear', 'semester'));
     }
 
     // 7. Process administrative clearance override and write long-term transaction ledger records

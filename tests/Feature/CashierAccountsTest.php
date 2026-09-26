@@ -22,7 +22,7 @@ class CashierAccountsTest extends TestCase
             'cashier_status' => 'Pending', 'registrar_status' => 'Pending',
         ]);
 
-        $response = $this->actingAs($cashier)->get('/cashier/accounts');
+        $response = $this->actingAs($cashier)->withSession(['auth.password_confirmed_at' => time()])->get('/cashier/accounts');
 
         $response->assertOk();
         $response->assertDontSee('Quick Approve');
@@ -49,12 +49,12 @@ class CashierAccountsTest extends TestCase
         Setting::clearCache();
         $current = Clearance::initializeFor($student->id, '2026-2027', 2);
 
-        $response = $this->actingAs($cashier)->get('/cashier/accounts');
+        $response = $this->actingAs($cashier)->withSession(['auth.password_confirmed_at' => time()])->get('/cashier/accounts');
 
         $response->assertOk();
         $response->assertDontSee('#' . sprintf('%04d', $past->id));
         $response->assertSee('#' . sprintf('%04d', $current->id));
-        $occurrences = substr_count($response->getContent(), $student->name);
+        $occurrences = substr_count($response->getContent(), e($student->name));
         $this->assertSame(1, $occurrences);
     }
 }

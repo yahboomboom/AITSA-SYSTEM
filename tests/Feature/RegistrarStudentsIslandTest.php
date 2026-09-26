@@ -17,7 +17,7 @@ class RegistrarStudentsIslandTest extends TestCase
     {
         $registrar = User::factory()->create(['role' => 'registrar']);
         User::factory()->create(['role' => 'student', 'name' => 'Regular Registry Student']);
-        $response = $this->actingAs($registrar)->get('/registrar/students');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/students');
 
         $response->assertOk();
         $response->assertSee('id="registrar-students-root"', false);
@@ -30,7 +30,7 @@ class RegistrarStudentsIslandTest extends TestCase
     {
         $registrar = User::factory()->create(['role' => 'registrar']);
 
-        $response = $this->actingAs($registrar)->get('/registrar/students');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/students');
 
         $response->assertOk();
         $response->assertSee('&quot;rows&quot;:[]', false);
@@ -56,7 +56,7 @@ class RegistrarStudentsIslandTest extends TestCase
         StudentGrade::create(['user_id' => $irregular->id, 'subject_code' => 'CC 101', 'status' => 'Failed', 'final_grade' => '60']);
         User::factory()->create(['role' => 'student', 'name' => 'Unrelated Person']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?q=Registry');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?q=Registry');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $regular->id, 'isIrregular' => false]);
@@ -69,7 +69,7 @@ class RegistrarStudentsIslandTest extends TestCase
         User::factory()->create(['role' => 'student']);
         $registrar = User::factory()->create(['role' => 'registrar']);
 
-        $this->actingAs($registrar)->getJson('/registrar/students/search')
+        $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search')
             ->assertOk()->assertJsonCount(0, 'rows');
     }
 
@@ -96,7 +96,7 @@ class RegistrarStudentsIslandTest extends TestCase
             'status' => 'accepted',
         ]);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?q=Resubmitting');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?q=Resubmitting');
 
         $response->assertOk()->assertJsonFragment(['adminStatus' => 'Pending', 'needsAttention' => false]);
     }
@@ -107,7 +107,7 @@ class RegistrarStudentsIslandTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Held Registry Student']);
         DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'rejected']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?q=Held');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?q=Held');
 
         $response->assertOk()->assertJsonFragment(['adminStatus' => 'Pending', 'needsAttention' => true]);
     }
@@ -118,7 +118,7 @@ class RegistrarStudentsIslandTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Awaiting Review Student']);
         DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'pending']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?q=Awaiting');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?q=Awaiting');
 
         $response->assertOk()->assertJsonFragment(['adminStatus' => 'Pending', 'needsAttention' => true]);
     }
@@ -136,7 +136,7 @@ class RegistrarStudentsIslandTest extends TestCase
             'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
         ]);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=all');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=all');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $held->id, 'adminStatus' => 'Pending', 'needsAttention' => true]);
@@ -156,7 +156,7 @@ class RegistrarStudentsIslandTest extends TestCase
             'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
         ]);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=hold');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=hold');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $held->id, 'adminStatus' => 'Pending', 'needsAttention' => true]);
@@ -169,7 +169,7 @@ class RegistrarStudentsIslandTest extends TestCase
         $pendingReview = User::factory()->create(['role' => 'student', 'name' => 'Pending Review Student']);
         DocumentSubmission::factory()->create(['user_id' => $pendingReview->id, 'status' => 'pending']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=hold');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=hold');
 
         $response->assertOk()->assertJsonFragment(['id' => $pendingReview->id, 'adminStatus' => 'Pending', 'needsAttention' => true]);
     }
@@ -186,7 +186,7 @@ class RegistrarStudentsIslandTest extends TestCase
             'registrar_status' => 'Pending',
         ]);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=hold');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=hold');
 
         $response->assertOk()->assertJsonFragment(['id' => $pendingAccount->id, 'adminStatus' => 'Pending', 'needsAttention' => true]);
     }
@@ -203,7 +203,7 @@ class RegistrarStudentsIslandTest extends TestCase
             'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
         ]);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=cleared');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=cleared');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $cleared->id, 'adminStatus' => 'Cleared']);
@@ -218,7 +218,7 @@ class RegistrarStudentsIslandTest extends TestCase
         DocumentSubmission::factory()->create(['user_id' => $match->id, 'status' => 'rejected']);
         DocumentSubmission::factory()->create(['user_id' => $nonMatch->id, 'status' => 'rejected']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?q=Filterable&status=hold');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?q=Filterable&status=hold');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $match->id]);
@@ -230,7 +230,7 @@ class RegistrarStudentsIslandTest extends TestCase
         $registrar = User::factory()->create(['role' => 'registrar']);
         User::factory()->create(['role' => 'student', 'name' => 'No Issues Student']);
 
-        $response = $this->actingAs($registrar)->getJson('/registrar/students/search?status=hold');
+        $response = $this->actingAs($registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/students/search?status=hold');
 
         $response->assertOk()->assertJsonCount(0, 'rows');
     }

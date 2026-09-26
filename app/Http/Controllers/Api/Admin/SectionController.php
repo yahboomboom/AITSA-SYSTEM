@@ -69,6 +69,8 @@ class SectionController extends Controller
 
     private function payload(Section $section): array
     {
+        $section->loadMissing(['roomEntity', 'faculty']);
+
         return array_merge($section->toArray(), [
             'faculty_name' => $section->facultyName(),
             'room_label' => $section->roomLabel(),

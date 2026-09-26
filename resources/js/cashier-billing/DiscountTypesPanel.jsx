@@ -98,6 +98,7 @@ export default function DiscountTypesPanel({ discountTypes, errors, old, csrfTok
                                     aria-checked={type.isActive}
                                     disabled={pendingToggleId === type.id}
                                     title={type.isActive ? 'Deactivate' : 'Activate'}
+                                    aria-label={type.isActive ? `Deactivate ${type.name}` : `Activate ${type.name}`}
                                     onClick={() => handleToggle(type)}
                                     className={`w-10 h-[22px] rounded-full transition-colors relative flex-shrink-0 cursor-pointer disabled:cursor-wait disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brandGreen focus-visible:ring-offset-2 dark:focus-visible:ring-offset-panelDark ${type.isActive ? 'bg-brandGreen' : 'bg-brandNavy/20 dark:bg-slate-700'}`}
                                 >

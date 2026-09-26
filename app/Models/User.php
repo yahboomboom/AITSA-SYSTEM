@@ -78,15 +78,6 @@ class User extends Authenticatable
         return $this->hasOne(Clearance::class, 'user_id');
     }
 
-    /**
-     * Get the specialized student profile data (SHS/College fields).
-     * Establishes a 1-to-1 relationship with the students table.
-     */
-    public function studentProfile(): HasOne
-    {
-        return $this->hasOne(Student::class, 'user_id');
-    }
-
     public function grades(): HasMany
     {
         return $this->hasMany(StudentGrade::class);

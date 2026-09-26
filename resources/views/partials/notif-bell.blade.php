@@ -1,6 +1,6 @@
 {{-- ── Notification Bell + Dropdown ─────────────────────────────────────────── --}}
 <div class="relative" id="notif-container">
-    <button id="notif-btn" onclick="toggleNotifs(event)"
+    <button id="notif-btn" onclick="toggleNotifs(event)" aria-label="Notifications"
         class="w-8 h-8 rounded text-brandNavy/50 dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors relative">
         <i class="fa-solid fa-bell text-sm"></i>
         <span id="notif-badge"

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import api from '../lib/api';
 
-const fieldClass = 'px-2.5 py-1.5 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-xs';
-const labelClass = 'block text-[10px] font-bold text-brandNavy/60 dark:text-slate-400 uppercase tracking-wider mb-1.5';
+const fieldClass = 'w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-sm';
+const labelClass = 'block text-sm font-bold text-brandNavy dark:text-slate-200 mb-0.5';
+const helpClass = 'text-xs text-brandNavy/50 dark:text-slate-500 mb-1.5';
 
 export default function SubjectEditor({ draft, setDraft, allSubjects, programId, yearLevel, semester, onClose, onSaved }) {
     const [error, setError] = useState(null);
@@ -39,36 +40,62 @@ export default function SubjectEditor({ draft, setDraft, allSubjects, programId,
                         <i className="fa-solid fa-xmark" />
                     </button>
                 </div>
-                <div className="p-5 space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                        <div>
-                            <label className={labelClass}>Code</label>
-                            <input value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })}
-                                placeholder="Code" className={`w-24 ${fieldClass}`} />
-                        </div>
-                        <div className="flex-1 min-w-48">
-                            <label className={labelClass}>Title</label>
-                            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                                placeholder="Title" className={`w-full ${fieldClass}`} />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Units</label>
-                            <input type="number" value={draft.units} onChange={(e) => setDraft({ ...draft, units: e.target.value })}
-                                placeholder="Units" className={`w-16 ${fieldClass}`} />
-                        </div>
-                        <div>
-                            <label className={labelClass}>Mode</label>
-                            <select value={draft.mode} onChange={(e) => setDraft({ ...draft, mode: e.target.value })} className={fieldClass}>
-                                <option>F2F</option><option>Online</option>
-                            </select>
-                        </div>
+                <div className="p-5 space-y-4">
+                    <div>
+                        <label className={labelClass}>Subject code</label>
+                        <p className={helpClass}>A short code for this subject.</p>
+                        <input value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })}
+                            placeholder="e.g. BOM101" className={fieldClass} />
                     </div>
                     <div>
-                        <label className={labelClass}>Prerequisites</label>
-                        <select multiple value={(draft.prerequisite_ids ?? []).map(String)}
-                            onChange={(e) => setDraft({ ...draft, prerequisite_ids: [...e.target.selectedOptions].map((o) => Number(o.value)) })}
-                            className={`${fieldClass} w-full`} size={4}>
-                            {allSubjects.filter((s) => s.id !== draft.id).map((s) => (
+                        <label className={labelClass}>Subject name</label>
+                        <p className={helpClass}>The full name students will see.</p>
+                        <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                            placeholder="e.g. Introduction to Business" className={fieldClass} />
+                    </div>
+                    <div>
+                        <label className={labelClass}>Units</label>
+                        <p className={helpClass}>How many units this subject is worth.</p>
+                        <input type="number" value={draft.units} onChange={(e) => setDraft({ ...draft, units: e.target.value })}
+                            placeholder="e.g. 3" className={`max-w-[8rem] ${fieldClass}`} />
+                    </div>
+                    <div>
+                        <label className={labelClass}>Where will classes be held?</label>
+                        <p className={helpClass}>Choose how this class meets.</p>
+                        <select value={draft.mode} onChange={(e) => setDraft({ ...draft, mode: e.target.value })} className={fieldClass}>
+                            <option value="F2F">In the classroom (Face-to-Face)</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className={labelClass}>What must students take first?</label>
+                        <p className={helpClass}>These subjects must be passed before this one. Leave blank if none.</p>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                            {(draft.prerequisite_ids ?? []).length === 0 && (
+                                <span className="text-xs text-brandNavy/40 dark:text-slate-500">No requirements yet</span>
+                            )}
+                            {(draft.prerequisite_ids ?? []).map((id) => {
+                                const prereq = allSubjects.find((s) => s.id === id);
+                                if (!prereq) return null;
+                                return (
+                                    <span key={id} className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded bg-lightBg dark:bg-slate-800 text-xs text-brandNavy dark:text-slate-200">
+                                        {prereq.code}
+                                        <button type="button"
+                                            onClick={() => setDraft({ ...draft, prerequisite_ids: draft.prerequisite_ids.filter((pid) => pid !== id) })}
+                                            className="text-brandNavy/40 dark:text-slate-500 hover:text-red-600">
+                                            <i className="fa-solid fa-xmark text-[10px]" />
+                                        </button>
+                                    </span>
+                                );
+                            })}
+                        </div>
+                        <select value="" onChange={(e) => {
+                            const id = Number(e.target.value);
+                            if (!id) return;
+                            setDraft({ ...draft, prerequisite_ids: [...(draft.prerequisite_ids ?? []), id] });
+                        }} className={fieldClass}>
+                            <option value="">Pick a subject to add…</option>
+                            {allSubjects.filter((s) => s.id !== draft.id && !(draft.prerequisite_ids ?? []).includes(s.id)).map((s) => (
                                 <option key={s.id} value={s.id}>{s.code} — {s.title}</option>
                             ))}
                         </select>

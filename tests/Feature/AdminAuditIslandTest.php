@@ -16,7 +16,7 @@ class AdminAuditIslandTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         AuditLog::record('Account Created', 'Admin created student account for Audit Test Student.', 'User', 1);
 
-        $response = $this->actingAs($admin)->get('/admin/audit');
+        $response = $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/audit');
 
         $response->assertOk();
         $response->assertSee('id="admin-audit-root"', false);
@@ -27,7 +27,7 @@ class AdminAuditIslandTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($admin)->get('/admin/audit');
+        $response = $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/audit');
 
         $response->assertOk();
         $response->assertSee('&quot;logs&quot;:[]', false);

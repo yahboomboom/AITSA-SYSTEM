@@ -25,7 +25,7 @@ class CashierBillingTest extends TestCase
         DiscountType::factory()->create(['name' => 'Academic Scholar', 'percent' => 50]);
         User::factory()->create(['role' => 'student', 'name' => 'Test Student']);
 
-        $response = $this->actingAs($this->cashier)->get('/cashier/billing');
+        $response = $this->actingAs($this->cashier)->withSession(['auth.password_confirmed_at' => time()])->get('/cashier/billing');
 
         $response->assertOk()
             ->assertSee('Billing Configuration')
@@ -70,7 +70,7 @@ class CashierBillingTest extends TestCase
             ->assertSessionHasErrors('tuition_per_unit');
     }
 
-    public function test_cashier_can_create_and_delete_discount_types(): void
+    public function test_cashier_can_create_a_discount_type(): void
     {
         $this->actingAs($this->cashier)
             ->post('/cashier/billing/discounts', ['name' => 'Sibling Discount', 'percent' => 10])
@@ -79,16 +79,6 @@ class CashierBillingTest extends TestCase
         $type = DiscountType::where('name', 'Sibling Discount')->first();
         $this->assertNotNull($type);
         $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Added']);
-
-        $student = User::factory()->create(['role' => 'student', 'discount_type_id' => $type->id]);
-
-        $this->actingAs($this->cashier)
-            ->post("/cashier/billing/discounts/{$type->id}/delete")
-            ->assertRedirect(route('cashier.billing'));
-
-        $this->assertNull(DiscountType::find($type->id));
-        $this->assertNull($student->fresh()->discount_type_id);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'Discount Type Removed']);
     }
 
     public function test_invalid_percent_and_duplicate_name_are_rejected(): void

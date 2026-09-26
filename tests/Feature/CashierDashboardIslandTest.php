@@ -43,7 +43,7 @@ class CashierDashboardIslandTest extends TestCase
 
         $response->assertOk();
         $json = $response->getContent();
-        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . $student->name . '&quot;');
+        $occurrences = substr_count($json, '&quot;studentName&quot;:&quot;' . e($student->name) . '&quot;');
         $this->assertSame(1, $occurrences);
     }
 

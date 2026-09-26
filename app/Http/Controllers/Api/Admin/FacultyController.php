@@ -77,17 +77,12 @@ class FacultyController extends Controller
         return response()->json([
             'schedule' => $user->taughtSections()->where('school_year', $year)
                 ->with(['subject', 'roomEntity'])->orderBy('start_time')->get()
-                ->map(fn (Section $s) => [
-                    'id' => $s->id,
+                ->map(fn (Section $s) => array_merge($s->toArray(), [
                     'subject_code' => $s->subject->code,
                     'subject_title' => $s->subject->title,
-                    'block_label' => $s->block_label,
-                    'days' => $s->days,
-                    'start_time' => $s->start_time,
-                    'end_time' => $s->end_time,
                     'room_label' => $s->roomLabel(),
-                    'online' => $s->roomEntity !== null && ! $s->roomEntity->isPhysical(),
-                ])->values(),
+                    'online' => $s->isOnline(),
+                ]))->values(),
         ]);
     }
 }

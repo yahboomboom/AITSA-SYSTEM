@@ -28,7 +28,7 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
             <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 rounded-lg shadow-lg w-full max-w-md overflow-hidden">
                 <div className="p-5 border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between">
                     <span className="font-heading text-sm font-semibold text-brandNavy dark:text-white">Review clearance</span>
-                    <button type="button" onClick={onClose} className="text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white">
+                    <button type="button" onClick={onClose} aria-label="Close" className="text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white">
                         <i className="fa-solid fa-xmark" />
                     </button>
                 </div>

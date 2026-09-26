@@ -63,16 +63,19 @@ export default function StudentRegistryTable({ searchUrl }) {
                             className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded pl-9 pr-4 py-2 outline-none focus:border-brandGreen/40 transition-colors"
                         />
                     </div>
-                    <select
-                        value={statusFilter}
-                        onChange={(event) => setStatusFilter(event.target.value)}
-                        className="w-full sm:w-auto bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
-                    >
-                        <option value="">Status</option>
-                        <option value="all">View all students</option>
-                        <option value="hold">On hold</option>
-                        <option value="cleared">Cleared</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="student-status-filter" className="text-xs font-semibold text-brandNavy/80 dark:text-slate-300 whitespace-nowrap">Status</label>
+                        <select
+                            id="student-status-filter"
+                            value={statusFilter}
+                            onChange={(event) => setStatusFilter(event.target.value)}
+                            className="w-full sm:w-auto bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 text-sm text-brandNavy dark:text-slate-200 px-3 py-2 rounded outline-none focus:border-brandGreen/40 transition-colors"
+                        >
+                            <option value="all">View all students</option>
+                            <option value="hold">On hold</option>
+                            <option value="cleared">Cleared</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div className="overflow-x-auto">

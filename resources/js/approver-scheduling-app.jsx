@@ -12,6 +12,7 @@ function SchedulingApp() {
     const [active, setActive] = useState(null);
     const [subjects, setSubjects] = useState([]);
     const [yearFilter, setYearFilter] = useState(1);
+    const [yearPicked, setYearPicked] = useState(false);
     const [semFilter, setSemFilter] = useState(1);
     const [faculty, setFaculty] = useState([]);
     const [rooms, setRooms] = useState([]);
@@ -68,19 +69,23 @@ function SchedulingApp() {
                 </div>
             </div>
 
-            {view === 'loading' && <FacultyLoading faculty={faculty} />}
+            {view === 'loading' && <FacultyLoading faculty={faculty} rooms={rooms} onListsChanged={loadLists} />}
 
             {view === 'sections' && active && (
                 <div className="bg-white dark:bg-panelDark rounded-2xl shadow-sm p-6">
                     <h2 className="text-lg font-bold text-brandNavy dark:text-slate-100 mb-1">{active.name}</h2>
-                    <div className="flex flex-wrap gap-2 my-3 text-xs">
-                        {[...Array(active.years ?? 4)].map((_, i) => (
-                            <button key={i} onClick={() => setYearFilter(i + 1)}
-                                className={`px-3 py-1.5 rounded ${yearFilter === i + 1 ? 'bg-brandGreen text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                                Year {i + 1}
-                            </button>
-                        ))}
-                        {[1, 2].map((sem) => (
+                    <div className="flex flex-wrap gap-2 my-3 text-xs items-center">
+                        <select
+                            value={yearFilter}
+                            onFocus={() => setYearPicked(true)}
+                            onChange={(e) => setYearFilter(Number(e.target.value))}
+                            className="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-brandNavy dark:text-slate-200 font-medium"
+                        >
+                            {[...Array(active.years ?? 4)].map((_, i) => (
+                                <option key={i} value={i + 1}>Year {i + 1}</option>
+                            ))}
+                        </select>
+                        {yearPicked && [1, 2].map((sem) => (
                             <button key={sem} onClick={() => setSemFilter(sem)}
                                 className={`px-3 py-1.5 rounded ${semFilter === sem ? 'bg-brandGold text-white' : 'bg-slate-100 dark:bg-slate-800'}`}>
                                 Sem {sem}

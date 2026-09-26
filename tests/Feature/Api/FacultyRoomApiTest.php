@@ -91,6 +91,42 @@ class FacultyRoomApiTest extends TestCase
         $this->assertSame($current->id, $response->json('schedule.0.id'));
     }
 
+    public function test_schedule_endpoint_returns_fields_needed_to_edit_the_section(): void
+    {
+        $room = Room::create(['name' => 'Rm 501', 'type' => 'physical']);
+        $prof = User::factory()->create(['role' => 'faculty']);
+        $section = Section::factory()->create([
+            'faculty_id' => $prof->id, 'school_year' => '2026-2027', 'room_id' => $room->id,
+            'delivery_mode' => 'Face-to-Face', 'capacity' => 35,
+        ]);
+
+        $response = $this->actingAs($this->chair)->getJson("/api/admin/faculty/{$prof->id}/schedule");
+
+        $response->assertOk()
+            ->assertJsonPath('schedule.0.subject_id', $section->subject_id)
+            ->assertJsonPath('schedule.0.room_id', $room->id)
+            ->assertJsonPath('schedule.0.capacity', 35)
+            ->assertJsonPath('schedule.0.delivery_mode', 'Face-to-Face')
+            ->assertJsonPath('schedule.0.faculty_id', $prof->id)
+            ->assertJsonPath('schedule.0.school_year', '2026-2027');
+    }
+
+    public function test_schedule_endpoint_marks_online_sections_by_delivery_mode_not_room(): void
+    {
+        // A section can be Online with no room assigned at all (the chair
+        // just switched delivery mode); the "online" flag must follow
+        // delivery_mode, not whether a virtual room happens to be attached.
+        $prof = User::factory()->create(['role' => 'faculty']);
+        Section::factory()->create([
+            'faculty_id' => $prof->id, 'school_year' => '2026-2027',
+            'delivery_mode' => 'Online', 'room_id' => null,
+        ]);
+
+        $response = $this->actingAs($this->chair)->getJson("/api/admin/faculty/{$prof->id}/schedule");
+
+        $response->assertOk()->assertJsonPath('schedule.0.online', true);
+    }
+
     public function test_schedule_endpoint_rejects_non_faculty_target(): void
     {
         $student = User::factory()->create(['role' => 'student']);

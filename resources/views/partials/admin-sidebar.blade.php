@@ -8,7 +8,6 @@
         ['route' => 'admin.departments', 'label' => 'Departments', 'icon' => 'fa-building'],
         ['route' => 'admin.announcements', 'label' => 'Announcements', 'icon' => 'fa-bullhorn'],
         ['route' => 'admin.audit', 'label' => 'Audit Trail', 'icon' => 'fa-clipboard-list'],
-        ['route' => 'admin.reports', 'label' => 'Reports', 'icon' => 'fa-chart-pie'],
     ];
 @endphp
 <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/40 z-30 lg:hidden" onclick="closeMobileSidebar()"></div>
@@ -18,10 +17,10 @@
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-full object-cover ring-2 ring-brandGold/70 mr-3 flex-shrink-0">
             <h1 class="sidebar-label font-heading text-lg font-semibold tracking-tight text-white truncate">AITSA HQ</h1>
         </div>
-        <button onclick="toggleSidebarCollapse()" class="hidden lg:flex w-7 h-7 flex-shrink-0 items-center justify-center rounded text-white/40 hover:text-white transition-colors" title="Collapse sidebar">
+        <button onclick="toggleSidebarCollapse()" class="hidden lg:flex w-7 h-7 flex-shrink-0 items-center justify-center rounded text-white/40 hover:text-white transition-colors" title="Collapse sidebar" aria-label="Collapse sidebar">
             <i id="sidebar-collapse-icon" class="fa-solid fa-angles-left text-xs"></i>
         </button>
-        <button onclick="closeMobileSidebar()" class="lg:hidden w-7 h-7 flex-shrink-0 flex items-center justify-center rounded text-white/40 hover:text-white" title="Close menu">
+        <button onclick="closeMobileSidebar()" class="lg:hidden w-7 h-7 flex-shrink-0 flex items-center justify-center rounded text-white/40 hover:text-white" title="Close menu" aria-label="Close menu">
             <i class="fa-solid fa-xmark text-sm"></i>
         </button>
     </div>

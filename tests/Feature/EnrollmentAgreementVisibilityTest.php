@@ -4,25 +4,31 @@ namespace Tests\Feature;
 
 use App\Models\EnrollmentAgreement;
 use App\Models\User;
-use App\Services\DocuSignService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class EnrollmentAgreementVisibilityTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function signedAgreementFor(User $user): EnrollmentAgreement
+    {
+        return EnrollmentAgreement::create([
+            'user_id' => $user->id,
+            'signature_path' => 'agreement-signatures/fake.png',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'PHPUnit',
+            'agreement_hash' => hash('sha256', 'fake-agreement'),
+            'signed_at' => now(),
+        ]);
+    }
+
     public function test_registrar_dashboard_shows_signed_status_for_a_signed_applicant(): void
     {
         $registrar = User::factory()->create(['role' => 'registrar']);
         $applicant = User::factory()->create(['role' => 'applicant']);
-        EnrollmentAgreement::create([
-            'user_id' => $applicant->id,
-            'envelope_id' => 'env-123',
-            'status' => 'completed',
-            'return_token' => 'tok-123',
-            'signed_at' => now(),
-        ]);
+        $this->signedAgreementFor($applicant);
 
         $response = $this->actingAs($registrar)->get('/registrar/dashboard');
 
@@ -44,13 +50,7 @@ class EnrollmentAgreementVisibilityTest extends TestCase
     public function test_clearance_page_shows_signed_banner_for_a_signed_student(): void
     {
         $student = User::factory()->create(['role' => 'student']);
-        EnrollmentAgreement::create([
-            'user_id' => $student->id,
-            'envelope_id' => 'env-456',
-            'status' => 'completed',
-            'return_token' => 'tok-456',
-            'signed_at' => now(),
-        ]);
+        $this->signedAgreementFor($student);
 
         $response = $this->actingAs($student)->get('/clearance');
 
@@ -70,46 +70,16 @@ class EnrollmentAgreementVisibilityTest extends TestCase
 
     public function test_student_can_download_their_own_signed_agreement(): void
     {
-        $student = User::factory()->create(['role' => 'student']);
-        EnrollmentAgreement::create([
-            'user_id' => $student->id,
-            'envelope_id' => 'env-789',
-            'status' => 'completed',
-            'return_token' => 'tok-789',
-            'signed_at' => now(),
-        ]);
+        Storage::fake('public');
+        Storage::disk('public')->put('agreement-signatures/fake.png', 'fake-bytes');
 
-        $this->mock(DocuSignService::class, function ($mock) {
-            $mock->shouldReceive('downloadSignedDocument')->once()->andReturn('%PDF-1.4 fake bytes');
-        });
+        $student = User::factory()->create(['role' => 'student']);
+        $this->signedAgreementFor($student);
 
         $response = $this->actingAs($student)->get('/my-agreement');
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
-    }
-
-    public function test_download_fails_gracefully_when_docusign_is_unreachable(): void
-    {
-        $student = User::factory()->create(['role' => 'student']);
-        EnrollmentAgreement::create([
-            'user_id' => $student->id,
-            'envelope_id' => 'env-999',
-            'status' => 'completed',
-            'return_token' => 'tok-999',
-            'signed_at' => now(),
-        ]);
-
-        $this->mock(DocuSignService::class, function ($mock) {
-            $mock->shouldReceive('downloadSignedDocument')
-                ->once()
-                ->andThrow(new \App\Exceptions\PaymentGatewayException('DocuSign is unreachable.'));
-        });
-
-        $response = $this->actingAs($student)->get('/my-agreement');
-
-        $response->assertRedirect();
-        $response->assertSessionHas('error');
     }
 
     public function test_downloading_with_no_signed_agreement_redirects_with_an_error(): void
@@ -124,19 +94,12 @@ class EnrollmentAgreementVisibilityTest extends TestCase
 
     public function test_registrar_can_download_an_applicants_signed_agreement(): void
     {
+        Storage::fake('public');
+        Storage::disk('public')->put('agreement-signatures/fake.png', 'fake-bytes');
+
         $registrar = User::factory()->create(['role' => 'registrar']);
         $applicant = User::factory()->create(['role' => 'applicant']);
-        EnrollmentAgreement::create([
-            'user_id' => $applicant->id,
-            'envelope_id' => 'env-321',
-            'status' => 'completed',
-            'return_token' => 'tok-321',
-            'signed_at' => now(),
-        ]);
-
-        $this->mock(DocuSignService::class, function ($mock) {
-            $mock->shouldReceive('downloadSignedDocument')->once()->andReturn('%PDF-1.4 fake bytes');
-        });
+        $this->signedAgreementFor($applicant);
 
         $response = $this->actingAs($registrar)->get("/registrar/applicants/{$applicant->id}/agreement");
 

@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -40,5 +43,32 @@ class ProfileController extends Controller
         $user->update($data);
 
         return back()->with('success', 'Your profile has been updated.');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($request->input('current_password'), $user->password)) {
+            return back()->withErrors(['current_password' => 'Your current password is incorrect.']);
+        }
+
+        $user->update(['password' => Hash::make($request->input('password'))]);
+
+        AuditLog::record('Password Changed', $user->name . ' changed their own password.', 'User', $user->id);
+
+        return back()->with('success', 'Your password has been changed.');
+    }
+
+    public function sendPasswordResetLink()
+    {
+        Password::sendResetLink(['email' => Auth::user()->email]);
+
+        return back()->with('success', 'A password reset link has been sent to your email address.');
     }
 }

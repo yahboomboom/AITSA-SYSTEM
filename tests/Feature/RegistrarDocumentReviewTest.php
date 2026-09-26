@@ -24,7 +24,7 @@ class RegistrarDocumentReviewTest extends TestCase
     {
         $sub = DocumentSubmission::factory()->create(['status' => 'pending']);
 
-        $response = $this->actingAs($this->registrar)->get('/registrar/documents');
+        $response = $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->get('/registrar/documents');
 
         $response->assertOk();
         $response->assertSee('id="registrar-documents-root"', false);
@@ -37,7 +37,7 @@ class RegistrarDocumentReviewTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Searchable Student']);
         $sub = DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'pending']);
 
-        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Searchable');
+        $response = $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search?q=Searchable');
 
         $response->assertOk()->assertJsonFragment(['id' => $sub->id, 'originalName' => $sub->original_name]);
     }
@@ -46,7 +46,7 @@ class RegistrarDocumentReviewTest extends TestCase
     {
         DocumentSubmission::factory()->create(['status' => 'pending']);
 
-        $this->actingAs($this->registrar)->getJson('/registrar/documents/search')
+        $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search')
             ->assertOk()->assertJsonCount(0, 'documents');
     }
 
@@ -67,7 +67,7 @@ class RegistrarDocumentReviewTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Resubmitter');
+        $response = $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search?q=Resubmitter');
 
         $response->assertOk()
             ->assertJsonFragment(['originalName' => 'new-form137.pdf'])
@@ -79,10 +79,10 @@ class RegistrarDocumentReviewTest extends TestCase
         $student = User::factory()->create(['role' => 'student', 'name' => 'Cleared Student']);
         $accepted = DocumentSubmission::factory()->create(['user_id' => $student->id, 'status' => 'accepted']);
 
-        $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Cleared')
+        $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search?q=Cleared')
             ->assertOk()->assertJsonCount(0, 'documents');
 
-        $this->actingAs($this->registrar)->getJson('/registrar/documents/search?q=Cleared&all=1')
+        $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search?q=Cleared&all=1')
             ->assertOk()->assertJsonFragment(['id' => $accepted->id]);
     }
 
@@ -98,7 +98,7 @@ class RegistrarDocumentReviewTest extends TestCase
         $pending = DocumentSubmission::factory()->create(['status' => 'pending']);
         $rejected = DocumentSubmission::factory()->create(['status' => 'rejected']);
 
-        $response = $this->actingAs($this->registrar)->getJson('/registrar/documents/search?status=pending');
+        $response = $this->actingAs($this->registrar)->withSession(['auth.password_confirmed_at' => time()])->getJson('/registrar/documents/search?status=pending');
 
         $response->assertOk();
         $response->assertJsonFragment(['id' => $pending->id]);

@@ -89,7 +89,7 @@ export default function SubmitRequirementModal({ open, onClose, csrfToken, submi
                             <p className="text-xs text-brandNavy/50 dark:text-slate-500 mt-0.5">Office of the University Registrar</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-brandNavy/5 dark:bg-slate-800 text-brandNavy/50 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white flex items-center justify-center transition-colors">
+                    <button onClick={onClose} aria-label="Close" className="w-8 h-8 rounded-full bg-brandNavy/5 dark:bg-slate-800 text-brandNavy/50 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white flex items-center justify-center transition-colors">
                         <i className="fa-solid fa-xmark text-xs" />
                     </button>
                 </div>
@@ -145,7 +145,7 @@ export default function SubmitRequirementModal({ open, onClose, csrfToken, submi
                                             <p className="text-xs font-bold text-brandNavy dark:text-slate-200 truncate max-w-[200px]">{file.name}</p>
                                             <p className="text-[10px] text-brandNavy/50 dark:text-slate-500">{formatBytes(file.size)}</p>
                                         </div>
-                                        <button type="button" onClick={clearFile} className="ml-1 w-5 h-5 rounded-full bg-brandNavy/5 dark:bg-slate-700 text-brandNavy/40 dark:text-slate-500 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-colors">
+                                        <button type="button" onClick={clearFile} aria-label="Remove selected file" className="ml-1 w-5 h-5 rounded-full bg-brandNavy/5 dark:bg-slate-700 text-brandNavy/40 dark:text-slate-500 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-colors">
                                             <i className="fa-solid fa-xmark text-[9px]" />
                                         </button>
                                     </div>
