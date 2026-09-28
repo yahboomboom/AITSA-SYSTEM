@@ -38,16 +38,7 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6">
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
-                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="p-4 rounded bg-red-500/10 border border-red-500/20 text-red-600 text-sm">
-                        <i class="fa-solid fa-triangle-exclamation mr-2"></i>{{ session('error') }}
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 @php
                     $documentsContext = [

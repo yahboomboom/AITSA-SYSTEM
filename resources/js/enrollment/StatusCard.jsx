@@ -11,9 +11,21 @@ export default function StatusCard({ enrollment, onResubmit, action = null }) {
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
-            <p className={`font-heading text-lg font-semibold ${style.tone}`}>
-                <i className={`fa-solid ${style.icon} mr-2`} />{style.label}
-            </p>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <p className={`font-heading text-lg font-semibold ${style.tone}`}>
+                    <i className={`fa-solid ${style.icon} mr-2`} />{style.label}
+                </p>
+                {enrollment.status === 'enrolled' && (
+                    <a
+                        href={`/enrollment/${enrollment.id}/cor`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors"
+                    >
+                        <i className="fa-solid fa-file-pdf" />Download COR
+                    </a>
+                )}
+            </div>
             {action}
             {enrollment.status === 'rejected' && (
                 <div className="mt-3">

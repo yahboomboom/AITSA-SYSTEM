@@ -24,4 +24,25 @@ class CorRouteTest extends TestCase
             ->assertOk()
             ->assertSee('id="schedule-root"', false);
     }
+
+    public function test_cor_page_chrome_is_labeled_schedule(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($user)->get('/cor');
+
+        $response->assertOk();
+        $response->assertSee('<title>AITSA Portal | My Schedule</title>', false);
+    }
+
+    public function test_student_sidebar_links_to_schedule(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertOk();
+        $response->assertSee('href="' . route('cor') . '"', false);
+        $response->assertSee('>Schedule<', false);
+    }
 }

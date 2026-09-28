@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SignatureController extends Controller
 {
@@ -31,8 +32,13 @@ class SignatureController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'signature' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:1024'],
+            'signature' => ['required', 'string', 'starts_with:data:image/png;base64,'],
         ]);
+
+        $binary = base64_decode(substr($request->input('signature'), strlen('data:image/png;base64,')), true);
+        if ($binary === false || ! str_starts_with($binary, "\x89PNG\r\n\x1a\n")) {
+            return back()->withErrors(['signature' => 'Please draw your signature before saving.']);
+        }
 
         $user = Auth::user();
 
@@ -40,7 +46,8 @@ class SignatureController extends Controller
             Storage::disk('public')->delete($user->signature_path);
         }
 
-        $path = $request->file('signature')->store('signatures', 'public');
+        $path = 'signatures/' . $user->id . '-' . Str::random(20) . '.png';
+        Storage::disk('public')->put($path, $binary);
         $user->update(['signature_path' => $path]);
 
         return back()->with('success', 'Your signature has been saved.');

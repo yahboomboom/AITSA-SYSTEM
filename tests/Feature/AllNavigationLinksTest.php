@@ -35,12 +35,19 @@ class AllNavigationLinksTest extends TestCase
             '/documents',
             '/clearance',
             '/enrollment',
-            '/grades',
             '/ledger',
             '/cor',
             '/profile',
             '/my-signature',
         ]);
+    }
+
+    public function test_student_grades_page_no_longer_exists(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->get('/grades')->assertNotFound();
+        $this->actingAs($student)->get('/dashboard')->assertDontSee('>Grades<', false);
     }
 
     public function test_every_admin_nav_link_loads(): void
@@ -51,7 +58,6 @@ class AllNavigationLinksTest extends TestCase
             '/admin/dashboard',
             '/admin/departments',
             '/admin/students',
-            '/admin/students/create',
             '/admin/audit',
         ]);
     }

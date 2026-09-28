@@ -33,6 +33,34 @@ class EnrollmentServiceClearanceGateTest extends TestCase
         $this->assertTrue($service->clearanceComplete($student->fresh()));
     }
 
+    public function test_provisional_clearance_passes_despite_a_pending_clearance_item(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $clearance = Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+            'is_provisional' => true,
+        ]);
+        $department = Department::factory()->create();
+        $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
+
+        $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_provisional_clearance_does_not_override_a_clearance_item_on_hold(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $clearance = Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+            'is_provisional' => true,
+        ]);
+        $department = Department::factory()->create();
+        $clearance->items()->create(['department_id' => $department->id, 'status' => 'Hold']);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
     public function test_unaffected_when_student_has_zero_clearance_items(): void
     {
         $student = User::factory()->create(['role' => 'student']);
@@ -64,6 +92,47 @@ class EnrollmentServiceClearanceGateTest extends TestCase
             'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
             'is_provisional' => false,
         ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_provisional_clearance_passes_while_still_before_its_due_date(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+            'is_provisional' => true,
+            'provisional_due_at' => now()->addDays(7),
+        ]);
+
+        $this->assertTrue(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_provisional_clearance_is_blocked_once_past_its_due_date(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Pending',
+            'is_provisional' => true,
+            'provisional_due_at' => now()->subDay(),
+        ]);
+
+        $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
+    }
+
+    public function test_provisional_items_bypass_is_blocked_once_past_its_due_date(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $clearance = Clearance::create([
+            'user_id' => $student->id,
+            'chair_status' => 'Approved', 'cashier_status' => 'Approved', 'registrar_status' => 'Approved',
+            'is_provisional' => true,
+            'provisional_due_at' => now()->subDay(),
+        ]);
+        $department = Department::factory()->create();
+        $clearance->items()->create(['department_id' => $department->id, 'status' => 'Pending']);
 
         $this->assertFalse(app(EnrollmentService::class)->clearanceComplete($student));
     }

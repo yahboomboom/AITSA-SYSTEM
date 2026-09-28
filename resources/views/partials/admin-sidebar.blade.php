@@ -3,7 +3,6 @@
 @php
     $adminNavLinks = [
         ['route' => 'admin.dashboard', 'label' => 'System Overview', 'icon' => 'fa-gauge'],
-        ['route' => 'admin.students.create', 'label' => 'Create Student Account', 'icon' => 'fa-user-plus'],
         ['route' => 'admin.students.index', 'label' => 'Student Registry', 'icon' => 'fa-users'],
         ['route' => 'admin.departments', 'label' => 'Departments', 'icon' => 'fa-building'],
         ['route' => 'admin.announcements', 'label' => 'Announcements', 'icon' => 'fa-bullhorn'],

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -12,15 +11,9 @@ class SignatureEditTest extends TestCase
 {
     use RefreshDatabase;
 
-    // A real 1x1 transparent PNG — the "image" validation rule reads actual
-    // image headers via getimagesize(), so a plain fake-bytes file won't
-    // pass it. UploadedFile::fake()->image() needs the GD extension (not
-    // installed in this dev environment), so real bytes avoid that too.
-    private function fakePng(string $name = 'signature.png'): UploadedFile
+    private function fakeSignatureDataUrl(): string
     {
-        $bytes = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
-
-        return UploadedFile::fake()->createWithContent($name, $bytes);
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
     }
 
     public function test_authenticated_user_can_view_the_signature_page(): void
@@ -44,13 +37,12 @@ class SignatureEditTest extends TestCase
         $response->assertSee('&quot;hasSignature&quot;:true', false);
     }
 
-    public function test_user_can_upload_a_signature(): void
+    public function test_user_can_save_a_drawn_signature(): void
     {
         Storage::fake('public');
         $user = User::factory()->create(['signature_path' => null]);
-        $file = $this->fakePng();
 
-        $response = $this->actingAs($user)->post('/my-signature', ['signature' => $file]);
+        $response = $this->actingAs($user)->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -58,26 +50,35 @@ class SignatureEditTest extends TestCase
         Storage::disk('public')->assertExists($user->fresh()->signature_path);
     }
 
-    public function test_uploading_a_new_signature_replaces_and_deletes_the_old_file(): void
+    public function test_saving_a_new_signature_replaces_and_deletes_the_old_file(): void
     {
         Storage::fake('public');
-        $old = $this->fakePng('old.png')->store('signatures', 'public');
-        $user = User::factory()->create(['signature_path' => $old]);
-        $file = $this->fakePng('new.png');
+        Storage::disk('public')->put('signatures/old.png', 'fake-old-bytes');
+        $user = User::factory()->create(['signature_path' => 'signatures/old.png']);
 
-        $this->actingAs($user)->post('/my-signature', ['signature' => $file]);
+        $this->actingAs($user)->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
 
-        Storage::disk('public')->assertMissing($old);
-        $this->assertNotSame($old, $user->fresh()->signature_path);
+        Storage::disk('public')->assertMissing('signatures/old.png');
+        $this->assertNotSame('signatures/old.png', $user->fresh()->signature_path);
     }
 
-    public function test_non_image_file_is_rejected(): void
+    public function test_empty_signature_is_rejected(): void
     {
         Storage::fake('public');
         $user = User::factory()->create(['signature_path' => null]);
-        $file = UploadedFile::fake()->create('not-an-image.pdf', 100);
 
-        $response = $this->actingAs($user)->post('/my-signature', ['signature' => $file]);
+        $response = $this->actingAs($user)->post('/my-signature', ['signature' => '']);
+
+        $response->assertSessionHasErrors('signature');
+        $this->assertNull($user->fresh()->signature_path);
+    }
+
+    public function test_malformed_signature_data_is_rejected(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['signature_path' => null]);
+
+        $response = $this->actingAs($user)->post('/my-signature', ['signature' => 'data:image/png;base64,not-real-png-bytes']);
 
         $response->assertSessionHasErrors('signature');
         $this->assertNull($user->fresh()->signature_path);

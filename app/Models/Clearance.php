@@ -37,6 +37,7 @@ class Clearance extends Model
         'provisional_reason',
         'provisional_granted_by',
         'provisional_granted_at',
+        'provisional_due_at',
         'down_payment_waived',
         'down_payment_waived_reason',
         'down_payment_waived_by',
@@ -49,6 +50,7 @@ class Clearance extends Model
         'registrar_signed_at' => 'datetime',
         'is_provisional' => 'boolean',
         'provisional_granted_at' => 'datetime',
+        'provisional_due_at' => 'datetime',
         'down_payment_waived' => 'boolean',
         'down_payment_waived_at' => 'datetime',
     ];
@@ -70,6 +72,31 @@ class Clearance extends Model
     public function allItemsApproved(): bool
     {
         return $this->items->isEmpty() || $this->items->every(fn (ClearanceItem $item) => $item->status === 'Approved');
+    }
+
+    /**
+     * A provisional grant carries a due date the Registrar set (in days) when
+     * they granted it. Once that date passes, the extension no longer counts
+     * — the student is blocked again until the Registrar settles their
+     * requirements or grants a fresh extension. A grant made before due
+     * dates existed (null) is grandfathered in as never-expiring.
+     */
+    public function isProvisionalActive(): bool
+    {
+        return $this->is_provisional === true
+            && ($this->provisional_due_at === null || $this->provisional_due_at->isFuture());
+    }
+
+    /**
+     * A provisional extension lets a new student enroll before every
+     * department has approved their clearance items — e.g. documents like
+     * Form 137 or a PSA birth certificate that take time to obtain — but it
+     * never overrides an item a department actively put on Hold.
+     */
+    public function allItemsClearedForEnrollment(): bool
+    {
+        return $this->allItemsApproved()
+            || ($this->isProvisionalActive() && ! $this->items->contains(fn (ClearanceItem $item) => $item->status === 'Hold'));
     }
 
     public function completionPercent(): int

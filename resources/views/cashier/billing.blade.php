@@ -38,11 +38,7 @@
                     <p class="text-sm text-brandNavy/50 dark:text-slate-400">Fee rates, discount types, and per-student discount assignment.</p>
                 </div>
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
-                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 @php
                     $context = [

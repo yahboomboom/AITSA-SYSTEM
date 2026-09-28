@@ -98,8 +98,8 @@ function ClearanceRow({ row, csrfToken, documentsPageUrl }) {
                         <i className="fa-solid fa-circle-check" />Cleared
                     </span>
                 ) : row.isProvisional ? (
-                    <span className="ui-badge-outline border-cyan-600 text-cyan-600">
-                        <i className="fa-solid fa-hourglass-half" />Provisional
+                    <span className="ui-badge-outline border-cyan-600 text-cyan-600" title={row.provisionalDueAtFormatted ? `Due ${row.provisionalDueAtFormatted}` : undefined}>
+                        <i className="fa-solid fa-hourglass-half" />Provisional{row.provisionalDueAtFormatted ? ` — due ${row.provisionalDueAtFormatted}` : ''}
                     </span>
                 ) : (
                     <span className="ui-badge-outline border-brandGold text-brandGold">
@@ -155,6 +155,7 @@ function ClearanceRow({ row, csrfToken, documentsPageUrl }) {
                     <form action={row.grantProvisionalUrl} method="POST" className="mt-2 flex gap-2 justify-end">
                         <input type="hidden" name="_token" value={csrfToken} />
                         <input type="text" name="reason" required maxLength={1000} placeholder="Reason for provisional" className="min-w-0 flex-1 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500" />
+                        <input type="number" name="days" required min={1} max={365} defaultValue={14} title="Days before this extension expires" className="w-16 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500" />
                         <button type="submit" className="ui-btn-primary bg-cyan-600 hover:bg-cyan-700 text-white transition-colors">
                             Grant
                         </button>

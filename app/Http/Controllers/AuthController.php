@@ -51,13 +51,19 @@ class AuthController extends Controller
         $identifier = $request->input('login_id');
         $user = User::where('login_id', $identifier)->orWhere('email', $identifier)->first();
 
-        // Deliberately identical response whether or not the account exists,
-        // so this form can't be used to enumerate valid student IDs/emails.
-        if ($user) {
+        // Students often don't have a checked personal email on file, so their
+        // reset goes through the Registrar instead of an email link. Every other
+        // role keeps the existing self-service email flow.
+        if ($user && $user->role === 'student') {
+            $user->forceFill(['password_reset_requested_at' => now()])->save();
+        } elseif ($user) {
             Password::sendResetLink(['email' => $user->email]);
         }
 
-        return back()->with('status', 'If an account matches, a password reset link has been sent to the associated email address.');
+        // Deliberately identical response whether or not the account exists, and
+        // regardless of which branch above fired, so this form can't be used to
+        // enumerate valid student IDs/emails or infer account roles.
+        return back()->with('status', 'If an account matches, we\'ve started the password reset process — check your email, or follow up with the Registrar\'s office if you don\'t receive one.');
     }
 
     public function showResetPasswordForm(Request $request, string $token)
@@ -307,6 +313,33 @@ class AuthController extends Controller
         foreach ($targetDocuments as $documentName) {
             // Track document records matching database expectations
         }
+    }
+
+    // The Registrar issues a temporary password after a student's reset
+    // request; this form is the only page a flagged account can reach until
+    // they replace it (see EnsurePasswordChangeIsNotPending).
+    public function showForcePasswordChangeForm()
+    {
+        abort_unless(Auth::user()?->must_change_password, 403);
+
+        return view('auth.force-password-change');
+    }
+
+    public function forcePasswordChangeUpdate(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user?->must_change_password, 403);
+
+        $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->forceFill([
+            'password' => Hash::make($request->input('password')),
+            'must_change_password' => false,
+        ])->save();
+
+        return $this->handleRoleRedirection($user)->with('success', 'Your password has been updated.');
     }
 
     // 5. Helper function to manage structural role routing with fail-safe verification

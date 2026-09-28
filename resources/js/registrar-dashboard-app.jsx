@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import AdmissionsPipelineCard from './registrar-dashboard/AdmissionsPipelineCard';
 import GradeSubmissionQueue from './components/GradeSubmissionQueue';
+import PasswordResetRequestsCard from './registrar-dashboard/PasswordResetRequestsCard';
 
 const EMPTY_CONTEXT = {
     applicants: [],
     clearances: [],
     documentsPageUrl: '',
     gradeSubmissions: [],
+    passwordResetRequests: [],
 };
 
 function parseContext(raw) {
@@ -19,6 +21,7 @@ function parseContext(raw) {
             clearances: Array.isArray(parsed.clearances) ? parsed.clearances : [],
             documentsPageUrl: parsed.documentsPageUrl ?? '',
             gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
+            passwordResetRequests: Array.isArray(parsed.passwordResetRequests) ? parsed.passwordResetRequests : [],
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -35,6 +38,7 @@ function RegistrarDashboardApp({ context, csrfToken }) {
                 documentsPageUrl={context.documentsPageUrl}
             />
             <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Registrar Approval" approveLabel="Finalize" />
+            <PasswordResetRequestsCard rows={context.passwordResetRequests} csrfToken={csrfToken} />
         </div>
     );
 }

@@ -39,17 +39,7 @@
             </p>
         </div>
 
-        @if (session('success'))
-            <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm flex items-center gap-3">
-                <i class="fa-solid fa-circle-check"></i>{{ session('success') }}
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 font-bold text-sm flex items-center gap-3">
-                <i class="fa-solid fa-circle-exclamation"></i>{{ session('error') }}
-            </div>
-        @endif
+        @include('partials.snackbar')
 
         @php
             $context = [

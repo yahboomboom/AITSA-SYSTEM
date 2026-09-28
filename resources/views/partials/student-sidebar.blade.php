@@ -8,7 +8,6 @@
         ['route' => 'documents', 'label' => 'Documents', 'icon' => 'fa-folder-open'],
         ['route' => 'clearance', 'label' => 'Clearance Routing', 'icon' => 'fa-route'],
         ['route' => 'enrollment', 'label' => 'Enrollment', 'icon' => 'fa-user-graduate'],
-        ['route' => 'grades', 'label' => 'Grades', 'icon' => 'fa-chart-line'],
         ['route' => 'ledger', 'label' => 'Payments', 'icon' => 'fa-wallet'],
         ['route' => 'cor', 'label' => 'Schedule', 'icon' => 'fa-calendar-days'],
     ];

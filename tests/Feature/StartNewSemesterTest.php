@@ -54,6 +54,60 @@ class StartNewSemesterTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'New Term Started']);
     }
 
+    public function test_starting_a_new_school_year_advances_college_student_year_level(): void
+    {
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '2');
+        Setting::clearCache();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = $this->collegeStudent('promote-test@example.com');
+        $student->update(['year_level' => '1st Year']);
+
+        $this->actingAs($registrar)->post('/registrar/start-new-term', [
+            'school_year' => '2027-2028',
+            'semester' => 1,
+        ])->assertRedirect();
+
+        $this->assertSame('2nd Year', $student->fresh()->year_level);
+    }
+
+    public function test_starting_a_new_semester_within_the_same_school_year_does_not_advance_year_level(): void
+    {
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '1');
+        Setting::clearCache();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $student = $this->collegeStudent('same-year-test@example.com');
+        $student->update(['year_level' => '1st Year']);
+
+        $this->actingAs($registrar)->post('/registrar/start-new-term', [
+            'school_year' => '2026-2027',
+            'semester' => 2,
+        ])->assertRedirect();
+
+        $this->assertSame('1st Year', $student->fresh()->year_level);
+    }
+
+    public function test_year_level_does_not_advance_past_the_programs_final_year(): void
+    {
+        Setting::put('school_year', '2026-2027');
+        Setting::put('semester', '2');
+        Setting::clearCache();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        Program::factory()->create(['code' => 'FSM', 'level' => 'associate', 'years' => 2, 'is_enrollable' => true]);
+        $student = User::factory()->create(['role' => 'student', 'major' => 'FSM', 'year_level' => '2nd Year']);
+
+        $this->actingAs($registrar)->post('/registrar/start-new-term', [
+            'school_year' => '2027-2028',
+            'semester' => 1,
+        ])->assertRedirect();
+
+        $this->assertSame('2nd Year', $student->fresh()->year_level);
+    }
+
     public function test_tesda_students_are_not_touched(): void
     {
         Setting::put('school_year', '2026-2027');
@@ -62,14 +116,16 @@ class StartNewSemesterTest extends TestCase
 
         $registrar = User::factory()->create(['role' => 'registrar']);
         $tesdaStudent = $this->tesdaStudent('tesda-term-test@example.com');
+        $tesdaStudent->update(['year_level' => '1st Year']);
         Clearance::initializeFor($tesdaStudent->id, '2026-2027', 1);
 
         $this->actingAs($registrar)->post('/registrar/start-new-term', [
-            'school_year' => '2026-2027',
-            'semester' => 2,
+            'school_year' => '2027-2028',
+            'semester' => 1,
         ]);
 
         $this->assertSame(1, Clearance::where('user_id', $tesdaStudent->id)->count());
+        $this->assertSame('1st Year', $tesdaStudent->fresh()->year_level);
     }
 
     public function test_rejects_a_no_op_call_with_the_same_term(): void

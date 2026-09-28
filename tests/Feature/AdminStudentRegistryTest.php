@@ -119,6 +119,23 @@ class AdminStudentRegistryTest extends TestCase
         $response->assertSee(e(json_encode($maliciousName)), false);
     }
 
+    public function test_walk_in_account_creation_no_longer_exists(): void
+    {
+        // The path still matches /admin/students/{user} (the delete route) for a
+        // different HTTP verb, so Laravel reports 405, not 404 — either way, it's
+        // no longer a route that creates an account.
+        $this->actingAs($this->admin)->get('/admin/students/create')->assertStatus(405);
+        $this->actingAs($this->admin)->post('/admin/students/create', [])->assertStatus(405);
+    }
+
+    public function test_sidebar_no_longer_links_to_walk_in_account_creation(): void
+    {
+        $response = $this->actingAs($this->admin)->withSession(['auth.password_confirmed_at' => time()])->get('/admin/students');
+
+        $response->assertOk();
+        $response->assertDontSee('Create Student Account');
+    }
+
     public function test_non_admin_cannot_delete_a_student(): void
     {
         $requester = User::factory()->create(['role' => 'student']);

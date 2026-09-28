@@ -67,6 +67,8 @@ class User extends Authenticatable
         'password' => 'hashed', // Ensures Laravel auto-hashes password changes and checks hashes safely
         'is_reserved' => 'boolean',
         'wants_reservation' => 'boolean',
+        'password_reset_requested_at' => 'datetime',
+        'must_change_password' => 'boolean',
     ];
 
     /**

@@ -23,7 +23,9 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create(['login_id' => '2026-00001', 'email' => 'student@example.com']);
+        // Students go through the Registrar instead of email (see
+        // PasswordResetViaRegistrarTest) — this covers every other role.
+        $user = User::factory()->create(['role' => 'cashier', 'login_id' => '2026-00001', 'email' => 'student@example.com']);
 
         $response = $this->post('/forgot-password', ['login_id' => '2026-00001']);
 
@@ -36,7 +38,7 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create(['login_id' => '2026-00002', 'email' => 'byemail@example.com']);
+        $user = User::factory()->create(['role' => 'cashier', 'login_id' => '2026-00002', 'email' => 'byemail@example.com']);
 
         $this->post('/forgot-password', ['login_id' => 'byemail@example.com']);
 

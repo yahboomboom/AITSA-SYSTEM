@@ -47,11 +47,7 @@
                     <p class="text-sm text-brandNavy/50 dark:text-slate-400 mt-0.5">Institutional metrics for running portals, clearances, and user registration modules.</p>
                 </div>
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
-                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 <div id="admin-dashboard-root" data-context="{{ json_encode($context) }}">
                     <p class="text-sm text-slate-500">Loading…</p>

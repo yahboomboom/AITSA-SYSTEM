@@ -28,6 +28,7 @@ class GrantProvisionalExtensionTest extends TestCase
 
         $response = $this->actingAs($registrar)->post("/registrar/clearances/{$clearance->id}/grant-provisional", [
             'reason' => 'Previous school confirmed Form 137 is in transit, expected next month.',
+            'days' => 14,
         ]);
 
         $response->assertRedirect(route('registrar.dashboard'));
@@ -37,6 +38,7 @@ class GrantProvisionalExtensionTest extends TestCase
         $this->assertSame('Previous school confirmed Form 137 is in transit, expected next month.', $clearance->provisional_reason);
         $this->assertSame($registrar->id, $clearance->provisional_granted_by);
         $this->assertNotNull($clearance->provisional_granted_at);
+        $this->assertTrue($clearance->provisional_due_at->isSameDay(now()->addDays(14)));
         $this->assertDatabaseHas('audit_logs', ['action' => 'Provisional Extension Granted']);
     }
 
@@ -46,8 +48,32 @@ class GrantProvisionalExtensionTest extends TestCase
         $clearance = $this->makeClearance();
 
         $this->actingAs($registrar)->from('/registrar/dashboard')
-            ->post("/registrar/clearances/{$clearance->id}/grant-provisional", [])
+            ->post("/registrar/clearances/{$clearance->id}/grant-provisional", ['days' => 14])
             ->assertSessionHasErrors('reason');
+
+        $this->assertFalse($clearance->fresh()->is_provisional);
+    }
+
+    public function test_days_is_required(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $clearance = $this->makeClearance();
+
+        $this->actingAs($registrar)->from('/registrar/dashboard')
+            ->post("/registrar/clearances/{$clearance->id}/grant-provisional", ['reason' => 'Test'])
+            ->assertSessionHasErrors('days');
+
+        $this->assertFalse($clearance->fresh()->is_provisional);
+    }
+
+    public function test_days_must_be_a_positive_integer(): void
+    {
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $clearance = $this->makeClearance();
+
+        $this->actingAs($registrar)->from('/registrar/dashboard')
+            ->post("/registrar/clearances/{$clearance->id}/grant-provisional", ['reason' => 'Test', 'days' => 0])
+            ->assertSessionHasErrors('days');
 
         $this->assertFalse($clearance->fresh()->is_provisional);
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AITSA Portal | Forgot Password</title>
+    <title>AITSA Portal | Set a New Password</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +87,16 @@
             box-shadow: 0 0 0 2px rgba(11,60,93,0.12);
         }
         .dark .logo-img-wrap { background: #0D1B2A; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
+
+        .eye-btn {
+            position: absolute; right: .875rem; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: #64748b; font-size: .875rem; padding: 0;
+        }
+        .dark .eye-btn { color: #94a3b8; }
+        .eye-btn:hover { color: #1D7A46; }
+        .dark .eye-btn:hover { color: #E2A700; }
     </style>
 </head>
 
@@ -110,19 +120,12 @@
 
         <div>
             <h2 class="text-[1.2rem] font-bold text-brandNavy dark:text-white tracking-tight leading-snug">
-                Reset your password
+                Set a new password
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-light">
-                Enter your Student ID or registered email. Students will need to follow up with the Registrar's office; other accounts will receive an email reset link.
+                The Registrar issued you a temporary password. Choose a new one (at least 8 characters) before continuing.
             </p>
         </div>
-
-        @if (session('status'))
-        <div class="rounded-lg border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900/30 px-4 py-3 flex gap-2.5 items-start">
-            <i class="fa-solid fa-circle-check text-brandGreen mt-0.5 text-sm flex-shrink-0"></i>
-            <p class="text-xs font-medium text-brandGreen dark:text-emerald-400">{{ session('status') }}</p>
-        </div>
-        @endif
 
         @if ($errors->any())
         <div class="rounded-lg border border-red-200/60 bg-red-50 dark:bg-red-950/20 dark:border-red-900/30 px-4 py-3 flex gap-2.5 items-start">
@@ -135,16 +138,33 @@
         </div>
         @endif
 
-        <form action="{{ route('password.email') }}" method="POST" class="space-y-4">
+        <form action="{{ route('password.force-change.submit') }}" method="POST" class="space-y-4">
             @csrf
+
             <div class="fl-wrap">
                 <div class="relative bg-lightBg/50 dark:bg-surfaceDark rounded-xl border border-brandNavy/10 dark:border-slate-700/30
                             focus-within:border-brandGreen dark:focus-within:border-brandGold/50 transition-colors duration-200 overflow-hidden">
-                    <input type="text" name="login_id" id="login_id"
-                           value="{{ old('login_id') }}"
-                           placeholder=" " required autofocus
-                           class="w-full px-4 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
-                    <label for="login_id">Student ID / Email</label>
+                    <input type="password" name="password" id="password"
+                           placeholder=" " required minlength="8"
+                           class="w-full px-4 pr-11 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
+                    <label for="password">New Password</label>
+                    <button type="button" class="eye-btn" id="eyeBtn1" onclick="togglePassword('password','eyeIcon1','eyeBtn1')" aria-label="Show password">
+                        <i class="fa-regular fa-eye" id="eyeIcon1"></i>
+                    </button>
+                    <div class="fl-bar"></div>
+                </div>
+            </div>
+
+            <div class="fl-wrap">
+                <div class="relative bg-lightBg/50 dark:bg-surfaceDark rounded-xl border border-brandNavy/10 dark:border-slate-700/30
+                            focus-within:border-brandGreen dark:focus-within:border-brandGold/50 transition-colors duration-200 overflow-hidden">
+                    <input type="password" name="password_confirmation" id="password_confirmation"
+                           placeholder=" " required minlength="8"
+                           class="w-full px-4 pr-11 text-sm text-brandNavy dark:text-slate-100 bg-transparent focus:outline-none">
+                    <label for="password_confirmation">Confirm Password</label>
+                    <button type="button" class="eye-btn" id="eyeBtn2" onclick="togglePassword('password_confirmation','eyeIcon2','eyeBtn2')" aria-label="Show password">
+                        <i class="fa-regular fa-eye" id="eyeIcon2"></i>
+                    </button>
                     <div class="fl-bar"></div>
                 </div>
             </div>
@@ -152,16 +172,20 @@
             <button type="submit"
                 class="btn-primary w-full bg-brandNavy hover:bg-brandGreen text-white font-bold py-3.5 rounded
                        transition-colors duration-300 text-xs uppercase tracking-[.16em]">
-                Send Reset Link &nbsp;<i class="fa-solid fa-paper-plane text-[10px]"></i>
+                Set New Password &nbsp;<i class="fa-solid fa-check text-[10px]"></i>
             </button>
         </form>
-
-        <div class="text-center">
-            <a href="{{ route('login') }}" class="text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-brandGreen dark:hover:text-brandGold
-                              transition-colors duration-200 hover:underline underline-offset-2">
-                <i class="fa-solid fa-arrow-left text-[9px]"></i> Back to Sign In
-            </a>
-        </div>
     </div>
+
+    <script>
+        function togglePassword(inputId, iconId, btnId) {
+            const input = document.getElementById(inputId);
+            const icon  = document.getElementById(iconId);
+            const btn   = document.getElementById(btnId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+            icon.className = input.type === 'password' ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+            btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
+        }
+    </script>
 </body>
 </html>

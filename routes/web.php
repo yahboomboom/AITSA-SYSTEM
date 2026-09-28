@@ -150,6 +150,11 @@ Route::middleware('auth')->group(function () {
      // confirming would redirect back to a page asking to confirm again.
      Route::get('/confirm-password', [\App\Http\Controllers\ConfirmPasswordController::class, 'show'])->name('password.confirm');
      Route::post('/confirm-password', [\App\Http\Controllers\ConfirmPasswordController::class, 'store'])->name('password.confirm.store')->middleware('throttle:5,1,confirm-password');
+
+     // Forced to change a Registrar-issued temporary password before doing
+     // anything else — see EnsurePasswordChangeIsNotPending.
+     Route::get('/force-password-change', [\App\Http\Controllers\AuthController::class, 'showForcePasswordChangeForm'])->name('password.force-change');
+     Route::post('/force-password-change', [\App\Http\Controllers\AuthController::class, 'forcePasswordChangeUpdate'])->name('password.force-change.submit');
     // 1. Student Dashboard Module
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -296,7 +301,7 @@ Route::middleware('auth')->group(function () {
         return view('documents', compact('requirements', 'submissions'));
     })->name('documents');
 
-    Route::post('/documents/submit-requirement', function (Request $request, \App\Services\DocumentVerificationService $docVerifier) {
+    Route::post('/documents/submit-requirement', function (Request $request) {
         $user = Auth::user();
         if (!$user) {
             return redirect()->route('login');
@@ -313,12 +318,6 @@ Route::middleware('auth')->group(function () {
         ]);
 
         $file = $request->file('document');
-
-        // Verify the uploaded file actually shows the submitting student's own name
-        // (OCR-read and compared against their account name) before accepting it.
-        if (!$docVerifier->verifyNameOnDocument($file, $user->name)) {
-            return redirect()->route('documents')->with('error', 'Mismatch document. Please resubmit the required file.');
-        }
 
         $submission = DocumentSubmission::create([
             'user_id' => $user->id,
@@ -352,12 +351,18 @@ Route::middleware('auth')->group(function () {
         return view('enrollment', compact('clearance', 'passedCodes', 'failedCodes', 'isIrregular', 'yearNum'));
     })->name('enrollment');
 
-    // Student Grades — read-only view of the authenticated student's own grade records.
-    Route::get('/grades', function () {
-        $grades = StudentGrade::where('user_id', Auth::id())->orderBy('subject_code')->get();
+    Route::get('/enrollment/{enrollment}/cor', function (Enrollment $enrollment, FeeAssessmentService $fees) {
+        $user = Auth::user();
+        abort_unless($enrollment->user_id === $user->id, 403);
+        abort_unless($enrollment->status === 'enrolled', 403, 'This enrollment is not yet approved.');
 
-        return view('grades', compact('grades'));
-    })->name('grades');
+        $enrollment->loadMissing('sections.subject', 'user');
+        $clearance = Clearance::currentFor($user);
+        $breakdown = $fees->breakdownFor($user);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('enrollment.cor-print', compact('enrollment', 'clearance', 'breakdown'));
+        return $pdf->stream('COR-' . $user->login_id . '.pdf');
+    })->name('enrollment.cor');
 
     // 5. Ledger Workspace Module (view renamed to `payment`)
     Route::get('/ledger', function (FeeAssessmentService $fees) {
@@ -466,8 +471,35 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending_registrar')
             ->latest('chair_at')
             ->get();
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'pendingGradeApprovals'));
+
+        $passwordResetRequests = User::where('role', 'student')
+            ->whereNotNull('password_reset_requested_at')
+            ->orderBy('password_reset_requested_at')
+            ->get();
+
+        return view('registrar.dashboard', compact('clearances', 'applicants', 'pendingGradeApprovals', 'passwordResetRequests'));
     })->name('registrar.dashboard');
+
+    Route::post('/registrar/password-resets/{student}', function (Request $request, User $student) {
+        abort_unless($student->role === 'student', 404);
+
+        $tempPassword = Str::password(12, symbols: false);
+
+        $student->forceFill([
+            'password' => Hash::make($tempPassword),
+            'must_change_password' => true,
+            'password_reset_requested_at' => null,
+        ])->save();
+
+        AuditLog::record(
+            'Student Password Reset',
+            'Registrar reset the password for ' . $student->name . ' (' . $student->login_id . ').',
+            'User',
+            $student->id
+        );
+
+        return back()->with('success', "Temporary password for {$student->name} ({$student->login_id}): {$tempPassword} — relay this to the student in person. They'll be required to set a new password on next login.");
+    })->name('registrar.password-resets.reset')->middleware('password.confirm:,900');
 
     // Document submissions get their own page (moved off the Dashboard, which
     // was getting crowded) — opens straight to the pending queue by default,
@@ -1307,81 +1339,6 @@ Route::middleware('auth')->group(function () {
         return view('admin.dashboard', compact('context'));
     })->name('admin.dashboard');
 
-    // Walk-in registration — for staff to manually register a student who never
-    // went through the online /apply pipeline. Applicants who did apply are now
-    // converted to student accounts automatically once their reservation fee is
-    // confirmed paid (see AdmissionService), so no admin step is needed for them.
-    Route::get('/admin/students/create', function () {
-        $programs = Program::orderBy('level')->orderBy('code')->get();
-        return view('admin.create-student', ['applicant' => null, 'programs' => $programs]);
-    })->name('admin.students.create');
-
-    Route::post('/admin/students/create', function (Request $request) {
-        // The applicant-activation path (applicant_id present) still submits a
-        // single pre-filled, read-only `name` — it's copied verbatim from the
-        // applicant's own application, not re-typed. A fresh walk-in
-        // registration has no such record to copy, so it's split into
-        // last/first/middle name fields instead.
-        $isApplicant = $request->filled('applicant_id');
-
-        $request->validate([
-            'name'           => [$isApplicant ? 'required' : 'nullable', 'string', 'max:255'],
-            'last_name'      => [$isApplicant ? 'nullable' : 'required', 'string', 'max:100'],
-            'first_name'     => [$isApplicant ? 'nullable' : 'required', 'string', 'max:100'],
-            'middle_name'    => ['nullable', 'string', 'max:100'],
-            'email'          => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'login_id'       => ['required', 'string', 'max:50', 'unique:users,login_id'],
-            'password'       => ['required', 'string', 'min:8', 'confirmed'],
-            'major'          => ['required', 'string'],
-            'year_level'     => ['required', 'string'],
-            'section'        => ['nullable', 'string', 'max:50'],
-            'sex'            => ['nullable', 'string'],
-            'contact_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]+$/'],
-            'date_of_birth'  => ['nullable', 'date'],
-            'address'        => ['nullable', 'string', 'max:500'],
-            'applicant_type' => ['nullable', 'string'],
-        ], [
-            'email.unique'          => 'This email is already registered.',
-            'login_id.unique'       => 'This Student ID is already taken.',
-            'password.confirmed'    => 'Password and confirmation do not match.',
-            'contact_number.regex'  => 'Contact number may only contain digits.',
-        ]);
-
-        $name = $isApplicant
-            ? $request->input('name')
-            : trim($request->input('last_name')) . ', ' . trim($request->input('first_name'))
-                . ($request->filled('middle_name') ? ' ' . trim($request->input('middle_name')) : '');
-
-        $student = User::create([
-            'name'           => $name,
-            'email'          => $request->input('email'),
-            'login_id'       => $request->input('login_id'),
-            'password'       => $request->input('password'),
-            'role'           => 'student',
-            'major'          => $request->input('major'),
-            'year_level'     => $request->input('year_level'),
-            'section'        => $request->input('section'),
-            'sex'            => $request->input('sex'),
-            'contact_number' => $request->input('contact_number'),
-            'date_of_birth'  => $request->input('date_of_birth'),
-            'address'        => $request->input('address'),
-            'applicant_type' => $request->input('applicant_type'),
-            'program_level'  => $request->input('program_level'),
-        ]);
-
-        Clearance::initializeFor(
-            $student->id,
-            Setting::get('school_year', '2026-2027'),
-            (int) Setting::get('semester', '1'),
-            ['admission_status' => 'Approved', 'chair_status' => 'Pending', 'cashier_status' => 'Pending', 'registrar_status' => 'Pending']
-        );
-
-        AuditLog::record('Account Created', 'Admin created student account for ' . $student->name . ' (Login ID: ' . $student->login_id . ', Program: ' . ($student->major ?? 'N/A') . ', Year: ' . ($student->year_level ?? 'N/A') . ').', 'User', $student->id);
-
-        return redirect()->route('admin.students.create')
-            ->with('success', 'Account created for ' . $student->name . '. Login ID: ' . $student->login_id . '.');
-    })->name('admin.students.store');
-
     Route::get('/admin/students', function (Request $request) {
         $query = User::where('role', 'student');
 
@@ -1775,13 +1732,19 @@ Route::middleware('auth')->group(function () {
             }
 
             $created = 0;
+            $promoted = 0;
+            // A new school year (not just the next semester within the same
+            // year) is when a continuing student actually moves up a year —
+            // e.g. Sem 2 of 2026-2027 -> Sem 1 of 2027-2028.
+            $isNewSchoolYear = $data['school_year'] !== $currentSchoolYear;
+            $yearLabels = [1 => '1st Year', 2 => '2nd Year', 3 => '3rd Year', 4 => '4th Year'];
 
-            DB::transaction(function () use ($data, &$created) {
-                $collegeProgramCodes = Program::whereIn('level', ['associate', 'bachelor'])->pluck('code');
+            DB::transaction(function () use ($data, $isNewSchoolYear, $yearLabels, &$created, &$promoted) {
+                $collegePrograms = Program::whereIn('level', ['associate', 'bachelor'])->get()->keyBy('code');
 
                 User::where('role', 'student')
-                    ->whereIn('major', $collegeProgramCodes)
-                    ->chunkById(100, function ($students) use ($data, &$created) {
+                    ->whereIn('major', $collegePrograms->keys())
+                    ->chunkById(100, function ($students) use ($data, $isNewSchoolYear, $yearLabels, $collegePrograms, &$created, &$promoted) {
                         foreach ($students as $student) {
                             Clearance::initializeFor($student->id, $data['school_year'], (int) $data['semester'], [
                                 'admission_status' => 'Approved',
@@ -1790,6 +1753,15 @@ Route::middleware('auth')->group(function () {
                                 'registrar_status' => 'Pending',
                             ]);
                             $created++;
+
+                            if ($isNewSchoolYear) {
+                                $currentYearNum = $student->yearNumber();
+                                $maxYear = $collegePrograms[$student->major]->years ?? 4;
+                                if ($currentYearNum < $maxYear) {
+                                    $student->update(['year_level' => $yearLabels[$currentYearNum + 1]]);
+                                    $promoted++;
+                                }
+                            }
                         }
                     });
 
@@ -1800,27 +1772,37 @@ Route::middleware('auth')->group(function () {
             AuditLog::record(
                 'New Term Started',
                 Auth::user()->name . ' started ' . $data['school_year'] . ' Semester ' . $data['semester'] .
-                    ' — created ' . $created . ' College clearance record(s).',
+                    ' — created ' . $created . ' College clearance record(s)' .
+                    ($promoted > 0 ? ', advanced ' . $promoted . ' student(s) to their next year level' : '') . '.',
                 'Clearance',
                 null
             );
 
-            return redirect()->route('registrar.slots')->with('success', 'Started ' . $data['school_year'] . ' Semester ' . $data['semester'] . ' for ' . $created . ' College student(s).');
+            $message = 'Started ' . $data['school_year'] . ' Semester ' . $data['semester'] . ' for ' . $created . ' College student(s).';
+            if ($promoted > 0) {
+                $message .= ' ' . $promoted . ' student(s) advanced to their next year level.';
+            }
+
+            return redirect()->route('registrar.slots')->with('success', $message);
         })->name('registrar.start-new-term');
 
         Route::post('/registrar/clearances/{clearance}/grant-provisional', function (Request $request, Clearance $clearance) {
-            $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+            $data = $request->validate([
+                'reason' => ['required', 'string', 'max:1000'],
+                'days' => ['required', 'integer', 'min:1', 'max:365'],
+            ]);
 
             $clearance->update([
                 'is_provisional' => true,
                 'provisional_reason' => $data['reason'],
                 'provisional_granted_by' => Auth::id(),
                 'provisional_granted_at' => now(),
+                'provisional_due_at' => now()->addDays((int) $data['days']),
             ]);
 
             AuditLog::record(
                 'Provisional Extension Granted',
-                Auth::user()->name . ' granted a provisional clearance extension to ' .
+                Auth::user()->name . ' granted a ' . $data['days'] . '-day provisional clearance extension to ' .
                     ($clearance->user->name ?? 'ID ' . $clearance->user_id) . ' (' . ($clearance->user->login_id ?? 'N/A') . '): ' . $data['reason'],
                 'Clearance',
                 $clearance->id

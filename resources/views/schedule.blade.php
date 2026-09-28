@@ -35,7 +35,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <button onclick="window.print()" class="ui-btn-primary hidden md:flex bg-brandNavy hover:bg-brandGreen text-white transition-colors">
-                    <i class="fa-solid fa-print"></i>Print COR
+                    <i class="fa-solid fa-print"></i>Print Schedule
                 </button>
                 <div class="flex items-center gap-4 border-l border-brandNavy/10 dark:border-slate-700 pl-3">
                     @include('partials.notif-bell')

@@ -39,12 +39,7 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">{{ session('success') }}</div>
-                @endif
-                @if(session('error'))
-                    <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">{{ session('error') }}</div>
-                @endif
+                @include('partials.snackbar')
                 @if ($errors->any())
                     <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">{{ $errors->first() }}</div>
                 @endif

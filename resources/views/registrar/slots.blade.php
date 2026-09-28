@@ -38,11 +38,7 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
-                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 <div class="space-y-1">
                     <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Admission slots</h1>

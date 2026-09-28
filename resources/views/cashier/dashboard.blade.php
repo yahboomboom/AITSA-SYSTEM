@@ -33,19 +33,7 @@
             </header>
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5">
 
-                @if(session('success'))
-                    <div class="bg-brandGreen/10 border border-brandGreen/20 text-brandGreen px-4 py-3 rounded text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>{{ session('error') }}</span>
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>

@@ -30,11 +30,7 @@
     </header>
 
     <main class="flex-1 p-6 lg:p-10 max-w-md w-full mx-auto space-y-6">
-        @if (session('success'))
-            <div class="p-3.5 rounded-lg bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-xs font-bold">
-                <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-            </div>
-        @endif
+        @include('partials.snackbar')
 
         <div id="signature-root" data-context="{{ json_encode([
             'signaturePath' => $user->signature_path ? Storage::url($user->signature_path) : null,

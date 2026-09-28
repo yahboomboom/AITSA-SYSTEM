@@ -30,6 +30,28 @@ class RegistrarSlotsIslandTest extends TestCase
         $response->assertSee('&quot;totalSlots&quot;:120', false);
     }
 
+    public function test_saving_a_slot_limit_shows_a_snackbar_not_a_static_banner(): void
+    {
+        Setting::put('school_year', '2026-2027');
+        Setting::clearCache();
+
+        $registrar = User::factory()->create(['role' => 'registrar']);
+        $program = collect(config('curricula'))->first();
+        $limit = AdmissionSlotLimit::forProgram($program['id'], $program['name'], '2026-2027');
+
+        $this->actingAs($registrar)
+            ->from('/registrar/slots')
+            ->post("/registrar/slots/{$limit->id}", ['total_slots' => 150, 'sections' => 3])
+            ->assertRedirect('/registrar/slots');
+
+        $response = $this->get('/registrar/slots');
+
+        $response->assertOk();
+        $response->assertSee('id="snackbar"', false);
+        $response->assertSee('data-type="success"', false);
+        $response->assertSee('updated.', false);
+    }
+
     public function test_guest_is_redirected(): void
     {
         $this->get('/registrar/slots')->assertRedirect();

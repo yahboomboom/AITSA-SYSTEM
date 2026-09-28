@@ -38,17 +38,7 @@
 
             <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
-                @if(session('success'))
-                    <div class="p-4 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm">
-                        <i class="fa-solid fa-circle-check mr-2"></i>{{ session('success') }}
-                    </div>
-                @endif
-
-                @if(session('error'))
-                    <div class="p-4 rounded bg-red-600/10 border border-red-600/20 text-red-600 text-sm">
-                        <i class="fa-solid fa-circle-xmark mr-2"></i>{{ session('error') }}
-                    </div>
-                @endif
+                @include('partials.snackbar')
 
                 @php
                     $context = [
@@ -81,7 +71,8 @@
                             'studentId' => $row->user->login_id ?? '—',
                             'program' => $row->user->major ?? '—',
                             'isApproved' => ($row->registrar_status ?? 'Pending') === 'Approved',
-                            'isProvisional' => (bool) $row->is_provisional,
+                            'isProvisional' => $row->isProvisionalActive(),
+                            'provisionalDueAtFormatted' => $row->provisional_due_at?->format('M d, Y'),
                             'signUrl' => route('registrar.sign', $row->id),
                             'holdUrl' => route('registrar.hold', $row->id),
                             'grantProvisionalUrl' => route('registrar.grant-provisional', $row->id),
@@ -109,6 +100,13 @@
                             ])->values(),
                             ];
                         })->values(),
+                        'passwordResetRequests' => $passwordResetRequests->map(fn ($student) => [
+                            'id' => $student->id,
+                            'name' => $student->name,
+                            'loginId' => $student->login_id,
+                            'requestedAtFormatted' => $student->password_reset_requested_at->format('M d, Y g:i A'),
+                            'resetUrl' => route('registrar.password-resets.reset', $student),
+                        ])->values(),
                     ];
                 @endphp
 
