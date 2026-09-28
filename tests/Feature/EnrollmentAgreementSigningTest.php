@@ -6,6 +6,7 @@ use App\Models\EnrollmentAgreement;
 use App\Models\User;
 use App\Services\PayMongoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -18,6 +19,12 @@ use Tests\TestCase;
 class EnrollmentAgreementSigningTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Http::fake(['www.google.com/recaptcha/*' => Http::response(['success' => true])]);
+    }
 
     private function baseApplicationData(array $overrides = []): array
     {
@@ -36,6 +43,7 @@ class EnrollmentAgreementSigningTest extends TestCase
             'program_name' => 'Bachelor in Science Office Administration',
             'program_level' => 'BACHELOR',
             'wants_reservation' => true,
+            'g-recaptcha-response' => 'test-token',
         ], $overrides);
     }
 

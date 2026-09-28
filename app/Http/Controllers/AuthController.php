@@ -21,6 +21,7 @@ use App\Models\AdmissionSlotLimit;
 use App\Models\Setting;
 use App\Services\FeeAssessmentService;
 use Illuminate\Support\Facades\Password;
+use App\Rules\Recaptcha;
 
 class AuthController extends Controller
 {
@@ -180,10 +181,12 @@ class AuthController extends Controller
             'program_name'   => ['required', 'string'],
             'program_level'  => ['required', 'string'],
             'remarks'        => ['nullable', 'string', 'max:1000'],
+            'g-recaptcha-response' => ['required', 'string', new Recaptcha()],
         ], [
             'email.unique' => 'An application with this email address already exists. If you need help, contact our admissions office.',
             'program_key.in' => 'That program could not be found. Please pick a program from the list.',
             'contact_number.regex' => 'Contact number may only contain digits.',
+            'g-recaptcha-response.required' => 'Please complete the "I\'m not a robot" check.',
         ]);
 
         $name = trim($request->input('last_name')) . ', ' . trim($request->input('first_name'))

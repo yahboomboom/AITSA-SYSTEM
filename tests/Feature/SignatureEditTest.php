@@ -20,7 +20,7 @@ class SignatureEditTest extends TestCase
     {
         $user = User::factory()->create(['signature_path' => null]);
 
-        $response = $this->actingAs($user)->get('/my-signature');
+        $response = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/my-signature');
 
         $response->assertOk();
         $response->assertSee('id="signature-root"', false);
@@ -31,7 +31,7 @@ class SignatureEditTest extends TestCase
     {
         $user = User::factory()->create(['signature_path' => 'signatures/existing.png']);
 
-        $response = $this->actingAs($user)->get('/my-signature');
+        $response = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->get('/my-signature');
 
         $response->assertOk();
         $response->assertSee('&quot;hasSignature&quot;:true', false);
@@ -42,7 +42,7 @@ class SignatureEditTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create(['signature_path' => null]);
 
-        $response = $this->actingAs($user)->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
+        $response = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -56,7 +56,7 @@ class SignatureEditTest extends TestCase
         Storage::disk('public')->put('signatures/old.png', 'fake-old-bytes');
         $user = User::factory()->create(['signature_path' => 'signatures/old.png']);
 
-        $this->actingAs($user)->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
+        $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
 
         Storage::disk('public')->assertMissing('signatures/old.png');
         $this->assertNotSame('signatures/old.png', $user->fresh()->signature_path);
@@ -67,7 +67,7 @@ class SignatureEditTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create(['signature_path' => null]);
 
-        $response = $this->actingAs($user)->post('/my-signature', ['signature' => '']);
+        $response = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->post('/my-signature', ['signature' => '']);
 
         $response->assertSessionHasErrors('signature');
         $this->assertNull($user->fresh()->signature_path);
@@ -78,7 +78,7 @@ class SignatureEditTest extends TestCase
         Storage::fake('public');
         $user = User::factory()->create(['signature_path' => null]);
 
-        $response = $this->actingAs($user)->post('/my-signature', ['signature' => 'data:image/png;base64,not-real-png-bytes']);
+        $response = $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()])->post('/my-signature', ['signature' => 'data:image/png;base64,not-real-png-bytes']);
 
         $response->assertSessionHasErrors('signature');
         $this->assertNull($user->fresh()->signature_path);
@@ -87,5 +87,31 @@ class SignatureEditTest extends TestCase
     public function test_guest_is_redirected(): void
     {
         $this->get('/my-signature')->assertRedirect();
+    }
+
+    public function test_viewing_the_signature_page_requires_step_up_reauth(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/my-signature')->assertRedirect('/confirm-password');
+    }
+
+    public function test_saving_a_signature_requires_step_up_reauth(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post('/my-signature', ['signature' => $this->fakeSignatureDataUrl()]);
+
+        $response->assertRedirect('/confirm-password');
+        $this->assertNull($user->fresh()->signature_path);
+    }
+
+    public function test_confirming_once_unlocks_the_signature_page(): void
+    {
+        $user = User::factory()->create(['password' => \Illuminate\Support\Facades\Hash::make('password')]);
+
+        $this->actingAs($user)->post('/confirm-password', ['password' => 'password']);
+
+        $this->actingAs($user)->get('/my-signature')->assertOk();
     }
 }

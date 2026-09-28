@@ -133,8 +133,8 @@ Route::middleware('signed')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-     Route::get('/my-signature', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('signature.edit');
-     Route::post('/my-signature', [\App\Http\Controllers\SignatureController::class, 'update'])->name('signature.update');
+     Route::get('/my-signature', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('signature.edit')->middleware('password.confirm:,900');
+     Route::post('/my-signature', [\App\Http\Controllers\SignatureController::class, 'update'])->name('signature.update')->middleware('password.confirm:,900');
 
      Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
      Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');

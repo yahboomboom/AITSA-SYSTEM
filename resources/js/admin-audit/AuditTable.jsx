@@ -63,14 +63,13 @@ export default function AuditTable({ logs, pagination }) {
                                     <th className="border-brandNavy/8 dark:border-slate-800">Action</th>
                                     <th className="border-brandNavy/8 dark:border-slate-800">Performed by</th>
                                     <th className="border-brandNavy/8 dark:border-slate-800">Description</th>
-                                    <th className="border-brandNavy/8 dark:border-slate-800">Target</th>
                                     <th className="border-brandNavy/8 dark:border-slate-800">IP address</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filtered.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="border-brandNavy/8 dark:border-slate-800 py-10 text-center text-brandNavy/40 dark:text-slate-500">No matching entries.</td>
+                                        <td colSpan={6} className="border-brandNavy/8 dark:border-slate-800 py-10 text-center text-brandNavy/40 dark:text-slate-500">No matching entries.</td>
                                     </tr>
                                 )}
                                 {filtered.map((log, i) => (
@@ -89,9 +88,6 @@ export default function AuditTable({ logs, pagination }) {
                                         </td>
                                         <td className="border-brandNavy/8 dark:border-slate-800 max-w-xs">
                                             <p className="text-brandNavy/80 dark:text-slate-300 leading-snug">{log.description}</p>
-                                        </td>
-                                        <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-xs text-brandNavy/50 dark:text-slate-500">
-                                            {log.targetType ? `${log.targetType} #${log.targetId}` : '—'}
                                         </td>
                                         <td className="border-brandNavy/8 dark:border-slate-800 font-mono text-xs text-brandNavy/40 dark:text-slate-600">
                                             {log.ipAddress ?? '—'}

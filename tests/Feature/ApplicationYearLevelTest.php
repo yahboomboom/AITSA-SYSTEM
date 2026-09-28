@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -15,6 +16,12 @@ use Tests\TestCase;
 class ApplicationYearLevelTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Http::fake(['www.google.com/recaptcha/*' => Http::response(['success' => true])]);
+    }
 
     private function baseApplicationData(array $overrides = []): array
     {
@@ -32,6 +39,7 @@ class ApplicationYearLevelTest extends TestCase
             'program_key' => 'bsoa',
             'program_name' => 'Bachelor in Science Office Administration',
             'program_level' => 'BACHELOR',
+            'g-recaptcha-response' => 'test-token',
         ], $overrides);
     }
 

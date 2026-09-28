@@ -345,6 +345,10 @@
                 </div>
             </div>
 
+            <div class="px-6 lg:px-8 pt-2">
+                <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+            </div>
+
             <div class="px-6 lg:px-8 py-5 border-t border-brandNavy/8 bg-lightBg flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p class="text-[10px] text-brandNavy/40">Fields marked <span class="text-red-500">*</span> are required.</p>
                 {{-- type="button" (not "submit") — opens the React review modal (apply-app.jsx) via the
@@ -361,6 +365,8 @@
     </div>
 
 </div>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 {{-- ═══ REVIEW & CONFIRM MODAL — React island (resources/js/apply-app.jsx) ═══
      Reads the plain <form id="applicationForm"> via the DOM (FormData), shows a

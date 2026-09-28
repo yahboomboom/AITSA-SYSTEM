@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -16,6 +17,12 @@ use Tests\TestCase;
 class ApplicationProgramCodeTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Http::fake(['www.google.com/recaptcha/*' => Http::response(['success' => true])]);
+    }
 
     private function baseApplicationData(array $overrides = []): array
     {
@@ -33,6 +40,7 @@ class ApplicationProgramCodeTest extends TestCase
             'program_key' => 'em3',
             'program_name' => 'Events Management NC III',
             'program_level' => 'TESDA',
+            'g-recaptcha-response' => 'test-token',
         ], $overrides);
     }
 

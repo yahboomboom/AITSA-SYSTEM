@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import ConfirmDocumentModal from './ConfirmDocumentModal';
 
 const STATUS_STYLES = {
     pending: 'border-brandGold text-brandGold',
@@ -23,6 +24,7 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [expandedStudentId, setExpandedStudentId] = useState(null);
+    const [pendingAction, setPendingAction] = useState(null);
     const query = search.trim();
     const requestId = useRef(0);
 
@@ -246,26 +248,20 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
                                                 <td className="border-brandNavy/8 dark:border-slate-800 text-right">
                                                     {doc.status === 'pending' ? (
                                                         <div className="flex flex-col items-end gap-2">
-                                                            <form action={doc.acceptUrl} method="POST">
-                                                                <input type="hidden" name="_token" value={csrfToken} />
-                                                                <button type="submit" className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors">
-                                                                    <i className="fa-solid fa-check" />Accept
-                                                                </button>
-                                                            </form>
-                                                            <form action={doc.rejectUrl} method="POST" className="flex items-center gap-2">
-                                                                <input type="hidden" name="_token" value={csrfToken} />
-                                                                <input
-                                                                    type="text"
-                                                                    name="remarks"
-                                                                    required
-                                                                    maxLength={500}
-                                                                    placeholder="Reason for rejection"
-                                                                    className="w-44 bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-xs text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 px-3 py-2 rounded focus:outline-none focus:border-red-400"
-                                                                />
-                                                                <button type="submit" className="ui-btn-primary bg-transparent border border-red-500 text-red-600 hover:bg-red-500 hover:text-white transition-colors">
-                                                                    Reject
-                                                                </button>
-                                                            </form>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPendingAction({ type: 'accept', doc, studentName: group.studentName })}
+                                                                className="ui-btn-primary bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors"
+                                                            >
+                                                                <i className="fa-solid fa-check" />Accept
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPendingAction({ type: 'reject', doc, studentName: group.studentName })}
+                                                                className="ui-btn-primary bg-transparent border border-red-500 text-red-600 hover:bg-red-500 hover:text-white transition-colors"
+                                                            >
+                                                                Reject
+                                                            </button>
                                                         </div>
                                                     ) : (
                                                         <span className="text-xs text-brandNavy/40 dark:text-slate-500">Reviewed</span>
@@ -280,6 +276,7 @@ export default function DocumentSubmissionsTable({ searchUrl, pendingCount, reje
                     </tbody>
                 </table>
             </div>
+            <ConfirmDocumentModal action={pendingAction} csrfToken={csrfToken} onClose={() => setPendingAction(null)} />
         </div>
     );
 }

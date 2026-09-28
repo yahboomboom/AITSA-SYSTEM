@@ -57,8 +57,6 @@
                         'actorName' => $log->actor_name ?? 'System',
                         'actorId' => $log->actor_id,
                         'description' => $log->description,
-                        'targetType' => $log->target_type,
-                        'targetId' => $log->target_id,
                         'ipAddress' => $log->ip_address,
                     ]),
                     'pagination' => [

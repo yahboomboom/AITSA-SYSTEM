@@ -43,4 +43,13 @@ return [
         'cancel_url' => env('PAYMONGO_CANCEL_URL'),/**cancel */
         'webhook_secret' => env('PAYMONGO_WEBHOOK_SECRET'),
     ],
+
+    'recaptcha' => [
+        // Google's published test keys by default — always show the
+        // checkbox and always pass, so this works on localhost with zero
+        // setup. Swap in real keys from google.com/recaptcha/admin before
+        // this form is exposed to the public.
+        'site_key' => env('RECAPTCHA_SITE_KEY', '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY', '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'),
+    ],
 ];
