@@ -323,7 +323,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 'local'),
+            'file_path' => $file->store('documents', 's3'),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -1153,9 +1153,9 @@ Route::middleware('auth')->group(function () {
         $user = Auth::user();
         $allowed = $user->id === $submission->user_id || in_array($user->role, ['registrar', 'admission']);
         abort_unless($allowed, 403);
-        abort_unless(Storage::disk('local')->exists($submission->file_path), 404);
+        abort_unless(Storage::disk('s3')->exists($submission->file_path), 404);
 
-        return Storage::disk('local')->response($submission->file_path, $submission->original_name);
+        return Storage::disk('s3')->response($submission->file_path, $submission->original_name);
     })->middleware('auth')->name('documents.show');
 
 
