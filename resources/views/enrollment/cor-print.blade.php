@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: sans-serif; font-size: 12px; color: #0D1B2A; }
+        body { font-family: sans-serif; font-size: 12px; color: #10222D; }
         .letterhead { text-align: center; margin-bottom: 16px; }
         .letterhead img { height: 56px; margin-bottom: 4px; }
         .letterhead h2 { margin: 0; font-size: 16px; letter-spacing: 2px; }
@@ -18,7 +18,7 @@
         table.grid th { background: #f2f2f2; }
         .text-right { text-align: right; }
         .total-row td { font-weight: bold; }
-        .registered-box { display: inline-block; border: 2px solid #1D7A46; color: #1D7A46; padding: 8px 16px; font-weight: bold; text-align: center; }
+        .registered-box { display: inline-block; border: 2px solid #2A8042; color: #2A8042; padding: 8px 16px; font-weight: bold; text-align: center; }
         .pending-box { display: inline-block; border: 2px solid #999; color: #666; padding: 8px 16px; font-weight: bold; text-align: center; }
         .sig-block { display: inline-block; width: 40%; text-align: center; vertical-align: top; margin-top: 40px; }
         .sig-img { height: 50px; margin-bottom: 4px; }

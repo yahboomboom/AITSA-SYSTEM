@@ -33,7 +33,7 @@ export default function ClearanceQueueTable({ rows, csrfToken, documentsPageUrl 
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search student name or ID…"
-                            className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen dark:focus:border-emerald-500/50 transition-colors"
+                            className="w-full bg-white dark:bg-slate-900/60 border border-brandNavy/10 dark:border-slate-800 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/40 dark:placeholder-slate-500 pl-9 pr-4 py-2 rounded focus:outline-none focus:border-brandGreen dark:focus:border-[#3E9E5C]/50 transition-colors"
                         />
                     </div>
                     <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ function ClearanceRow({ row, csrfToken, documentsPageUrl }) {
                         <i className="fa-solid fa-circle-check" />Cleared
                     </span>
                 ) : row.isProvisional ? (
-                    <span className="ui-badge-outline border-cyan-600 text-cyan-600" title={row.provisionalDueAtFormatted ? `Due ${row.provisionalDueAtFormatted}` : undefined}>
+                    <span className="ui-badge-outline border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE]" title={row.provisionalDueAtFormatted ? `Due ${row.provisionalDueAtFormatted}` : undefined}>
                         <i className="fa-solid fa-hourglass-half" />Provisional{row.provisionalDueAtFormatted ? ` — due ${row.provisionalDueAtFormatted}` : ''}
                     </span>
                 ) : (
@@ -134,7 +134,7 @@ function ClearanceRow({ row, csrfToken, documentsPageUrl }) {
                                 <button
                                     type="button"
                                     onClick={() => setOpenAction((current) => (current === 'provisional' ? null : 'provisional'))}
-                                    className="ui-btn-primary bg-cyan-600 hover:bg-cyan-700 text-white transition-colors"
+                                    className="ui-btn-primary bg-brandNavy hover:bg-[#18435B] text-white transition-colors"
                                 >
                                     Provisional
                                 </button>
@@ -156,7 +156,7 @@ function ClearanceRow({ row, csrfToken, documentsPageUrl }) {
                         <input type="hidden" name="_token" value={csrfToken} />
                         <input type="text" name="reason" required maxLength={1000} placeholder="Reason for provisional" className="min-w-0 flex-1 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2.5 py-1.5 text-xs text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500" />
                         <input type="number" name="days" required min={1} max={365} defaultValue={14} title="Days before this extension expires" className="w-16 bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500" />
-                        <button type="submit" className="ui-btn-primary bg-cyan-600 hover:bg-cyan-700 text-white transition-colors">
+                        <button type="submit" className="ui-btn-primary bg-brandNavy hover:bg-[#18435B] text-white transition-colors">
                             Grant
                         </button>
                     </form>

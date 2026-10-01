@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Announcement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminAnnouncementsTest extends TestCase
@@ -76,5 +78,82 @@ class AdminAnnouncementsTest extends TestCase
 
         $this->actingAs($student)->get('/admin/announcements')->assertForbidden();
         $this->actingAs($student)->post('/admin/announcements', ['title' => 'X', 'body' => 'Y'])->assertForbidden();
+    }
+
+    public function test_admin_can_post_an_announcement_with_an_image_attachment(): void
+    {
+        Storage::fake('local');
+        $image = UploadedFile::fake()->create('poster.jpg', 50, 'image/jpeg');
+
+        $this->actingAs($this->admin)
+            ->post('/admin/announcements', ['title' => 'Photo day', 'body' => 'Smile!', 'attachment' => $image])
+            ->assertRedirect(route('admin.announcements'));
+
+        $announcement = Announcement::where('title', 'Photo day')->firstOrFail();
+        $this->assertSame('poster.jpg', $announcement->attachment_name);
+        Storage::disk('local')->assertExists($announcement->attachment_path);
+    }
+
+    public function test_admin_can_post_an_announcement_with_a_pdf_attachment(): void
+    {
+        Storage::fake('local');
+        $pdf = UploadedFile::fake()->create('handbook.pdf', 100, 'application/pdf');
+
+        $this->actingAs($this->admin)
+            ->post('/admin/announcements', ['title' => 'Handbook', 'body' => 'Read this.', 'attachment' => $pdf])
+            ->assertRedirect(route('admin.announcements'));
+
+        $announcement = Announcement::where('title', 'Handbook')->firstOrFail();
+        $this->assertSame('handbook.pdf', $announcement->attachment_name);
+        Storage::disk('local')->assertExists($announcement->attachment_path);
+    }
+
+    public function test_attachment_must_be_an_allowed_file_type(): void
+    {
+        Storage::fake('local');
+        $script = UploadedFile::fake()->create('virus.exe', 10, 'application/octet-stream');
+
+        $this->actingAs($this->admin)->from('/admin/announcements')
+            ->post('/admin/announcements', ['title' => 'Bad file', 'body' => 'Nope.', 'attachment' => $script])
+            ->assertSessionHasErrors('attachment');
+    }
+
+    public function test_deleting_an_announcement_removes_its_stored_attachment(): void
+    {
+        Storage::fake('local');
+        $image = UploadedFile::fake()->create('old.jpg', 50, 'image/jpeg');
+        $this->actingAs($this->admin)->post('/admin/announcements', ['title' => 'Old', 'body' => 'B', 'attachment' => $image]);
+        $announcement = Announcement::where('title', 'Old')->firstOrFail();
+        $path = $announcement->attachment_path;
+
+        $this->actingAs($this->admin)->post("/admin/announcements/{$announcement->id}/delete");
+
+        Storage::disk('local')->assertMissing($path);
+    }
+
+    public function test_any_authenticated_user_can_view_an_announcement_attachment(): void
+    {
+        Storage::fake('local');
+        $image = UploadedFile::fake()->create('flyer.jpg', 50, 'image/jpeg');
+        $this->actingAs($this->admin)->post('/admin/announcements', ['title' => 'Flyer', 'body' => 'B', 'attachment' => $image]);
+        $announcement = Announcement::where('title', 'Flyer')->firstOrFail();
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->get("/announcements/{$announcement->id}/attachment")->assertOk();
+    }
+
+    public function test_attachment_route_404s_when_announcement_has_none(): void
+    {
+        $announcement = Announcement::create(['title' => 'No file', 'body' => 'B', 'posted_by' => $this->admin->id, 'is_active' => true]);
+        $student = User::factory()->create(['role' => 'student']);
+
+        $this->actingAs($student)->get("/announcements/{$announcement->id}/attachment")->assertNotFound();
+    }
+
+    public function test_guest_cannot_view_an_announcement_attachment(): void
+    {
+        $announcement = Announcement::create(['title' => 'No file', 'body' => 'B', 'posted_by' => $this->admin->id, 'is_active' => true]);
+
+        $this->get("/announcements/{$announcement->id}/attachment")->assertRedirect();
     }
 }

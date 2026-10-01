@@ -17,7 +17,7 @@
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
 
-            <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
+            <header class="h-20 ui-appbar border-b flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
                 <div class="flex items-center space-x-3">
                     <button onclick="toggleMobileSidebar()" aria-label="Open sidebar menu" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
@@ -64,6 +64,8 @@
                     data-context="{{ json_encode($context) }}"
                     data-csrf-token="{{ csrf_token() }}"
                     data-start-term-url="{{ route('registrar.start-new-term') }}"
+                    data-max-units="{{ \App\Models\Setting::get('max_units_per_term', '26') }}"
+                    data-max-units-url="{{ Auth::user()->role === 'registrar' ? route('registrar.max-units') : '' }}"
                 >
                     <p class="text-sm text-slate-500">Loading…</p>
                 </div>

@@ -40,20 +40,20 @@
             transform: translateY(0) scale(0.72);
             font-weight: 600;
             letter-spacing: 0.02em;
-            color: #1D7A46;
+            color: #2A8042;
         }
         .dark .fl-wrap input:focus ~ label,
-        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #E2A700; }
+        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #A86A0A; }
 
         .fl-bar {
             position: absolute;
             bottom: 0; left: 0;
             width: 0; height: 2px;
-            background: #1D7A46;
+            background: #2A8042;
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 0 0 2px 2px;
         }
-        .dark .fl-bar { background: #E2A700; }
+        .dark .fl-bar { background: #A86A0A; }
         .fl-wrap input:focus ~ .fl-bar { width: 100%; }
 
         .btn-primary { position: relative; overflow: hidden; }
@@ -86,7 +86,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 0 2px rgba(11,60,93,0.12);
         }
-        .dark .logo-img-wrap { background: #0D1B2A; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
+        .dark .logo-img-wrap { background: #10222D; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
     </style>
 </head>
 
@@ -118,9 +118,9 @@
         </div>
 
         @if (session('status'))
-        <div class="rounded-lg border border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900/30 px-4 py-3 flex gap-2.5 items-start">
+        <div class="rounded-lg border border-brandGreen/40 bg-brandGreen/5 dark:bg-brandGreen/20 dark:border-[#3E9E5C]/30 px-4 py-3 flex gap-2.5 items-start">
             <i class="fa-solid fa-circle-check text-brandGreen mt-0.5 text-sm flex-shrink-0"></i>
-            <p class="text-xs font-medium text-brandGreen dark:text-emerald-400">{{ session('status') }}</p>
+            <p class="text-xs font-medium text-brandGreen dark:text-[#7FD39A]">{{ session('status') }}</p>
         </div>
         @endif
 

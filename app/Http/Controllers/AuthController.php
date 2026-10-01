@@ -55,7 +55,10 @@ class AuthController extends Controller
         // Students often don't have a checked personal email on file, so their
         // reset goes through the Registrar instead of an email link. Every other
         // role keeps the existing self-service email flow.
-        if ($user && $user->role === 'student') {
+        if ($user && $user->role === 'withdrawn') {
+            // Withdrawn admissions can't log in anyway; resetting would only
+            // confuse them. Same response below, so the role isn't revealed.
+        } elseif ($user && $user->role === 'student') {
             $user->forceFill(['password_reset_requested_at' => now()])->save();
         } elseif ($user) {
             Password::sendResetLink(['email' => $user->email]);
@@ -114,6 +117,13 @@ class AuthController extends Controller
             $user = User::where('login_id', $login)->orWhere('email', $login)->first();
 
             if ($user && Hash::check($password, $user->password)) {
+                // Admission withdrawn (no-show) — keep the record, refuse the session.
+                if ($user->role === 'withdrawn') {
+                    return back()->withErrors([
+                        'login_id' => "Your admission was withdrawn. Please contact the Registrar's office.",
+                    ])->onlyInput('login_id');
+                }
+
                 Auth::login($user);
                 $request->session()->regenerate();
                 return $this->handleRoleRedirection($user);
@@ -399,13 +409,13 @@ class AuthController extends Controller
     public function showCashierDashboard(FeeAssessmentService $fees)
     {
         // Fixed: Swapped MySQL FIELD() function with a cross-platform conditional CASE block
-        $clearances = Clearance::has('user')->with('user.discountType')
+        $clearances = Clearance::has('user')->excludingWithdrawn()->with('user.discountType')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->orderByRaw("CASE WHEN cashier_status = 'Pending' THEN 0 ELSE 1 END ASC")
             ->get();
 
-        $totalOutstandingDocs = Clearance::where('cashier_status', 'Pending')
+        $totalOutstandingDocs = Clearance::excludingWithdrawn()->where('cashier_status', 'Pending')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->count();
@@ -479,7 +489,7 @@ class AuthController extends Controller
      */
     public function showCashierAccounts()
     {
-        $accounts = Clearance::has('user')->with('user')
+        $accounts = Clearance::has('user')->excludingWithdrawn()->with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->where('cashier_status', '!=', 'Approved')

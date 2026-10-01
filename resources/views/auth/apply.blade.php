@@ -30,16 +30,16 @@
     {{-- gradient: near-opaque on the left where text lives, fades right --}}
     <div class="absolute inset-0" style="background: linear-gradient(to right, rgba(11,60,93,0.92) 0%, rgba(11,60,93,0.80) 50%, rgba(11,60,93,0.45) 100%);"></div>
     <div class="relative max-w-5xl mx-auto">
-        <p class="text-brandGold text-xs font-black uppercase tracking-widest mb-3">Academic Year {{ $schoolYear }} Enrollment</p>
-        <h1 class="text-3xl lg:text-5xl font-black leading-tight mb-4" style="text-shadow:0 2px 16px rgba(0,0,0,0.45);">Start Your Journey<br>at <span class="text-brandGold">AITSA</span></h1>
+        <p class="text-[#E0A84A] text-xs font-black uppercase tracking-widest mb-3">Academic Year {{ $schoolYear }} Enrollment</p>
+        <h1 class="text-3xl lg:text-5xl font-black leading-tight mb-4" style="text-shadow:0 2px 16px rgba(0,0,0,0.45);">Start Your Journey<br>at <span class="text-[#E0A84A]">AITSA</span></h1>
         <p class="text-white/85 text-sm max-w-xl leading-relaxed">
             Apply for admission to any of our TESDA, Associate, or Bachelor programs.
             Once your application is reviewed, our admin team will send your login credentials directly to your email.
         </p>
         <div class="flex flex-wrap gap-4 mt-6 text-xs font-semibold text-white/85">
-            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-brandGold"></i>TESDA Accredited Programs</span>
-            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-brandGold"></i>CHED Recognized Degrees</span>
-            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-brandGold"></i>Brgy. Sala, Cabuyao, Laguna</span>
+            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-[#E0A84A]"></i>TESDA Accredited Programs</span>
+            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-[#E0A84A]"></i>CHED Recognized Degrees</span>
+            <span class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-[#E0A84A]"></i>Brgy. Sala, Cabuyao, Laguna</span>
         </div>
     </div>
 </section>
@@ -98,8 +98,8 @@
 
         {{-- TESDA --}}
         <div class="mb-6">
-            <p class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <span class="inline-block w-5 h-px bg-amber-500"></span>TESDA Short-Term Programs
+            <p class="text-[10px] font-black text-brandGold uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span class="inline-block w-5 h-px bg-brandGold"></span>TESDA Short-Term Programs
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 @foreach([
@@ -108,14 +108,14 @@
                     ['id'=>'fb3',  'name'=>'Food & Beverages NC III',   'icon'=>'fa-utensils',      'duration'=>'230 training hours'],
                 ] as $prog)
                 @php $slot = $slots[$prog['id']] ?? null; @endphp
-                <div class="prog-card bg-white border border-amber-200 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
+                <div class="prog-card bg-white border border-brandGold/20 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
                      data-prog="{{ $prog['id'] }}" data-level="TESDA" data-name="{{ $prog['name'] }}"
                      @if(!$slot || !$slot['isFull']) onclick="selectProgram('{{ $prog['id'] }}', 'TESDA', '{{ $prog['name'] }}')" @endif>
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
-                        <i class="fa-solid {{ $prog['icon'] }} text-amber-600"></i>
+                    <div class="w-10 h-10 rounded-xl bg-brandGold/10 flex items-center justify-center mb-3">
+                        <i class="fa-solid {{ $prog['icon'] }} text-brandGold"></i>
                     </div>
                     <h3 class="text-xs font-extrabold text-brandNavy leading-snug">{{ $prog['name'] }}</h3>
-                    <p class="text-[10px] text-amber-600 font-semibold mt-1">{{ $prog['duration'] }} · TESDA NC</p>
+                    <p class="text-[10px] text-brandGold font-semibold mt-1">{{ $prog['duration'] }} · TESDA NC</p>
                     <p class="text-[10px] text-brandNavy/40 mt-2">TESDA-certified vocational qualification recognized nationwide.</p>
                     @if($slot)
                         <p class="text-[10px] font-bold mt-2 {{ $slot['isFull'] ? 'text-red-500' : 'text-brandNavy/50' }}">
@@ -131,8 +131,8 @@
 
         {{-- ASSOCIATE --}}
         <div class="mb-6">
-            <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <span class="inline-block w-5 h-px bg-blue-500"></span>Associate Courses
+            <p class="text-[10px] font-black text-brandNavy dark:text-[#8EC3DE] uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span class="inline-block w-5 h-px bg-brandNavy"></span>Associate Courses
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @foreach([
@@ -140,15 +140,15 @@
                     ['id'=>'fsm', 'name'=>'Food Service Management',      'icon'=>'fa-bowl-food',  'abbr'=>'FSM'],
                 ] as $prog)
                 @php $slot = $slots[$prog['id']] ?? null; @endphp
-                <div class="prog-card bg-white border border-blue-200 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
+                <div class="prog-card bg-white border border-brandNavy/20 rounded-2xl p-5 shadow-sm {{ $slot && $slot['isFull'] ? 'opacity-50 cursor-not-allowed' : '' }}"
                      data-prog="{{ $prog['id'] }}" data-level="ASSOCIATE" data-name="{{ $prog['name'] }}"
                      @if(!$slot || !$slot['isFull']) onclick="selectProgram('{{ $prog['id'] }}', 'ASSOCIATE', '{{ $prog['name'] }}')" @endif>
-                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3">
-                       <i class="fa-solid {{ $prog['icon'] }} text-blue-600"></i>
+                    <div class="w-10 h-10 rounded-xl bg-brandNavy/10 flex items-center justify-center mb-3">
+                       <i class="fa-solid {{ $prog['icon'] }} text-brandNavy dark:text-[#8EC3DE]"></i>
                     </div>
-                    <span class="inline-block text-[9px] font-black text-blue-600 bg-blue-500/10 px-2 py-0.5 rounded-full mb-2">{{ $prog['abbr'] }}</span>
+                    <span class="inline-block text-[9px] font-black text-brandNavy dark:text-[#8EC3DE] bg-brandNavy/10 px-2 py-0.5 rounded-full mb-2">{{ $prog['abbr'] }}</span>
                     <h3 class="text-xs font-extrabold text-brandNavy leading-snug">{{ $prog['name'] }}</h3>
-                    <p class="text-[10px] text-blue-600 font-semibold mt-1">2 years · Associate Degree</p>
+                    <p class="text-[10px] text-brandNavy dark:text-[#8EC3DE] font-semibold mt-1">2 years · Associate Degree</p>
                     <p class="text-[10px] text-brandNavy/40 mt-2">CHED-recognized 2-year college associate program.</p>
                     @if($slot)
                         <p class="text-[10px] font-bold mt-2 {{ $slot['isFull'] ? 'text-red-500' : 'text-brandNavy/50' }}">
@@ -357,7 +357,7 @@
                      Fallback: if the React island failed to load for any reason (build not run yet,
                      JS error, etc.), submit the form directly instead of silently doing nothing. --}}
                 <button type="button" onclick="window.openApplicationReview ? window.openApplicationReview() : document.getElementById('applicationForm').requestSubmit()"
-                    class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-brandGreen hover:bg-emerald-700 text-white text-sm font-black rounded-xl transition-all shadow-md hover:-translate-y-0.5 active:translate-y-0">
+                    class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-brandGreen hover:bg-[#247039] text-white text-sm font-black rounded-xl transition-all shadow-md hover:-translate-y-0.5 active:translate-y-0">
                     <i class="fa-solid fa-paper-plane"></i>Submit Application
                 </button>
             </div>
@@ -438,10 +438,10 @@ selectProgram('{{ old('program_key') }}', '{{ old('program_level') }}', '{{ old(
 @if(session('receipt'))
 @php $receipt = session('receipt'); @endphp
 <div id="receiptModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60">
-    <div class="receipt-modal-enter bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+    <div class="receipt-modal-enter bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto">
 
         {{-- Success header --}}
-        <div class="bg-gradient-to-r from-brandGreen to-emerald-500 px-6 pt-4 pb-5 text-center relative">
+        <div class="bg-gradient-to-r from-brandGreen to-brandGreen px-6 pt-4 pb-5 text-center relative">
             <div class="w-11 h-11 rounded-full bg-white flex items-center justify-center mx-auto text-xl text-brandGreen shadow-lg">
                 <i class="fa-solid fa-circle-check"></i>
             </div>

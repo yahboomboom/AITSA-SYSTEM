@@ -41,20 +41,20 @@
             transform: translateY(0) scale(0.72);
             font-weight: 600;
             letter-spacing: 0.02em;
-            color: #1D7A46;
+            color: #2A8042;
         }
         .dark .fl-wrap input:focus ~ label,
-        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #E2A700; }
+        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #A86A0A; }
 
         .fl-bar {
             position: absolute;
             bottom: 0; left: 0;
             width: 0; height: 2px;
-            background: #1D7A46;
+            background: #2A8042;
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 0 0 2px 2px;
         }
-        .dark .fl-bar { background: #E2A700; }
+        .dark .fl-bar { background: #A86A0A; }
         .fl-wrap input:focus ~ .fl-bar { width: 100%; }
 
         /* ── Shimmer button ── */
@@ -128,17 +128,17 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 0 2px rgba(11,60,93,0.12);
         }
-        .dark .logo-img-wrap { background: #0D1B2A; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
+        .dark .logo-img-wrap { background: #10222D; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
 
         /* ── Online dot ── */
         .online-dot {
             position: absolute; bottom: 4px; right: 4px;
             width: 12px; height: 12px;
-            background: #1D7A46;
+            background: #2A8042;
             border-radius: 50%;
             border: 2px solid white;
         }
-        .dark .online-dot { border-color: #07101C; }
+        .dark .online-dot { border-color: #0A171F; }
 
         /* ── Animation delays ── */
         .d-100 { animation-delay: 100ms; }
@@ -154,13 +154,13 @@
             color: #64748b; font-size: .875rem; padding: 0;
         }
         .dark .eye-btn { color: #94a3b8; }
-        .eye-btn:hover { color: #1D7A46; }
-        .dark .eye-btn:hover { color: #E2A700; }
+        .eye-btn:hover { color: #2A8042; }
+        .dark .eye-btn:hover { color: #A86A0A; }
 
         /* ── Modal ── */
         .modal-backdrop { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
         ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #1D7A46; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: #2A8042; border-radius: 2px; }
     </style>
 </head>
 
@@ -175,7 +175,7 @@
              alt="AITSA Campus"
              class="absolute inset-0 w-full h-full object-cover opacity-55 scale-105 hover:scale-100 transition-transform duration-[2500ms]">
 
-        <div class="absolute inset-0 bg-gradient-to-br from-[#0B3C5D]/90 via-[#0B3C5D]/55 to-transparent pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-[#1D506D]/90 via-[#1D506D]/55 to-transparent pointer-events-none"></div>
         <div class="absolute inset-0 bg-gradient-to-t from-[#050e18]/92 via-transparent to-transparent pointer-events-none"></div>
 
         <div class="geo geo-a w-[68px] h-[68px] top-[17%] right-[14%]"></div>
@@ -293,7 +293,7 @@
                             Details
                         </button>
                         <a href="{{ route('apply') }}"
-                           class="text-[10px] font-bold bg-brandGreen hover:bg-emerald-600 text-white px-4 py-1.5 rounded
+                           class="text-[10px] font-bold bg-brandGreen hover:bg-[#247039] text-white px-4 py-1.5 rounded
                                   transition-colors">
                             Apply
                         </a>
@@ -313,7 +313,7 @@
 <div id="admissionModal"
      class="fixed inset-0 modal-backdrop bg-brandNavy/40 dark:bg-black/70 hidden items-center justify-center z-50 p-4 transition-opacity duration-300">
     <div id="modalBox"
-         class="bg-white dark:bg-[#0D1B2A] rounded-lg max-w-md w-full overflow-hidden shadow-xl
+         class="bg-white dark:bg-[#10222D] rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto shadow-xl
                 scale-95 opacity-0 transition-all duration-300 border border-brandNavy/5 dark:border-none">
 
         <div class="px-6 pt-6 pb-5 flex justify-between items-start">
@@ -362,7 +362,7 @@
                     Dismiss
                 </button>
                 <a href="{{ route('apply') }}"
-                   class="px-4 py-1.5 rounded text-xs font-bold bg-brandGreen hover:bg-emerald-600 text-white
+                   class="px-4 py-1.5 rounded text-xs font-bold bg-brandGreen hover:bg-[#247039] text-white
                           transition-colors">
                     Apply Now →
                 </a>

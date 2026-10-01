@@ -25,7 +25,7 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
             className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+            <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-700 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
                 <div className="p-5 border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between">
                     <span className="font-heading text-sm font-semibold text-brandNavy dark:text-white">Review clearance</span>
                     <button type="button" onClick={onClose} aria-label="Close" className="text-brandNavy/40 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white">
@@ -105,7 +105,7 @@ export default function ClearanceReviewModal({ open, student, onClose, csrfToken
                                 placeholder="Reason (e.g. financial hardship)"
                                 className="w-full bg-lightBg dark:bg-slate-900 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 text-sm text-brandNavy dark:text-slate-200 outline-none focus:border-brandNavy dark:focus:border-slate-500"
                             />
-                            <button type="submit" className="ui-btn-primary w-full justify-center bg-cyan-600 hover:bg-cyan-700 text-white transition-colors disabled:opacity-50">
+                            <button type="submit" className="ui-btn-primary w-full justify-center bg-brandNavy hover:bg-[#18435B] text-white transition-colors disabled:opacity-50">
                                 <i className="fa-solid fa-hand-holding-heart" />Waive down payment
                             </button>
                         </form>

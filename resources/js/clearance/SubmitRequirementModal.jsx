@@ -8,7 +8,7 @@ function formatBytes(bytes) {
 
 function fileIconClass(file) {
     if (file.type === 'application/pdf') return 'fa-solid fa-file-pdf text-red-500 text-base';
-    if (file.type.startsWith('image/')) return 'fa-solid fa-file-image text-blue-500 text-base';
+    if (file.type.startsWith('image/')) return 'fa-solid fa-file-image text-brandNavy dark:text-[#8EC3DE] text-base';
     return 'fa-solid fa-file text-slate-400 text-base';
 }
 
@@ -77,7 +77,7 @@ export default function SubmitRequirementModal({ open, onClose, csrfToken, submi
             className="fixed inset-0 bg-brandNavy/50 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div id="submitModalBox" className="modal-enter bg-white dark:bg-[#0D1B2A] rounded-lg w-full max-w-lg overflow-hidden shadow-lg border border-brandNavy/8 dark:border-slate-800">
+            <div id="submitModalBox" className="modal-enter bg-white dark:bg-[#10222D] rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-lg border border-brandNavy/8 dark:border-slate-800">
 
                 <div className="px-6 py-4 border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -165,8 +165,8 @@ export default function SubmitRequirementModal({ open, onClose, csrfToken, submi
                         />
                     </div>
 
-                    <div className="flex items-start gap-2.5 p-3 rounded bg-blue-600/5 border border-blue-600/10 dark:bg-blue-500/5 dark:border-blue-500/10 text-xs text-brandNavy/60 dark:text-slate-500">
-                        <i className="fa-solid fa-circle-info text-blue-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2.5 p-3 rounded bg-brandNavy/5 border border-brandNavy/10 dark:bg-brandNavy/5 dark:border-[#4D82A0]/10 text-xs text-brandNavy/60 dark:text-slate-500">
+                        <i className="fa-solid fa-circle-info text-brandNavy dark:text-[#8EC3DE] mt-0.5 flex-shrink-0" />
                         <p>Your submission will be forwarded directly to the Registrar&apos;s Office. You will be notified once your document has been reviewed, typically within <strong className="text-brandNavy dark:text-slate-300">1–3 business days</strong>. Submitting does not guarantee immediate clearance.</p>
                     </div>
 

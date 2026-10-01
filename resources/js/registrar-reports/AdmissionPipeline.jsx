@@ -14,7 +14,7 @@ export default function AdmissionPipeline({ pipeline, agreementsSigned }) {
                 </div>
                 <div className="p-5 text-center space-y-1 bg-white dark:bg-panelDark">
                     <p className="text-xs text-brandNavy/40 dark:text-slate-500">Verified</p>
-                    <p className="font-heading text-2xl font-semibold text-blue-600 dark:text-blue-400">{pipeline.verifiedApplicants}</p>
+                    <p className="font-heading text-2xl font-semibold text-brandNavy dark:text-[#8EC3DE] dark:text-[#8EC3DE]">{pipeline.verifiedApplicants}</p>
                     <p className="text-xs text-brandNavy/40 dark:text-slate-500">Awaiting account.</p>
                 </div>
                 <div className="p-5 text-center space-y-1 bg-white dark:bg-panelDark">

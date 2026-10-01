@@ -28,14 +28,14 @@ function StatusBanner({ submissionStatus, rejectedBy, remarks }) {
     }
     if (submissionStatus === 'pending_chair') {
         return (
-            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-sm font-bold">
+            <div className="p-4 rounded-lg bg-brandGold/5 dark:bg-brandGold/20 border border-brandGold/20 dark:border-brandGold text-brandGold dark:text-brandGold text-sm font-bold">
                 <i className="fa-solid fa-hourglass-half mr-2" />Submitted — awaiting Department Chair approval.
             </div>
         );
     }
     if (submissionStatus === 'pending_registrar') {
         return (
-            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-sm font-bold">
+            <div className="p-4 rounded-lg bg-brandGold/5 dark:bg-brandGold/20 border border-brandGold/20 dark:border-brandGold text-brandGold dark:text-brandGold text-sm font-bold">
                 <i className="fa-solid fa-hourglass-half mr-2" />Chair-approved — awaiting Registrar approval.
             </div>
         );

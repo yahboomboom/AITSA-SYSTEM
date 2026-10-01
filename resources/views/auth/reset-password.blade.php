@@ -40,20 +40,20 @@
             transform: translateY(0) scale(0.72);
             font-weight: 600;
             letter-spacing: 0.02em;
-            color: #1D7A46;
+            color: #2A8042;
         }
         .dark .fl-wrap input:focus ~ label,
-        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #E2A700; }
+        .dark .fl-wrap input:not(:placeholder-shown) ~ label { color: #A86A0A; }
 
         .fl-bar {
             position: absolute;
             bottom: 0; left: 0;
             width: 0; height: 2px;
-            background: #1D7A46;
+            background: #2A8042;
             transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 0 0 2px 2px;
         }
-        .dark .fl-bar { background: #E2A700; }
+        .dark .fl-bar { background: #A86A0A; }
         .fl-wrap input:focus ~ .fl-bar { width: 100%; }
 
         .btn-primary { position: relative; overflow: hidden; }
@@ -86,7 +86,7 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 0 0 2px rgba(11,60,93,0.12);
         }
-        .dark .logo-img-wrap { background: #0D1B2A; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
+        .dark .logo-img-wrap { background: #10222D; box-shadow: 0 0 0 2px rgba(226,167,0,0.15); }
 
         .eye-btn {
             position: absolute; right: .875rem; top: 50%;
@@ -95,8 +95,8 @@
             color: #64748b; font-size: .875rem; padding: 0;
         }
         .dark .eye-btn { color: #94a3b8; }
-        .eye-btn:hover { color: #1D7A46; }
-        .dark .eye-btn:hover { color: #E2A700; }
+        .eye-btn:hover { color: #2A8042; }
+        .dark .eye-btn:hover { color: #A86A0A; }
     </style>
 </head>
 

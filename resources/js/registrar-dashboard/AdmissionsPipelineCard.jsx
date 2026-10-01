@@ -18,7 +18,7 @@ export default function AdmissionsPipelineCard({ applicants, clearances, csrfTok
             <div className="px-6 mt-3 border-b border-brandNavy/10 dark:border-slate-800 flex">
                 <button type="button" onClick={() => setTab('applicants')} className={`${TAB_BASE} ${tab === 'applicants' ? TAB_ACTIVE : TAB_INACTIVE}`}>
                     Step 1 &middot; New Applicants
-                    {applicants.length > 0 && <span className="ui-badge-outline border-amber-500 text-amber-600">{applicants.length}</span>}
+                    {applicants.length > 0 && <span className="ui-badge-outline border-brandGold text-brandGold">{applicants.length}</span>}
                 </button>
                 <button type="button" onClick={() => setTab('clearance')} className={`${TAB_BASE} ${tab === 'clearance' ? TAB_ACTIVE : TAB_INACTIVE}`}>
                     Step 2 &middot; Clearance Processing

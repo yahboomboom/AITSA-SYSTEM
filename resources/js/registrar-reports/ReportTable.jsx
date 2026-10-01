@@ -13,7 +13,7 @@ function exportCSV(rows, schoolYear) {
             r.chairStatus,
             r.cashierStatus,
             r.registrarStatus,
-            r.isCleared ? 'Cleared' : 'Pending',
+            r.isWithdrawn ? 'Withdrawn' : (r.isCleared ? 'Cleared' : 'Pending'),
         ].join(','));
     });
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
@@ -118,7 +118,11 @@ export default function ReportTable({ rows, schoolYear }) {
                                     <td className="border-brandNavy/8 dark:border-slate-800 text-center"><StatusBadge status={r.cashierStatus} /></td>
                                     <td className="border-brandNavy/8 dark:border-slate-800 text-center"><StatusBadge status={r.registrarStatus} /></td>
                                     <td className="border-brandNavy/8 dark:border-slate-800 text-center">
-                                        {r.isCleared ? (
+                                        {r.isWithdrawn ? (
+                                            <span className="ui-badge-outline border-slate-400 text-slate-500 dark:text-slate-400">
+                                                <i className="fa-solid fa-user-xmark" />Withdrawn
+                                            </span>
+                                        ) : r.isCleared ? (
                                             <span className="ui-badge-outline border-brandGreen text-brandGreen">
                                                 <i className="fa-solid fa-circle-check" />Cleared
                                             </span>

@@ -57,7 +57,7 @@ function EnrollmentApp() {
     if (loading) return <p className="text-sm text-slate-500">Loading your enrollment…</p>;
     if (!ctx) return <p className="text-sm text-red-600">{error}</p>;
 
-    const { term, student, clearance_complete, enrollment, block, catalogue } = ctx;
+    const { term, student, clearance_complete, enrollment, block, catalogue, max_units } = ctx;
 
     return (
         <div className="space-y-6">
@@ -82,7 +82,7 @@ function EnrollmentApp() {
                         onResubmit={() => setResubmitting(true)}
                         action={enrollment.status === 'enrolled' && mtx?.window_open && !building
                             && (!mtx.request || mtx.request.status === 'approved') ? (
-                            <button onClick={() => setBuilding(true)} className="ui-btn-primary mt-3 bg-brandGold text-brandNavy hover:bg-brandGold/90 transition-colors">
+                            <button onClick={() => setBuilding(true)} className="ui-btn-primary mt-3 bg-brandGold text-white hover:bg-brandGold/90 transition-colors">
                                 <i className="fa-solid fa-arrows-rotate" />Request change of matriculation
                             </button>
                         ) : null}
@@ -107,7 +107,7 @@ function EnrollmentApp() {
             {clearance_complete && (!enrollment || (enrollment.status === 'rejected' && resubmitting)) && (
                 student.type === 'regular'
                     ? <RegularView block={block} submitting={submitting} error={error} onConfirm={() => submit()} />
-                    : <IrregularPicker catalogue={catalogue ?? []} submitting={submitting} error={error} onSubmit={submit} />
+                    : <IrregularPicker catalogue={catalogue ?? []} maxUnits={max_units ?? 26} submitting={submitting} error={error} onSubmit={submit} />
             )}
         </div>
     );

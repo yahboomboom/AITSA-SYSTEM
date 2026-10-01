@@ -4,6 +4,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AdmissionsPipelineCard from './registrar-dashboard/AdmissionsPipelineCard';
 import GradeSubmissionQueue from './components/GradeSubmissionQueue';
 import PasswordResetRequestsCard from './registrar-dashboard/PasswordResetRequestsCard';
+import NoShowsCard from './registrar-dashboard/NoShowsCard';
+import WithdrawnStudentsCard from './registrar-dashboard/WithdrawnStudentsCard';
 
 const EMPTY_CONTEXT = {
     applicants: [],
@@ -11,6 +13,12 @@ const EMPTY_CONTEXT = {
     documentsPageUrl: '',
     gradeSubmissions: [],
     passwordResetRequests: [],
+    canManageWithdrawals: false,
+    noShows: [],
+    noShowThresholdDays: 14,
+    noShowWithdrawUrl: '',
+    noShowThresholdUrl: '',
+    withdrawn: [],
 };
 
 function parseContext(raw) {
@@ -22,6 +30,12 @@ function parseContext(raw) {
             documentsPageUrl: parsed.documentsPageUrl ?? '',
             gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
             passwordResetRequests: Array.isArray(parsed.passwordResetRequests) ? parsed.passwordResetRequests : [],
+            canManageWithdrawals: parsed.canManageWithdrawals === true,
+            noShows: Array.isArray(parsed.noShows) ? parsed.noShows : [],
+            noShowThresholdDays: Number(parsed.noShowThresholdDays) || 14,
+            noShowWithdrawUrl: parsed.noShowWithdrawUrl ?? '',
+            noShowThresholdUrl: parsed.noShowThresholdUrl ?? '',
+            withdrawn: Array.isArray(parsed.withdrawn) ? parsed.withdrawn : [],
         };
     } catch {
         return EMPTY_CONTEXT;
@@ -39,6 +53,18 @@ function RegistrarDashboardApp({ context, csrfToken }) {
             />
             <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Registrar Approval" approveLabel="Finalize" />
             <PasswordResetRequestsCard rows={context.passwordResetRequests} csrfToken={csrfToken} />
+            {context.canManageWithdrawals && (
+                <>
+                    <NoShowsCard
+                        rows={context.noShows}
+                        thresholdDays={context.noShowThresholdDays}
+                        withdrawUrl={context.noShowWithdrawUrl}
+                        thresholdUrl={context.noShowThresholdUrl}
+                        csrfToken={csrfToken}
+                    />
+                    <WithdrawnStudentsCard rows={context.withdrawn} csrfToken={csrfToken} />
+                </>
+            )}
         </div>
     );
 }

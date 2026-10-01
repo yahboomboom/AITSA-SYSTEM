@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\PreventBackHistoryCache::class,
             \App\Http\Middleware\EnsurePasswordChangeIsNotPending::class,
+            \App\Http\Middleware\EndWithdrawnSession::class,
         ]);
 
         // Railway's edge proxy doesn't publish stable IPs to allowlist, so we trust

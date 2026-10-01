@@ -161,7 +161,7 @@ function ApplicationReviewModal({ reservationFee }) {
                         <i className="fa-solid fa-pen mr-1.5" />Go Back &amp; Edit
                     </button>
                     <button type="button" onClick={handleConfirm} disabled={submitting}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brandGreen hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-colors disabled:opacity-70">
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brandGreen hover:bg-[#247039] text-white text-xs font-black rounded-xl transition-colors disabled:opacity-70">
                         {submitting ? (
                             <><i className="fa-solid fa-spinner fa-spin" />Submitting…</>
                         ) : (

@@ -181,7 +181,8 @@ Route::middleware('auth')->group(function () {
             );
         }
 
-        $announcements = Announcement::where('is_active', true)->latest()->take(5)->get(['title', 'body', 'created_at']);
+        $announcements = Announcement::where('is_active', true)->latest()->take(5)
+            ->get(['id', 'title', 'body', 'created_at', 'attachment_path', 'attachment_name']);
 
         $context = [
             'clearancePercent' => $clearance->completionPercent(),
@@ -189,6 +190,10 @@ Route::middleware('auth')->group(function () {
                 'title' => $a->title,
                 'body' => $a->body,
                 'postedAt' => $a->created_at->format('M d, Y'),
+                'isNew' => $a->created_at->gt(now()->subDays(3)),
+                'attachmentUrl' => $a->attachment_path ? route('announcements.attachment', $a) : null,
+                'attachmentIsImage' => $a->isImageAttachment(),
+                'attachmentName' => $a->attachment_name,
             ])->values(),
         ];
 
@@ -250,7 +255,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 's3'),
+            'file_path' => $file->store('documents', 'local'),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -323,7 +328,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 's3'),
+            'file_path' => $file->store('documents', 'local'),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -353,8 +358,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/enrollment/{enrollment}/cor', function (Enrollment $enrollment, FeeAssessmentService $fees) {
         $user = Auth::user();
-        abort_unless(Storage::disk('s3')->exists($submission->file_path), 404);
-        return Storage::disk('s3')->response($submission->file_path, $submission->original_name);
+        abort_unless($enrollment->user_id === $user->id, 403);
+        abort_unless($enrollment->status === 'enrolled', 403, 'This enrollment is not yet approved.');
 
         $enrollment->loadMissing('sections.subject', 'user');
         $clearance = Clearance::currentFor($user);
@@ -459,9 +464,9 @@ Route::middleware('auth')->group(function () {
     
     // --- CONSOLIDATED REGISTRAR & ADMISSION WORKSPACE ---
     Route::middleware('role:registrar,admission')->group(function () {
-    Route::get('/registrar/dashboard', function () {
+    Route::get('/registrar/dashboard', function (\App\Services\AdmissionWithdrawalService $withdrawals) {
         $user       = Auth::user();
-        $clearances = Clearance::has('user')->with('user')
+        $clearances = Clearance::has('user')->excludingWithdrawn()->with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
@@ -477,7 +482,15 @@ Route::middleware('auth')->group(function () {
             ->orderBy('password_reset_requested_at')
             ->get();
 
-        return view('registrar.dashboard', compact('clearances', 'applicants', 'pendingGradeApprovals', 'passwordResetRequests'));
+        $canManageWithdrawals = $user->role === 'registrar';
+        $noShows = $canManageWithdrawals ? $withdrawals->possibleNoShows() : collect();
+        $withdrawnStudents = $canManageWithdrawals ? $withdrawals->withdrawn() : collect();
+        $noShowThresholdDays = $withdrawals->thresholdDays();
+
+        return view('registrar.dashboard', compact(
+            'clearances', 'applicants', 'pendingGradeApprovals', 'passwordResetRequests',
+            'canManageWithdrawals', 'noShows', 'withdrawnStudents', 'noShowThresholdDays'
+        ));
     })->name('registrar.dashboard');
 
     Route::post('/registrar/password-resets/{student}', function (Request $request, User $student) {
@@ -776,7 +789,7 @@ Route::middleware('auth')->group(function () {
     // --- DEPARTMENT CHAIR HUB ENDPOINTS ---
     Route::middleware('role:chair')->group(function () {
     Route::get('/approver/dashboard', function () {
-        $clearances = Clearance::has('user')->with('user')
+        $clearances = Clearance::has('user')->excludingWithdrawn()->with('user')
             ->where('school_year', Setting::get('school_year', '2026-2027'))
             ->where('semester', (int) Setting::get('semester', '1'))
             ->get();
@@ -1117,7 +1130,8 @@ Route::middleware('auth')->group(function () {
         $items = ClearanceItem::where('department_id', $officer->department_id)
             ->whereHas('clearance', function ($query) {
                 $query->where('school_year', Setting::get('school_year', '2026-2027'))
-                    ->where('semester', (int) Setting::get('semester', '1'));
+                    ->where('semester', (int) Setting::get('semester', '1'))
+                    ->excludingWithdrawn();
             })
             ->whereHas('clearance.user')
             ->with('clearance.user')
@@ -1153,10 +1167,19 @@ Route::middleware('auth')->group(function () {
         $user = Auth::user();
         $allowed = $user->id === $submission->user_id || in_array($user->role, ['registrar', 'admission']);
         abort_unless($allowed, 403);
-        abort_unless(Storage::disk('s3')->exists($submission->file_path), 404);
+        abort_unless(Storage::disk('local')->exists($submission->file_path), 404);
 
-        return Storage::disk('s3')->response($submission->file_path, $submission->original_name);
+        return Storage::disk('local')->response($submission->file_path, $submission->original_name);
     })->middleware('auth')->name('documents.show');
+
+    // Announcement attachment: any signed-in user may view it — announcements
+    // themselves aren't role-scoped, they're shown app-wide.
+    Route::get('/announcements/{announcement}/attachment', function (Announcement $announcement) {
+        abort_unless($announcement->attachment_path, 404);
+        abort_unless(Storage::disk('local')->exists($announcement->attachment_path), 404);
+
+        return Storage::disk('local')->response($announcement->attachment_path, $announcement->attachment_name);
+    })->middleware('auth')->name('announcements.attachment');
 
 
     // --- CASHIER HUB ENDPOINTS ---
@@ -1301,7 +1324,7 @@ Route::middleware('auth')->group(function () {
         $schoolYear = Setting::get('school_year', '2026-2027');
         $semester = (int) Setting::get('semester', '1');
 
-        $termClearances = Clearance::has('user')->with('items')
+        $termClearances = Clearance::has('user')->excludingWithdrawn()->with('items')
             ->where('school_year', $schoolYear)
             ->where('semester', $semester)
             ->get();
@@ -1329,7 +1352,7 @@ Route::middleware('auth')->group(function () {
 
         $context = [
             'stats' => [
-                'totalActiveUsers' => User::count(),
+                'totalActiveUsers' => User::where('role', '!=', 'withdrawn')->count(),
                 'clearancesSettled' => $settled->count(),
                 'pendingQueues' => $termClearances->count() - $settled->count(),
             ],
@@ -1444,13 +1467,24 @@ Route::middleware('auth')->group(function () {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:150'],
             'body' => ['required', 'string'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif,webp,pdf', 'max:15360'],
         ]);
+
+        $attachmentPath = null;
+        $attachmentName = null;
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $attachmentPath = $file->store('announcements', 'local');
+            $attachmentName = $file->getClientOriginalName();
+        }
 
         $announcement = Announcement::create([
             'title' => $data['title'],
             'body' => $data['body'],
             'posted_by' => Auth::id(),
             'is_active' => true,
+            'attachment_path' => $attachmentPath,
+            'attachment_name' => $attachmentName,
         ]);
         AuditLog::record('Announcement Posted', 'Admin posted announcement "' . $announcement->title . '".', 'Announcement', $announcement->id);
 
@@ -1459,6 +1493,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/admin/announcements/{announcement}/delete', function (Announcement $announcement) {
         $title = $announcement->title;
+        if ($announcement->attachment_path) {
+            Storage::disk('local')->delete($announcement->attachment_path);
+        }
         $announcement->delete();
         AuditLog::record('Announcement Deleted', 'Admin deleted announcement "' . $title . '".', 'Announcement', null);
 
@@ -1526,7 +1563,15 @@ Route::middleware('auth')->group(function () {
             ->distinct()
             ->pluck('user_id');
 
-        $rows = $students->map(function ($s) use ($documents, $clearances, $failedStudentIds) {
+        // Year-level edits are Registrar-only and College-only; each option
+        // list is capped at that program's length.
+        $canEditYear = Auth::user()->role === 'registrar';
+        $collegeYears = $canEditYear
+            ? Program::whereIn('level', ['associate', 'bachelor'])->pluck('years', 'code')
+            : collect();
+        $yearLabels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+
+        $rows = $students->map(function ($s) use ($documents, $clearances, $failedStudentIds, $collegeYears, $yearLabels) {
             // A document still awaiting review is just as much "needs the
             // registrar's attention" as a rejected one — both put the
             // account on hold, not just the rejected case. The badge shown
@@ -1548,6 +1593,10 @@ Route::middleware('auth')->group(function () {
                 'loginId' => $s->login_id,
                 'major' => $s->major,
                 'yearLevel' => $s->year_level,
+                'yearEdit' => $collegeYears->has($s->major) ? [
+                    'url' => route('registrar.students.year-level', $s->id),
+                    'options' => array_slice($yearLabels, 0, (int) ($collegeYears[$s->major] ?: 4)),
+                ] : null,
                 'isIrregular' => $failedStudentIds->contains($s->id),
                 'adminStatus' => $isCleared ? 'Cleared' : 'Pending',
                 'needsAttention' => $needsAttention,
@@ -1586,12 +1635,17 @@ Route::middleware('auth')->group(function () {
             ->selectRaw('major, count(*) as count')
             ->groupBy('major')->orderByDesc('count')->get();
 
+        // Withdrawn admissions stay listed (schools report them) but aren't
+        // counted as active records or as work still waiting on the Registrar.
+        $active = $clearances->where('admission_status', '!=', 'Withdrawn');
+
         $context = [
             'summary' => [
-                'total' => $clearances->count(),
-                'registrarSigned' => $clearances->where('registrar_status', 'Approved')->count(),
-                'registrarPending' => $clearances->count() - $clearances->where('registrar_status', 'Approved')->count(),
-                'fullyCleared' => $clearances->filter(fn ($c) =>
+                'total' => $active->count(),
+                'registrarSigned' => $active->where('registrar_status', 'Approved')->count(),
+                'registrarPending' => $active->count() - $active->where('registrar_status', 'Approved')->count(),
+                'withdrawn' => $clearances->count() - $active->count(),
+                'fullyCleared' => $active->filter(fn ($c) =>
                     $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved'
                 )->count(),
             ],
@@ -1619,6 +1673,7 @@ Route::middleware('auth')->group(function () {
                 'cashierStatus' => $c->cashier_status,
                 'registrarStatus' => $c->registrar_status,
                 'registrarSigned' => $c->registrar_status === 'Approved',
+                'isWithdrawn' => $c->admission_status === 'Withdrawn',
                 'isCleared' => $c->chair_status === 'Approved' && $c->cashier_status === 'Approved' && $c->registrar_status === 'Approved',
             ])->values(),
         ];
@@ -1733,18 +1788,36 @@ Route::middleware('auth')->group(function () {
 
             $created = 0;
             $promoted = 0;
+            $heldBack = 0;
             // A new school year (not just the next semester within the same
             // year) is when a continuing student actually moves up a year —
             // e.g. Sem 2 of 2026-2027 -> Sem 1 of 2027-2028.
-            $isNewSchoolYear = $data['school_year'] !== $currentSchoolYear;
+            // Only a move *forward* counts: going back (e.g. undoing a
+            // mistaken rollover) must not promote everyone a second time.
+            $isNewSchoolYear = (int) substr($data['school_year'], 0, 4) > (int) substr($currentSchoolYear, 0, 4);
             $yearLabels = [1 => '1st Year', 2 => '2nd Year', 3 => '3rd Year', 4 => '4th Year'];
 
-            DB::transaction(function () use ($data, $isNewSchoolYear, $yearLabels, &$created, &$promoted) {
+            // Only students officially Enrolled in every semester that actually
+            // ran in the school year being closed move up a year level.
+            $promotableIds = collect();
+            if ($isNewSchoolYear) {
+                $semestersThatRan = Enrollment::where('school_year', $currentSchoolYear)->distinct()->pluck('semester');
+                if ($semestersThatRan->isNotEmpty()) {
+                    $promotableIds = Enrollment::where('school_year', $currentSchoolYear)
+                        ->where('status', 'enrolled')
+                        ->whereIn('semester', $semestersThatRan)
+                        ->groupBy('user_id')
+                        ->havingRaw('COUNT(DISTINCT semester) = ?', [$semestersThatRan->count()])
+                        ->pluck('user_id');
+                }
+            }
+
+            DB::transaction(function () use ($data, $isNewSchoolYear, $yearLabels, $promotableIds, &$created, &$promoted, &$heldBack) {
                 $collegePrograms = Program::whereIn('level', ['associate', 'bachelor'])->get()->keyBy('code');
 
                 User::where('role', 'student')
                     ->whereIn('major', $collegePrograms->keys())
-                    ->chunkById(100, function ($students) use ($data, $isNewSchoolYear, $yearLabels, $collegePrograms, &$created, &$promoted) {
+                    ->chunkById(100, function ($students) use ($data, $isNewSchoolYear, $yearLabels, $collegePrograms, $promotableIds, &$created, &$promoted, &$heldBack) {
                         foreach ($students as $student) {
                             Clearance::initializeFor($student->id, $data['school_year'], (int) $data['semester'], [
                                 'admission_status' => 'Approved',
@@ -1757,7 +1830,9 @@ Route::middleware('auth')->group(function () {
                             if ($isNewSchoolYear) {
                                 $currentYearNum = $student->yearNumber();
                                 $maxYear = $collegePrograms[$student->major]->years ?? 4;
-                                if ($currentYearNum < $maxYear) {
+                                if (! $promotableIds->contains($student->id)) {
+                                    $heldBack++;
+                                } elseif ($currentYearNum < $maxYear) {
                                     $student->update(['year_level' => $yearLabels[$currentYearNum + 1]]);
                                     $promoted++;
                                 }
@@ -1773,7 +1848,8 @@ Route::middleware('auth')->group(function () {
                 'New Term Started',
                 Auth::user()->name . ' started ' . $data['school_year'] . ' Semester ' . $data['semester'] .
                     ' — created ' . $created . ' College clearance record(s)' .
-                    ($promoted > 0 ? ', advanced ' . $promoted . ' student(s) to their next year level' : '') . '.',
+                    ($promoted > 0 ? ', advanced ' . $promoted . ' student(s) to their next year level' : '') .
+                    ($heldBack > 0 ? ', ' . $heldBack . ' student(s) kept at their year level (not enrolled in every semester)' : '') . '.',
                 'Clearance',
                 null
             );
@@ -1781,6 +1857,9 @@ Route::middleware('auth')->group(function () {
             $message = 'Started ' . $data['school_year'] . ' Semester ' . $data['semester'] . ' for ' . $created . ' College student(s).';
             if ($promoted > 0) {
                 $message .= ' ' . $promoted . ' student(s) advanced to their next year level.';
+            }
+            if ($heldBack > 0) {
+                $message .= ' ' . $heldBack . ' student(s) kept at their year level (not enrolled in every semester).';
             }
 
             return redirect()->route('registrar.slots')->with('success', $message);
@@ -1810,5 +1889,133 @@ Route::middleware('auth')->group(function () {
 
             return redirect()->route('registrar.dashboard')->with('success', 'Provisional extension granted.');
         })->name('registrar.grant-provisional');
-    }); // end role:registrar (start-new-term, grant-provisional)
+
+        /*
+         * Admission no-shows: reserved students who never continued. The
+         * Registrar reviews the flagged list and marks them; the reservation
+         * fee is non-refundable so nothing touches the ledger.
+         */
+        Route::post('/registrar/no-shows/withdraw', function (Request $request, \App\Services\AdmissionWithdrawalService $withdrawals) {
+            $data = $request->validate([
+                'ids' => ['required', 'array', 'min:1'],
+                'ids.*' => ['integer'],
+                'reason' => ['required', Rule::in(array_keys(\App\Services\AdmissionWithdrawalService::REASONS))],
+                'note' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            $done = 0;
+            $skipped = [];
+            $students = User::whereIn('id', $data['ids'])->get();
+            $missing = count(array_unique($data['ids'])) - $students->count();
+            foreach ($students as $student) {
+                if ($withdrawals->withdraw($student, $data['reason'], $data['note'] ?? null, Auth::user())) {
+                    $done++;
+                } else {
+                    $skipped[] = $student->name;
+                }
+            }
+
+            $notes = '';
+            if ($skipped) {
+                $notes .= ' Skipped (no longer a possible no-show): ' . implode(', ', $skipped) . '.';
+            }
+            if ($missing > 0) {
+                $notes .= ' ' . $missing . ' record' . ($missing === 1 ? '' : 's') . ' could not be found.';
+            }
+
+            if ($done === 0) {
+                return redirect()->route('registrar.dashboard')->with('error', 'No one was withdrawn.' . $notes);
+            }
+
+            $message = $done . ' student' . ($done === 1 ? '' : 's') . ' marked withdrawn; their slots are free again.' . $notes;
+
+            return redirect()->route('registrar.dashboard')->with('success', $message);
+        })->name('registrar.no-shows.withdraw');
+
+        Route::post('/registrar/no-shows/threshold', function (Request $request) {
+            $data = $request->validate(['days' => ['required', 'integer', 'min:1', 'max:365']]);
+            Setting::put('no_show_after_days', (string) $data['days']);
+
+            return redirect()->route('registrar.dashboard')->with('success',
+                'Students are now flagged as possible no-shows after ' . $data['days'] . ' ' . Str::plural('day', (int) $data['days']) . '.');
+        })->name('registrar.no-shows.threshold');
+
+        Route::post('/registrar/withdrawn/{user}/reinstate', function (User $user, \App\Services\AdmissionWithdrawalService $withdrawals) {
+            try {
+                $withdrawals->reinstate($user, Auth::user());
+            } catch (\DomainException $e) {
+                return redirect()->route('registrar.dashboard')->with('error', $e->getMessage());
+            }
+
+            return redirect()->route('registrar.dashboard')->with('success', $user->name . ' has been reinstated.');
+        })->name('registrar.withdrawn.reinstate');
+        /*
+         * Manual year-level correction from Student Records (paper-era
+         * students, wrong year at application, credited units). Guarded:
+         * College programs only, capped at the program's length, a reason is
+         * required and audited, and never while the student is mid-enrollment
+         * this term (their sections were picked for their current year).
+         */
+        Route::post('/registrar/students/{user}/year-level', function (Request $request, User $user, \App\Services\EnrollmentService $enrollments) {
+            abort_unless($user->role === 'student', 404);
+
+            $data = $request->validate([
+                'year_level' => ['required', Rule::in(['1st Year', '2nd Year', '3rd Year', '4th Year'])],
+                'reason' => ['required', 'string', 'max:255'],
+            ]);
+
+            $program = Program::where('code', $user->major)->whereIn('level', ['associate', 'bachelor'])->first();
+            if (! $program) {
+                return response()->json(['message' => 'Year level only applies to College programs.'], 422);
+            }
+
+            $yearNumber = (int) $data['year_level'][0];
+            if ($yearNumber > ($program->years ?? 4)) {
+                return response()->json(['message' => $program->code . ' only runs for ' . $program->years . ' years.'], 422);
+            }
+
+            $active = $enrollments->activeEnrollment($user);
+            if ($active && in_array($active->status, ['pending', 'enrolled'], true)) {
+                return response()->json(['message' => 'This student has a ' . $active->status .
+                    ' enrollment this term. Change the year level after this term, or reject their enrollment first.'], 422);
+            }
+
+            if ($user->year_level === $data['year_level']) {
+                return response()->json(['message' => $user->name . ' is already ' . $data['year_level'] . '.'], 422);
+            }
+
+            $previous = $user->year_level ?? '—';
+            $user->update(['year_level' => $data['year_level']]);
+
+            AuditLog::record(
+                'Year Level Changed',
+                $user->name . ' (' . ($user->login_id ?? $user->email) . '): ' . $previous . ' → ' . $data['year_level'] .
+                    ' by ' . Auth::user()->name . '. Reason: ' . $data['reason'],
+                'User',
+                $user->id
+            );
+
+            return response()->json([
+                'yearLevel' => $user->year_level,
+                'message' => $user->name . ' is now ' . $user->year_level . '.',
+            ]);
+        })->name('registrar.students.year-level')->middleware('password.confirm:,900');
+        // Most units an irregular student (or any change of matriculation) may
+        // carry in one term. Regular block loads are set by the curriculum.
+        Route::post('/registrar/max-units', function (Request $request) {
+            $data = $request->validate(['max_units' => ['required', 'integer', 'min:6', 'max:40']]);
+            $previous = Setting::get('max_units_per_term', '26');
+            Setting::put('max_units_per_term', (string) $data['max_units']);
+
+            AuditLog::record(
+                'Max Units Changed',
+                Auth::user()->name . ' changed the maximum units per term from ' . $previous . ' to ' . $data['max_units'] . '.',
+                'Setting',
+                null
+            );
+
+            return redirect()->route('registrar.slots')->with('success',
+                'Students can now carry up to ' . $data['max_units'] . ' units per term.');
+        })->name('registrar.max-units');
+    }); // end role:registrar (start-new-term, grant-provisional, admission withdrawals, year level, max units)
 });

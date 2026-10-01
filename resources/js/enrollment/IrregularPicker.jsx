@@ -1,15 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import SectionPickerModal from './SectionPickerModal';
 
 function overlaps(a, b) {
     if (!a.days.some((d) => b.days.includes(d))) return false;
     return a.start_time < b.end_time && b.start_time < a.end_time;
 }
 
-export default function IrregularPicker({ catalogue, submitting, error, onSubmit }) {
+export default function IrregularPicker({ catalogue, maxUnits, submitting, error, onSubmit }) {
     // subjectId -> section object
     const [picks, setPicks] = useState({});
-    // subjectIds currently expanded
-    const [open, setOpen] = useState(() => new Set());
+    // subject whose section pop-up is open
+    const [activeSubject, setActiveSubject] = useState(null);
 
     const conflict = useMemo(() => {
         const chosen = Object.values(picks);
@@ -21,108 +22,111 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
         return null;
     }, [picks]);
 
-    const toggleOpen = (subjectId) => {
-        setOpen((prev) => {
-            const next = new Set(prev);
-            if (next.has(subjectId)) next.delete(subjectId);
-            else next.add(subjectId);
-            return next;
-        });
+    const units = useMemo(
+        () => Object.keys(picks).reduce((sum, id) => sum + (catalogue.find((s) => String(s.id) === id)?.units ?? 0), 0),
+        [picks, catalogue]
+    );
+    const overCap = units > maxUnits;
+
+    // The already-picked section (of another subject) that this section
+    // would clash with, or null. Used to lock clashing sections up front.
+    const clashFor = (subjectId, section) => {
+        for (const [pickedSubjectId, picked] of Object.entries(picks)) {
+            if (pickedSubjectId === String(subjectId)) continue;
+            if (overlaps(picked, section)) return picked;
+        }
+        return null;
     };
 
-    const toggle = (subject, section) => {
-        const wasSelected = picks[subject.id]?.id === section.id;
+    const pick = (subject, section) => {
+        setPicks((prev) => ({ ...prev, [subject.id]: { ...section, code: subject.code } }));
+        setActiveSubject(null);
+    };
 
+    const remove = (subject) => {
         setPicks((prev) => {
             const next = { ...prev };
-            if (wasSelected) delete next[subject.id];
-            else next[subject.id] = { ...section, code: subject.code };
+            delete next[subject.id];
             return next;
         });
-
-        if (!wasSelected) {
-            // auto-collapse once a section is picked
-            setOpen((prev) => {
-                const next = new Set(prev);
-                next.delete(subject.id);
-                return next;
-            });
-        }
+        setActiveSubject(null);
     };
 
+    const closeModal = useCallback(() => setActiveSubject(null), []);
+
+    // Only subjects the student can actually take: missing prerequisites and
+    // already-passed subjects are left out entirely.
+    const available = useMemo(() => catalogue.filter((s) => s.eligible), [catalogue]);
+
     const years = useMemo(
-        () => [...new Set(catalogue.map((s) => s.year_level))].sort(),
-        [catalogue]
+        () => [...new Set(available.map((s) => s.year_level))].sort(),
+        [available]
     );
 
     return (
         <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-6">
             <h2 className="font-heading text-lg font-semibold text-brandNavy dark:text-slate-100 mb-1">Build your schedule</h2>
             <p className="text-sm text-brandNavy/50 dark:text-slate-400 mb-4">
-                Pick one section per subject. Your selection is submitted to the Department Chair for approval.
+                Click a subject to choose its section. You can take subjects from any year once you've passed their prerequisites.
+                Your selection is submitted to the Department Chair for approval.
             </p>
+            <p className={`text-sm font-semibold mb-4 ${overCap ? 'text-red-600' : 'text-brandNavy dark:text-slate-200'}`}>
+                <i className="fa-solid fa-scale-balanced mr-1" />
+                {units} / {maxUnits} units
+                {overCap && <span className="font-normal"> — remove a subject; the maximum is {maxUnits} units per term.</span>}
+            </p>
+
+            {available.length === 0 && (
+                <p className="text-sm text-brandNavy/60 dark:text-slate-400 border border-dashed border-brandNavy/15 dark:border-slate-700 rounded p-4 mb-4">
+                    <i className="fa-solid fa-circle-info mr-1" />
+                    No subjects are open to you this semester. Please contact the Registrar or your Department Chair.
+                </p>
+            )}
 
             {years.map((year) => (
                 <div key={year} className="mb-6">
                     <h3 className="text-sm font-medium text-brandNavy/60 dark:text-slate-400 mb-2">Year {year}</h3>
-                    {catalogue.filter((s) => s.year_level === year).map((subject) => {
+                    {available.filter((s) => s.year_level === year).map((subject) => {
                         const picked = picks[subject.id];
-                        const isOpen = open.has(subject.id);
-                        const showSummary = subject.eligible && picked && !isOpen;
+                        const allBlocked = !picked && subject.sections.length > 0
+                            && subject.sections.every((section) => section.seats_left <= 0 || clashFor(subject.id, section));
 
                         return (
-                            <div key={subject.id}
-                                className={`border rounded p-4 mb-3 ${subject.eligible ? 'border-brandNavy/10 dark:border-slate-700' : 'border-brandNavy/8 dark:border-slate-800 opacity-60'}`}>
-                                {showSummary ? (
-                                    <button type="button" onClick={() => toggleOpen(subject.id)}
-                                        className="w-full text-left flex items-center justify-between flex-wrap gap-2">
-                                        <span className="font-semibold text-brandNavy dark:text-slate-100">
-                                            <span className="font-mono">{subject.code}</span>
-                                            {' — Block '}{picked.block_label}{' · '}{picked.days.join('/')} {picked.start_time}–{picked.end_time}
-                                        </span>
-                                    </button>
-                                ) : (
-                                    <>
-                                        <button type="button" disabled={!subject.eligible}
-                                            onClick={() => subject.eligible && toggleOpen(subject.id)}
-                                            className="w-full text-left flex items-center justify-between flex-wrap gap-2 disabled:cursor-default">
-                                            <span className="font-medium text-brandNavy dark:text-slate-100">
-                                                <span className="font-mono">{subject.code}</span> — {subject.title}
-                                                <span className="ml-2 text-xs text-brandNavy/40 dark:text-slate-500">{subject.units} units · {subject.mode}</span>
+                            <button key={subject.id} type="button" onClick={() => setActiveSubject(subject)}
+                                className={`w-full text-left border rounded-lg p-4 mb-3 flex items-center justify-between flex-wrap gap-3 transition-colors
+                                    ${picked ? 'border-brandGreen/50 bg-brandGreen/5' : 'border-brandNavy/10 dark:border-slate-700 hover:border-brandNavy/30 dark:hover:border-slate-500'}`}>
+                                <span className="font-medium text-brandNavy dark:text-slate-100">
+                                    <span className="font-mono">{subject.code}</span> — {subject.title}
+                                    <span className="ml-2 text-xs text-brandNavy/40 dark:text-slate-500">{subject.units} units · {subject.mode}</span>
+                                    <span className="block text-xs font-normal mt-0.5">
+                                        {subject.prerequisites?.length ? (
+                                            <span className="text-brandGreen">
+                                                <i className="fa-solid fa-circle-check mr-1" />
+                                                Prerequisite: {subject.prerequisites.join(', ')} — passed
                                             </span>
-                                            {!subject.eligible && (
-                                                <span className="text-xs font-medium text-brandGold">
-                                                    <i className="fa-solid fa-lock mr-1" />{subject.reason}
-                                                </span>
-                                            )}
-                                        </button>
-                                        {subject.eligible && isOpen && (
-                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                {subject.sections.map((section) => {
-                                                    const selected = picks[subject.id]?.id === section.id;
-                                                    const full = section.seats_left <= 0;
-                                                    return (
-                                                        <button key={section.id} disabled={full && !selected}
-                                                            onClick={() => toggle(subject, section)}
-                                                            className={`px-3 py-2 rounded border text-xs text-left
-                                                                ${selected ? 'border-brandGreen bg-brandGreen/10 text-brandGreen font-medium'
-                                                                    : full ? 'border-brandNavy/10 text-brandNavy/40 cursor-not-allowed'
-                                                                    : 'border-brandNavy/20 dark:border-slate-600 hover:border-brandNavy dark:hover:border-slate-400'}`}>
-                                                            <span className="font-semibold">Block {section.block_label}</span>{' '}
-                                                            {section.days.join('/')} {section.start_time}–{section.end_time} ·{' '}
-                                                            {section.delivery_mode === 'Online' ? 'Online' : section.room}
-                                                            <span className="block text-[10px] opacity-70">
-                                                                {full ? 'Section full' : `${section.seats_left} seats left`} · {section.professor}
-                                                                {' '}· {section.delivery_mode === 'Online' ? 'Online class' : 'Face-to-Face'}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
+                                        ) : (
+                                            <span className="text-brandNavy/40 dark:text-slate-500">No prerequisite</span>
                                         )}
-                                    </>
-                                )}
-                            </div>
+                                    </span>
+                                </span>
+                                <span className="text-xs font-semibold whitespace-nowrap">
+                                    {picked ? (
+                                        <span className="text-brandGreen">
+                                            <i className="fa-solid fa-circle-check mr-1" />
+                                            Block {picked.block_label} · {picked.days.join('/')} {picked.start_time}–{picked.end_time}
+                                            <span className="ml-2 underline font-normal text-brandNavy/50 dark:text-slate-400">Change</span>
+                                        </span>
+                                    ) : allBlocked ? (
+                                        <span className="text-red-600">
+                                            <i className="fa-solid fa-triangle-exclamation mr-1" />All sections conflict with your schedule
+                                        </span>
+                                    ) : (
+                                        <span className="text-brandNavy/60 dark:text-slate-300">
+                                            Choose section <i className="fa-solid fa-chevron-right ml-1 text-[10px]" />
+                                        </span>
+                                    )}
+                                </span>
+                            </button>
                         );
                     })}
                 </div>
@@ -137,11 +141,22 @@ export default function IrregularPicker({ catalogue, submitting, error, onSubmit
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
 
             <button
-                disabled={submitting || conflict !== null || Object.keys(picks).length === 0}
+                disabled={submitting || conflict !== null || overCap || Object.keys(picks).length === 0}
                 onClick={() => onSubmit(Object.values(picks).map((s) => s.id))}
                 className="ui-btn-primary bg-brandNavy hover:bg-brandGreen text-white transition-colors disabled:opacity-50">
                 {submitting ? 'Submitting…' : `Submit ${Object.keys(picks).length} subject(s) for approval`}
             </button>
+
+            {activeSubject && (
+                <SectionPickerModal
+                    subject={activeSubject}
+                    picked={picks[activeSubject.id]}
+                    clashFor={clashFor}
+                    onPick={pick}
+                    onRemove={remove}
+                    onClose={closeModal}
+                />
+            )}
         </div>
     );
 }

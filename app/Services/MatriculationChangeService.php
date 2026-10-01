@@ -217,6 +217,16 @@ class MatriculationChangeService
             throw new EnrollmentException('You cannot drop your entire subject load. Keep at least one subject.');
         }
 
+        // Only a request that *raises* the load past the cap is refused, so a
+        // block that already exceeds it can still drop or swap.
+        $unitsOf = fn ($sections) => (int) $sections->sum(fn (Section $s) => $s->subject->units);
+        $currentUnits = $unitsOf($enrollment->sections()->with('subject')->get());
+        $resultingUnits = $unitsOf($resulting);
+        $max = $this->enrollments->maxUnits();
+        if ($resultingUnits > $max && $resultingUnits > $currentUnits) {
+            throw new EnrollmentException("This change would make your load {$resultingUnits} units; the maximum is {$max} units per term.", 422);
+        }
+
         return [$attach, $detach];
     }
 }

@@ -67,7 +67,7 @@ class EnrollmentApiTest extends TestCase
             ->assertJsonCount(1, 'catalogue');
     }
 
-    public function test_catalogue_excludes_subjects_above_students_year_level(): void
+    public function test_catalogue_includes_every_year_level_of_the_program(): void
     {
         $this->seed(ProgramSeeder::class);
         $user = $this->makeClearedStudent(['year_level' => '2nd Year']);
@@ -86,7 +86,8 @@ class EnrollmentApiTest extends TestCase
 
         $this->assertTrue($codes->contains('BSOA111'), 'lower-year subject (retake case) should be visible');
         $this->assertTrue($codes->contains('BSOA211'), "student's own year level should be visible");
-        $this->assertFalse($codes->contains('BSOA311'), 'higher-year subject should not be visible');
+        // Higher years are offered too — prerequisites, not year level, gate them.
+        $this->assertTrue($codes->contains('BSOA311'), 'higher-year subject should be visible');
     }
 
     public function test_regular_store_enrolls_immediately(): void

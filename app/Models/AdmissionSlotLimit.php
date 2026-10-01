@@ -24,12 +24,17 @@ class AdmissionSlotLimit extends Model
      * Applicants counted as occupying a slot: those who have reserved (paid or
      * marked reserved by the Registrar) their spot in this curriculum for the
      * current registration period. Declined/removed applicants are naturally
-     * excluded since their User row is deleted on decline.
+     * excluded since their User row is deleted on decline. Only this school
+     * year's admission cohort counts: is_reserved never resets, so students
+     * with a clearance from another school year were admitted earlier.
      */
     public function takenCount(): int
     {
         return User::where('program_key', $this->program_key)
             ->where('is_reserved', true)
+            ->whereNotExists(fn ($q) => $q->from('clearances')
+                ->whereColumn('clearances.user_id', 'users.id')
+                ->where('clearances.school_year', '!=', $this->school_year))
             ->count();
     }
 

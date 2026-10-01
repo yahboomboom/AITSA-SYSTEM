@@ -8,18 +8,21 @@ const TOTAL_H = NUM_SLOTS * SLOT_H;
 const TIME_W = 108;
 const DAY_NAMES = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 
+// Subject block colors, graded from the AITSA seal (banner/seal blues,
+// laurel greens, ambers) — distinct enough to tell subjects apart, all dark
+// enough for white text. Keys are the color ids the server assigns.
 const COLOR_MAP = {
-    'bg-blue-600':    '#2563EB',
-    'bg-emerald-600': '#059669',
-    'bg-violet-600':  '#7C3AED',
-    'bg-orange-500':  '#F97316',
-    'bg-cyan-600':    '#0891B2',
-    'bg-teal-600':    '#0D9488',
-    'bg-rose-500':    '#F43F5E',
-    'bg-amber-500':   '#F59E0B',
-    'bg-brandGreen':  '#1D7A46',
-    'bg-indigo-600':  '#4F46E5',
-    'bg-pink-500':    '#EC4899',
+    'bg-blue-600':    '#1D506D',
+    'bg-emerald-600': '#3E7F5A',
+    'bg-violet-600':  '#2C6585',
+    'bg-orange-500':  '#A86A0A',
+    'bg-cyan-600':    '#3B7D9E',
+    'bg-teal-600':    '#247039',
+    'bg-rose-500':    '#8A5A0B',
+    'bg-amber-500':   '#9A6A10',
+    'bg-brandGreen':  '#2A8042',
+    'bg-indigo-600':  '#133548',
+    'bg-pink-500':    '#18512B',
 };
 
 function parseDays(dayStr) {
@@ -104,7 +107,7 @@ export default function WeeklyTimetable({ subjects }) {
             if (!tr || tr.start < GRID_START || tr.end > GRID_END) return;
 
             const days = parseDays(subj.days);
-            const color = COLOR_MAP[subj.color] || '#0B3C5D';
+            const color = COLOR_MAP[subj.color] || '#1D506D';
             const topPx = ((tr.start - GRID_START) / 30) * SLOT_H;
             const htPx = ((tr.end - tr.start) / 30) * SLOT_H;
 

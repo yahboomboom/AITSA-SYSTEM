@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import NewSemesterForm from './registrar-slots/NewSemesterForm';
 import SlotsTable from './registrar-slots/SlotsTable';
+import MaxUnitsForm from './registrar-slots/MaxUnitsForm';
 
 const EMPTY_CONTEXT = { curricula: [], errors: {}, old: {} };
 
@@ -24,6 +25,8 @@ if (el) {
     const context = parseContext(el.dataset.context);
     const csrfToken = el.dataset.csrfToken ?? '';
     const startTermUrl = el.dataset.startTermUrl ?? '';
+    const maxUnits = Number(el.dataset.maxUnits) || 26;
+    const maxUnitsUrl = el.dataset.maxUnitsUrl ?? '';
 
     createRoot(el).render(
         <ErrorBoundary>
@@ -34,6 +37,7 @@ if (el) {
                     csrfToken={csrfToken}
                     actionUrl={startTermUrl}
                 />
+                {maxUnitsUrl && <MaxUnitsForm maxUnits={maxUnits} actionUrl={maxUnitsUrl} csrfToken={csrfToken} />}
                 <SlotsTable curricula={context.curricula} csrfToken={csrfToken} />
             </div>
         </ErrorBoundary>

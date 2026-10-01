@@ -1,7 +1,7 @@
 const ROLE_BADGE_STYLES = {
-    chair: 'border-blue-500 text-blue-600',
+    chair: 'border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE]',
     cashier: 'border-brandGold text-brandGold',
-    registrar: 'border-purple-500 text-purple-600',
+    registrar: 'border-brandGreen dark:border-[#3E9E5C] text-brandGreen dark:text-[#7FD39A]',
 };
 
 export default function SystemAccountsTable({ accounts }) {

@@ -4,7 +4,9 @@ export default function SummaryCards({ summary }) {
             <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5">
                 <p className="text-xs text-brandNavy/50 dark:text-slate-400">Total students</p>
                 <p className="font-heading text-2xl font-semibold text-brandNavy dark:text-white mt-1">{summary.total}</p>
-                <p className="text-xs text-brandNavy/40 dark:text-slate-500 mt-1">Active clearance records</p>
+                <p className="text-xs text-brandNavy/40 dark:text-slate-500 mt-1">
+                    Active clearance records{summary.withdrawn > 0 ? ` · ${summary.withdrawn} withdrawn` : ''}
+                </p>
             </div>
             <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5">
                 <p className="text-xs text-brandGreen/70">Registrar signed</p>
@@ -17,8 +19,8 @@ export default function SummaryCards({ summary }) {
                 <p className="text-xs text-brandNavy/40 dark:text-slate-500 mt-1">Still pending</p>
             </div>
             <div className="bg-white dark:bg-panelDark border border-brandNavy/10 dark:border-slate-800 rounded-lg shadow-sm p-5">
-                <p className="text-xs text-blue-600/80">Fully cleared</p>
-                <p className="font-heading text-2xl font-semibold text-blue-600 dark:text-blue-400 mt-1">{summary.fullyCleared}</p>
+                <p className="text-xs text-brandNavy/80 dark:text-[#8EC3DE]">Fully cleared</p>
+                <p className="font-heading text-2xl font-semibold text-brandNavy dark:text-[#8EC3DE] dark:text-[#8EC3DE] mt-1">{summary.fullyCleared}</p>
                 <p className="text-xs text-brandNavy/40 dark:text-slate-500 mt-1">All offices approved</p>
             </div>
         </div>

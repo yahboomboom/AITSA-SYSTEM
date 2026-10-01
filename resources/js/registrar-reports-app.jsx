@@ -6,7 +6,7 @@ import ReportTable from './registrar-reports/ReportTable';
 import AdmissionPipeline from './registrar-reports/AdmissionPipeline';
 import ProgramBreakdown from './registrar-reports/ProgramBreakdown';
 
-const EMPTY_SUMMARY = { total: 0, registrarSigned: 0, registrarPending: 0, fullyCleared: 0 };
+const EMPTY_SUMMARY = { total: 0, registrarSigned: 0, registrarPending: 0, fullyCleared: 0, withdrawn: 0 };
 const EMPTY_PIPELINE = { pendingApplicants: 0, verifiedApplicants: 0, totalStudents: 0 };
 const EMPTY_AGREEMENTS = { signed: 0 };
 

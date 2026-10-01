@@ -42,6 +42,7 @@ class EnrollmentController extends Controller
                 'type' => $type,
             ],
             'clearance_complete' => $this->service->clearanceComplete($user),
+            'max_units' => $this->service->maxUnits(),
             'enrollment' => $enrollment ? $this->enrollmentPayload($enrollment) : null,
             'block' => $block,
             'catalogue' => $type === 'irregular' && ! $hasActive ? $this->service->catalogueFor($user) : null,

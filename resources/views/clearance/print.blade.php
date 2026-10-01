@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: sans-serif; font-size: 12px; color: #0D1B2A; }
+        body { font-family: sans-serif; font-size: 12px; color: #10222D; }
         h1 { text-align: center; font-size: 18px; margin-bottom: 4px; }
         .sub { text-align: center; color: #666; margin-bottom: 24px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }

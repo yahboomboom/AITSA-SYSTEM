@@ -72,7 +72,7 @@ export default function ClearanceQueueTable({ rows, onReview }) {
                                         ) : row.isHeld ? (
                                             <span className="ui-badge-outline border-red-600 text-red-600">Hold</span>
                                         ) : (row.isDownPaymentMet || row.isDownPaymentWaived) ? (
-                                            <span className="ui-badge-outline border-cyan-600 text-cyan-600">Enrollable</span>
+                                            <span className="ui-badge-outline border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE]">Enrollable</span>
                                         ) : (
                                             <span className="ui-badge-outline border-brandGold text-brandGold">Pending</span>
                                         )}

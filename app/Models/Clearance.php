@@ -126,6 +126,16 @@ class Clearance extends Model
         return $this->belongsTo(User::class, 'registrar_signed_by');
     }
 
+    /**
+     * Drop clearances whose admission was withdrawn (admission-stage no-show
+     * or informed withdrawal) from operational queues. Reports deliberately
+     * do NOT use this, so withdrawals still count there.
+     */
+    public function scopeExcludingWithdrawn($query)
+    {
+        return $query->where('admission_status', '!=', 'Withdrawn');
+    }
+
     public static function initializeFor(int $userId, string $schoolYear, int $semester, array $attributes = []): self
     {
         $existing = static::where('user_id', $userId)

@@ -23,6 +23,12 @@ class EnrollmentService
         ];
     }
 
+    /** Most units a student may carry in a self-built load (Registrar setting). */
+    public function maxUnits(): int
+    {
+        return max(1, (int) Setting::get('max_units_per_term', '26'));
+    }
+
     public function clearanceComplete(User $user): bool
     {
         $clearance = Clearance::currentFor($user);
@@ -141,7 +147,8 @@ class EnrollmentService
 
         return Subject::where('program_id', $program->id)
             ->where('semester', $term['semester'])
-            ->where('year_level', '<=', $user->yearNumber())
+            // Any year level of the program: prerequisites (below) are what
+            // gate a subject, not the student's current year.
             ->with(['prerequisites', 'sections' => fn ($q) => $q->where('school_year', $term['school_year'])])
             ->orderBy('year_level')->orderBy('code')
             ->get()
@@ -163,6 +170,7 @@ class EnrollmentService
                     'mode' => $subject->mode,
                     'eligible' => $eligible,
                     'reason' => $reason,
+                    'prerequisites' => $subject->prerequisites->pluck('code')->sort()->values()->all(),
                     'sections' => $subject->sections->map(fn (Section $s) => [
                         'id' => $s->id,
                         'block_label' => $s->block_label,
@@ -218,6 +226,11 @@ class EnrollmentService
                 if (! $section->hasSeats()) {
                     throw new EnrollmentException("The {$subject->code} section you picked just filled up. Choose another section.");
                 }
+            }
+
+            $units = (int) $sections->sum(fn (Section $s) => $s->subject->units);
+            if ($units > $this->maxUnits()) {
+                throw new EnrollmentException("This selection is {$units} units; the maximum is {$this->maxUnits()} units per term.", 422);
             }
 
             foreach ($sections as $i => $a) {

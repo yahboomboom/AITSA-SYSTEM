@@ -24,7 +24,7 @@ export default function ClearanceApprovalTable({ rows, csrfToken }) {
                                     ) : row.state === 'approved' ? (
                                         <span className="ui-badge-outline border-brandGreen text-brandGreen">Fully approved</span>
                                     ) : (
-                                        <span className="ui-badge-outline border-blue-500 text-blue-600 dark:text-blue-400">Ready for chair</span>
+                                        <span className="ui-badge-outline border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE] dark:text-[#8EC3DE]">Ready for chair</span>
                                     )}
                                 </td>
                                 <td className="border-brandNavy/8 dark:border-slate-800 text-right">

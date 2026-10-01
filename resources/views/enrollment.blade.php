@@ -18,7 +18,7 @@
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
 
-        <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
+        <header class="h-20 ui-appbar border-b flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
             <div class="flex items-center gap-3">
                 <button onclick="toggleMobileSidebar()" aria-label="Open sidebar menu" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white"><i class="fa-solid fa-bars text-xl"></i></button>
                 <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">Enrollment</h2>
@@ -28,8 +28,7 @@
                 <button onclick="toggleTheme()" aria-label="Toggle dark mode" class="w-9 h-9 rounded-full bg-lightBg dark:bg-darkBg text-brandNavy dark:text-brandGold flex items-center justify-center hover:bg-brandNavy/10 dark:hover:bg-slate-800 transition-colors">
                     <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
                 </button>
-                @include('partials.student-status-badge')
-                @include('partials.profile-menu', ['roleLabel' => Auth::user()->major ?? 'BSIT'])
+                @include('partials.profile-menu', ['roleLabel' => Auth::user()->major ?? 'BSIT', 'studentStatus' => true])
             </div>
         </header>
 

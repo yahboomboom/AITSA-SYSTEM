@@ -44,6 +44,11 @@ class User extends Authenticatable
 	    'signature_path',
         'is_reserved',       // true once the reservation fee is actually paid
         'wants_reservation',  // true if the applicant checked the box on the form (intent only)
+        'program_key',        // curriculum id from config/curricula — counted by AdmissionSlotLimit
+        'withdrawn_at',       // set when the Registrar marks an admission No-Show / Withdrew
+        'withdrawal_reason',
+        'withdrawal_note',
+        'withdrawn_by',
     ];
 
     /**
@@ -69,6 +74,7 @@ class User extends Authenticatable
         'wants_reservation' => 'boolean',
         'password_reset_requested_at' => 'datetime',
         'must_change_password' => 'boolean',
+        'withdrawn_at' => 'datetime',
     ];
 
     /**
@@ -113,6 +119,12 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /** The Registrar who marked this admission withdrawn. */
+    public function withdrawnByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'withdrawn_by');
     }
 
     public function isIrregularStudent(): bool

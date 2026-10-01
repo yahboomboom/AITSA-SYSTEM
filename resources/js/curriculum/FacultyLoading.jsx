@@ -76,7 +76,7 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
                                                 <td>{s.start_time}–{s.end_time}</td>
                                                 <td>
                                                     {s.online ? (
-                                                        <span className="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 font-semibold">Online</span>
+                                                        <span className="px-1.5 py-0.5 rounded bg-brandNavy/10 text-brandNavy dark:text-[#8EC3DE] dark:bg-brandNavy/40 dark:text-[#8EC3DE] font-semibold">Online</span>
                                                     ) : (
                                                         s.room_label
                                                     )}

@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 
 const APPLICANT_TYPE_STYLES = {
     NEW: 'border-brandGreen text-brandGreen',
-    TRANSFEREE: 'border-blue-500 text-blue-600',
-    RETURNEE: 'border-amber-500 text-amber-600',
+    TRANSFEREE: 'border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE]',
+    RETURNEE: 'border-brandGold text-brandGold',
 };
 
 // Disables the submit button right after a confirmed action so a slow

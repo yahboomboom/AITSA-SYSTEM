@@ -12,19 +12,24 @@
     --font-body: 'DM Sans', sans-serif;
     --font-heading: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
 
-    --color-brandNavy: #0B3C5D;
-    --color-brandGreen: #1D7A46;
-    --color-brandGold: #E2A700;
-    --color-darkBg: #07101C;
-    --color-lightBg: #EFF3F7;
-    --color-panelDark: #0D1B2A;
-    --color-surfaceDark: #111E2E;
+    /* Option E "Light Chrome, Blue Header" - graded from the AITSA seal:
+       banner blue #1D506D, laurel green #2A8042; amber replaces the old gold. */
+    --color-brandNavy: #1D506D;
+    --color-brandGreen: #2A8042;
+    --color-brandGold: #A86A0A;
+    --color-darkBg: #0A171F;
+    --color-lightBg: #DAE4E9;
+    --color-panelDark: #10222D;
+    --color-surfaceDark: #13293A;
 
     --animate-fade-in-up: fadeInUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     --animate-fade-in: fadeIn 0.55s ease-out forwards;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Amber is too dark to read on the dark surfaces, so brighten it there. */
+.dark { --color-brandGold: #E0A84A; }
 
 @keyframes fadeInUp {
     0%   { opacity: 0; transform: translateY(22px); }
@@ -38,7 +43,7 @@
 @layer components {
     .prog-card { cursor: pointer; transition: all .18s; }
     .prog-card:hover { transform: translateY(-2px); }
-    .prog-card.selected { outline: 2px solid #1D7A46; outline-offset: 2px; }
+    .prog-card.selected { outline: 2px solid #2A8042; outline-offset: 2px; }
     .form-slide { transition: max-height .4s ease, opacity .3s ease; overflow: hidden; }
     .form-slide.hidden-anim { max-height: 0; opacity: 0; pointer-events: none; }
     .form-slide.visible-anim { max-height: 4000px; opacity: 1; }
@@ -61,3 +66,52 @@
     .ui-badge-outline { display: inline-flex; align-items: center; gap: .25rem; font-size: .6875rem; font-weight: 500; padding: .125rem .5rem; border-radius: .25rem; border-width: 1px; }
     .ui-btn-primary { display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; font-weight: 500; padding: .5rem 1rem; border-radius: .25rem; }
 }
+
+
+/* -- Option E app chrome -----------------------------------------------------
+   White sidebar with a green-tinted active item; solid banner-blue page
+   header. Named classes keep every role's sidebar/header in sync. */
+@layer components {
+    .ui-sidebar { background-color: #E4EBEF; border-right: 1px solid #CDD9DF; }
+    .dark .ui-sidebar { background-color: #0E1F29; border-right-color: #1C3442; }
+    .ui-sidebar-divider { border-color: #CDD9DF; }
+    .dark .ui-sidebar-divider { border-color: #1C3442; }
+    .ui-sidebar-title { color: var(--color-brandNavy); }
+    .dark .ui-sidebar-title { color: #E3EDF2; }
+    .ui-sidebar-muted { color: #7E95A3; }
+    .dark .ui-sidebar-muted { color: #6F8794; }
+    .ui-sidebar-icon { color: #7E95A3; }
+    .ui-sidebar-icon:hover { color: var(--color-brandNavy); }
+    .dark .ui-sidebar-icon:hover { color: #fff; }
+    .ui-nav-link { border-color: transparent; color: #3A5363; }
+    .ui-nav-link:hover { background-color: #D3DFE6; color: var(--color-brandNavy); }
+    .dark .ui-nav-link { color: #9FB4C0; }
+    .dark .ui-nav-link:hover { background-color: rgb(255 255 255 / .05); color: #fff; }
+    .ui-nav-active { border-color: var(--color-brandGreen); background-color: #D9ECDF; color: #1F6B39; }
+    .dark .ui-nav-active { border-color: #3E9E5C; background-color: rgb(62 158 92 / .18); color: #7FD39A; }
+
+    .ui-appbar { background-color: var(--color-brandNavy); border-color: var(--color-brandNavy); color: #fff; }
+    .dark .ui-appbar { background-color: #112A38; border-color: #1D3644; }
+}
+
+/* Header content was written for a white bar; on the blue bar, lift its
+   text, dividers and hovers to white. Unlayered so it beats the utility
+   classes, and scoped away from the dropdowns/modals that live inside the
+   header markup (they stay white cards). */
+.ui-appbar :is(.text-brandNavy, [class*="text-brandNavy/"], [class*="text-slate-"]):not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: rgb(255 255 255 / .92); }
+.ui-appbar [class*="text-brandNavy/"]:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: rgb(255 255 255 / .72); }
+.dark .ui-appbar [class*="dark:text-brandGold"]:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: rgb(255 255 255 / .85); }
+.ui-appbar :is([class*="border-brandNavy/"], [class*="dark:border-slate-"]):not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { border-color: rgb(255 255 255 / .2); }
+.ui-appbar :is([class*="hover:bg-brandNavy/"], [class*="dark:hover:bg-slate-"]):not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *):hover { background-color: rgb(255 255 255 / .12); }
+.ui-appbar .text-brandGreen:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: #BFE3CB; }
+.ui-appbar .text-brandGold:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: #F6D58A; }
+.ui-appbar .text-red-500:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { color: #FFC2C2; }
+.ui-appbar .bg-lightBg:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { background-color: rgb(255 255 255 / .14); }
+.dark .ui-appbar [class*="dark:bg-darkBg"]:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { background-color: rgb(255 255 255 / .1); }
+.ui-appbar .bg-brandNavy:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *) { background-color: var(--color-brandGreen); }
+.ui-appbar .bg-brandNavy:not(:is(#notif-dropdown, #profileMenuDropdown, #resetPasswordModal) *):hover { background-color: #247039; }
+
+/* Softer light mode: every light surface is a pale tint of the header's
+   banner blue (hue 202), so page, sidebar and cards match the blue bar.
+   Cards, tables and pop-ups use the lightest tint. Dark mode untouched. */
+:root:not(.dark) .bg-white { background-color: #F1F5F8; }

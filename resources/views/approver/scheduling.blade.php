@@ -17,12 +17,12 @@
 
         <main class="flex-1 flex flex-col overflow-hidden relative">
 
-            <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
+            <header class="h-20 ui-appbar border-b flex items-center justify-between px-6 lg:px-10 z-10 transition-colors duration-300">
                 <div class="flex items-center space-x-3">
                     <button onclick="toggleMobileSidebar()" aria-label="Open sidebar menu" class="lg:hidden text-brandNavy/60 hover:text-brandNavy dark:text-slate-500 dark:hover:text-white">
                         <i class="fa-solid fa-bars text-lg"></i>
                     </button>
-                    <span class="text-sm font-bold text-brandNavy dark:text-slate-200">Scheduling</span>
+                    <span class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-200">Scheduling</span>
                 </div>
                 <div class="flex items-center space-x-3">
                     @include('partials.notif-bell')
@@ -31,7 +31,7 @@
                     </button>
                     @include('partials.profile-menu', [
                         'roleLabel'     => 'CCS Academic Approver',
-                        'roleClass'     => 'font-bold uppercase tracking-wider text-brandGreen dark:text-emerald-400',
+                        'roleClass'     => 'font-bold uppercase tracking-wider text-brandGreen dark:text-[#7FD39A]',
                         'avatarInitial' => strtoupper(substr(Auth::user()->name ?? 'C', 0, 1)),
                     ])
                 </div>

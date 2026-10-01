@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import EditYearLevelModal from './EditYearLevelModal';
 
 const STATUS_STYLES = {
     Cleared: 'border-brandGreen text-brandGreen',
     Pending: 'border-brandGold text-brandGold',
 };
 
-export default function StudentRegistryTable({ searchUrl }) {
+export default function StudentRegistryTable({ searchUrl, csrfToken }) {
     const [search, setSearch] = useState('');
     // Defaults to students on hold — the ones actually needing the
     // registrar's attention — instead of an empty table until they search.
@@ -14,6 +15,7 @@ export default function StudentRegistryTable({ searchUrl }) {
     const [statusFilter, setStatusFilter] = useState('hold');
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [notice, setNotice] = useState('');
     const query = search.trim();
     const requestId = useRef(0);
 
@@ -78,6 +80,12 @@ export default function StudentRegistryTable({ searchUrl }) {
                     </div>
                 </div>
             </div>
+            {notice && (
+                <div className="mx-5 mt-4 p-3 rounded bg-brandGreen/10 border border-brandGreen/20 text-brandGreen text-sm flex items-center justify-between gap-3">
+                    <span><i className="fa-solid fa-circle-check mr-2" />{notice}</span>
+                    <button type="button" onClick={() => setNotice('')} aria-label="Dismiss" className="text-brandGreen/70 hover:text-brandGreen"><i className="fa-solid fa-xmark" /></button>
+                </div>
+            )}
             <div className="overflow-x-auto">
                 <table className="ui-table">
                     <thead>
@@ -98,7 +106,17 @@ export default function StudentRegistryTable({ searchUrl }) {
                                     <p className="text-sm font-medium">{loading ? 'Searching…' : query ? 'No matching student records.' : statusFilter === 'hold' ? 'No students on hold.' : statusFilter ? 'No matching student records.' : 'Search or filter to view student records.'}</p>
                                 </td>
                             </tr>
-                        ) : rows.map((student) => <StudentRow key={student.id} student={student} />)}
+                        ) : rows.map((student) => (
+                            <StudentRow
+                                key={student.id}
+                                student={student}
+                                csrfToken={csrfToken}
+                                onYearSaved={(yearLevel, message) => {
+                                    setRows((current) => current.map((row) => (row.id === student.id ? { ...row, yearLevel } : row)));
+                                    setNotice(message);
+                                }}
+                            />
+                        ))}
                     </tbody>
                 </table>
             </div>
@@ -106,8 +124,9 @@ export default function StudentRegistryTable({ searchUrl }) {
     );
 }
 
-function StudentRow({ student }) {
+function StudentRow({ student, csrfToken, onYearSaved }) {
     const [showDocuments, setShowDocuments] = useState(false);
+    const [editingYear, setEditingYear] = useState(false);
     const status = student.adminStatus ?? 'Pending';
 
     return (
@@ -130,7 +149,7 @@ function StudentRow({ student }) {
                         {student.isIrregular ? (
                             <span className="ui-badge-outline border-brandGold text-brandGold">Irregular</span>
                         ) : (
-                            <span className="ui-badge-outline border-blue-500 text-blue-600">Regular</span>
+                            <span className="ui-badge-outline border-brandNavy dark:border-[#4D82A0] text-brandNavy dark:text-[#8EC3DE]">Regular</span>
                         )}
                     </div>
                 </td>
@@ -147,7 +166,28 @@ function StudentRow({ student }) {
                         >
                             <i className="fa-solid fa-eye" />View
                         </button>
+                        {student.yearEdit && (
+                            <button
+                                type="button"
+                                title="Change year level"
+                                onClick={() => setEditingYear(true)}
+                                className="ui-btn-primary bg-transparent border border-brandNavy/20 dark:border-slate-600 text-brandNavy/60 dark:text-slate-400 hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <i className="fa-solid fa-pen" />Year
+                            </button>
+                        )}
                     </div>
+                    {editingYear && (
+                        <EditYearLevelModal
+                            student={student}
+                            csrfToken={csrfToken}
+                            onClose={() => setEditingYear(false)}
+                            onSaved={(yearLevel, message) => {
+                                setEditingYear(false);
+                                onYearSaved(yearLevel, message);
+                            }}
+                        />
+                    )}
                 </td>
             </tr>
             {showDocuments && (

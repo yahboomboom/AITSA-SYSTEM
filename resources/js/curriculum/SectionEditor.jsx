@@ -43,7 +43,7 @@ export default function SectionEditor({ subject, schoolYear, faculty, rooms, onC
                     <span>
                         <span className="font-semibold">Block {s.block_label}</span> · {s.days.join('/')} {s.start_time}–{s.end_time} ·{' '}
                         {s.delivery_mode === 'Online' ? 'Online' : (s.room_label ?? s.room)} · {s.faculty_name ?? s.professor}
-                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${s.delivery_mode === 'Online' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                        <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${s.delivery_mode === 'Online' ? 'bg-brandNavy/10 text-brandNavy dark:text-[#8EC3DE] dark:bg-brandNavy/40 dark:text-[#8EC3DE]' : 'bg-brandGreen/10 text-brandGreen dark:text-[#7FD39A] dark:bg-brandGreen/40 dark:text-[#7FD39A]'}`}>
                             {s.delivery_mode === 'Online' ? 'Online' : 'F2F'}
                         </span>
                         <span className="text-slate-400"> · {s.enrolled_count}/{s.capacity} enrolled</span>

@@ -1,5 +1,5 @@
 {{-- partials/profile-menu.blade.php --}}
-{{-- Props: $roleLabel, $avatarClass (opt), $avatarInitial (opt) --}}
+{{-- Props: $roleLabel, $avatarClass (opt), $avatarInitial (opt), $studentStatus (opt, student pages) --}}
 <div class="relative" id="profileMenuWrap">
    {{-- Button to toggle the profile menu dropdown, displaying the user's name, role, and avatar --}}
     <button type="button" onclick="toggleProfileMenu()" aria-label="Open profile menu"
@@ -8,9 +8,13 @@
             <p class="text-sm font-bold text-brandNavy dark:text-slate-200">
                 {{ Auth::user()->name ?? 'User' }}
             </p>
-            <p class="text-[10px] font-medium {{ $roleClass ?? 'text-brandNavy/60 dark:text-slate-400' }}">
-                {{ $roleLabel ?? (Auth::user()->major ?? 'Staff') }}
-            </p>
+            @if (! empty($studentStatus))
+                @include('partials.student-status-badge', ['programLabel' => $roleLabel ?? (Auth::user()->major ?? 'Student')])
+            @else
+                <p class="text-[10px] font-medium {{ $roleClass ?? 'text-brandNavy/60 dark:text-slate-400' }}">
+                    {{ $roleLabel ?? (Auth::user()->major ?? 'Staff') }}
+                </p>
+            @endif
         </div>
         <div class="w-10 h-10 rounded-full {{ $avatarClass ?? 'bg-gradient-to-tr from-brandNavy to-brandGreen text-white' }} flex items-center justify-center font-bold text-sm relative">
             {{ $avatarInitial ?? strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}
@@ -62,7 +66,7 @@
      Positioned over just the page's <main> content area (not the sidebar) via JS,
      matching the step-up re-auth modal's treatment. --}}
 <div id="resetPasswordModal" class="hidden fixed bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[300]">
-    <div class="bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full p-8 animate-fade-in">
+    <div class="bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 animate-fade-in">
         <div id="resetPasswordModalBody">
             <div class="w-14 h-14 rounded-full bg-brandGold/10 text-brandGold flex items-center justify-center mx-auto mb-5 text-xl">
                 <i class="fa-solid fa-key"></i>

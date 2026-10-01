@@ -12,7 +12,7 @@
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
 <div class="min-h-screen flex flex-col">
 
-    <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10">
+    <header class="h-20 ui-appbar border-b flex items-center justify-between px-6 lg:px-10">
         <div class="flex items-center gap-3">
             <a href="{{ route('faculty.sections') }}" class="text-brandNavy/50 dark:text-slate-500 hover:text-brandNavy dark:hover:text-white transition-colors text-sm">
                 <i class="fa-solid fa-chevron-left mr-1"></i>My sections

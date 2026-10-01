@@ -62,4 +62,19 @@ class DashboardTest extends TestCase
     {
         $this->get('/dashboard')->assertRedirect();
     }
+
+    public function test_dashboard_context_carries_the_attachment_url_and_type_for_announcements(): void
+    {
+        $student = User::factory()->create(['role' => 'student']);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $announcement = Announcement::create([
+            'title' => 'Photo day', 'body' => 'Smile.', 'posted_by' => $admin->id, 'is_active' => true,
+            'attachment_path' => 'announcements/poster.jpg', 'attachment_name' => 'poster.jpg',
+        ]);
+
+        $response = $this->actingAs($student)->get('/dashboard');
+
+        $response->assertSee(str_replace('/', '\/', route('announcements.attachment', $announcement)), false);
+        $response->assertSee('&quot;attachmentIsImage&quot;:true', false);
+    }
 }

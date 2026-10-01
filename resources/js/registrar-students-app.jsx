@@ -18,10 +18,11 @@ function parseContext(raw) {
 const el = document.getElementById('registrar-students-root');
 if (el) {
     const context = parseContext(el.dataset.context);
+    const csrfToken = el.dataset.csrfToken ?? '';
 
     createRoot(el).render(
         <ErrorBoundary>
-            <StudentRegistryTable searchUrl={context.searchUrl} />
+            <StudentRegistryTable searchUrl={context.searchUrl} csrfToken={csrfToken} />
         </ErrorBoundary>
     );
 }

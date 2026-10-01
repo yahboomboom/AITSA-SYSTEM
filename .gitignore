@@ -27,5 +27,3 @@ Thumbs.db
 .claude/
 docs/superpowers/
 .superpowers/
-backup_*.sql
-*_dump.txt

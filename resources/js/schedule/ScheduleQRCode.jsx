@@ -31,7 +31,7 @@ export default function ScheduleQRCode({ subjects, studentName, studentId, stude
                 text,
                 width: 176,
                 height: 176,
-                colorDark: '#0B3C5D',
+                colorDark: '#1D506D',
                 colorLight: '#ffffff',
                 correctLevel: window.QRCode.CorrectLevel.M,
             });

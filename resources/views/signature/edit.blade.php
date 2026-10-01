@@ -11,14 +11,14 @@
 <body class="bg-lightBg dark:bg-darkBg text-brandNavy dark:text-slate-200 font-sans antialiased transition-colors duration-300">
 <div class="min-h-screen flex flex-col">
 
-    <header class="h-20 bg-white/80 dark:bg-panelDark/80 backdrop-blur-md border-b border-brandNavy/10 dark:border-slate-800 flex items-center justify-between px-6 lg:px-10">
+    <header class="h-20 ui-appbar border-b flex items-center justify-between px-6 lg:px-10">
         <div class="flex items-center gap-3">
             <a href="{{ $homeUrl }}" title="Back to Home"
                class="w-9 h-9 flex items-center justify-center rounded-lg text-brandNavy/60 hover:text-brandNavy hover:bg-brandNavy/5 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors">
                 <i class="fa-solid fa-arrow-left text-sm"></i>
             </a>
             <img src="{{ asset('assets/bg_aitsa.jpg') }}" alt="AITSA" class="w-8 h-8 rounded-lg object-cover">
-            <h2 class="text-base font-bold text-brandNavy dark:text-slate-100">My Signature</h2>
+            <h2 class="font-heading text-2xl font-semibold leading-none text-brandNavy dark:text-slate-100">My Signature</h2>
         </div>
         <div class="flex items-center gap-4">
             @include('partials.notif-bell')

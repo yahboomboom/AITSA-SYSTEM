@@ -26,6 +26,19 @@ export default function AnnouncementsList({ announcements, csrfToken }) {
                     <div className="min-w-0">
                         <p className="font-medium text-brandNavy dark:text-white">{announcement.title}</p>
                         <p className="text-sm text-brandNavy/60 dark:text-slate-400 mt-1 whitespace-pre-wrap">{announcement.body}</p>
+                        {announcement.attachmentUrl && (
+                            announcement.attachmentIsImage ? (
+                                <a href={announcement.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block mt-3">
+                                    <img src={announcement.attachmentUrl} alt={announcement.attachmentName}
+                                        className="max-h-40 rounded-lg border border-brandNavy/10 dark:border-slate-700 object-cover" />
+                                </a>
+                            ) : (
+                                <a href={announcement.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-medium text-brandGreen hover:underline">
+                                    <i className="fa-solid fa-paperclip" />{announcement.attachmentName}
+                                </a>
+                            )
+                        )}
                         <p className="text-xs text-brandNavy/40 dark:text-slate-600 mt-2">Posted by {announcement.postedBy} &middot; {announcement.postedAt}</p>
                     </div>
                     <form action={announcement.deleteUrl} method="POST" onSubmit={(e) => confirmDelete(e, announcement.title)} className="flex-shrink-0">
