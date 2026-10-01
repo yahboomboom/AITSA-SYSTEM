@@ -250,7 +250,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 'local'),
+            'file_path' => $file->store('documents', 's3'),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -353,8 +353,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/enrollment/{enrollment}/cor', function (Enrollment $enrollment, FeeAssessmentService $fees) {
         $user = Auth::user();
-        abort_unless($enrollment->user_id === $user->id, 403);
-        abort_unless($enrollment->status === 'enrolled', 403, 'This enrollment is not yet approved.');
+        abort_unless(Storage::disk('s3')->exists($submission->file_path), 404);
+        return Storage::disk('s3')->response($submission->file_path, $submission->original_name);
 
         $enrollment->loadMissing('sections.subject', 'user');
         $clearance = Clearance::currentFor($user);
