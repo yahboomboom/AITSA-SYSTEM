@@ -119,7 +119,8 @@ class ProfilePasswordUpdateTest extends TestCase
     {
         Notification::fake();
 
-        $user = User::factory()->create(['email' => 'me@example.com']);
+        // Staff keep the emailed link; students go through the Registrar instead.
+        $user = User::factory()->create(['role' => 'cashier', 'email' => 'me@example.com']);
 
         $response = $this->actingAs($user)->post('/profile/password/reset-link');
 

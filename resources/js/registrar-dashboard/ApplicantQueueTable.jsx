@@ -66,7 +66,7 @@ export default function ApplicantQueueTable({ applicants, csrfToken }) {
                                 </td>
                                 <td className="border-brandNavy/8 dark:border-slate-800 text-brandNavy/60 dark:text-slate-400">
                                     <p>{applicant.contactNumber ?? '—'}</p>
-                                    <p className="text-xs text-brandNavy/40 dark:text-slate-600 mt-0.5 max-w-36 truncate">{applicant.address ?? ''}</p>
+                                    <p title={applicant.address ?? ''} className="text-xs text-brandNavy/50 dark:text-slate-400 mt-0.5 min-w-[10rem] max-w-[14rem] whitespace-normal break-words leading-snug">{applicant.address ?? ''}</p>
                                 </td>
                                 <td className="border-brandNavy/8 dark:border-slate-800">
                                     <p className="font-medium text-brandNavy dark:text-slate-200">{applicant.major ?? '—'}</p>

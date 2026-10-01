@@ -13,8 +13,17 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
     const [schedules, setSchedules] = useState({});
     const [draft, setDraft] = useState(null);
 
+    const [semesters, setSemesters] = useState({});
+    const [loadError, setLoadError] = useState({});
+
     const loadSchedule = (id) => {
-        api.get(`/admin/faculty/${id}/schedule`).then((res) => setSchedules((s) => ({ ...s, [id]: res.data.schedule })));
+        setLoadError((e) => ({ ...e, [id]: null }));
+        api.get(`/admin/faculty/${id}/schedule`)
+            .then((res) => {
+                setSchedules((s) => ({ ...s, [id]: res.data.schedule }));
+                setSemesters((s) => ({ ...s, [id]: res.data.semester }));
+            })
+            .catch(() => setLoadError((e) => ({ ...e, [id]: 'Could not load this schedule.' })));
     };
 
     const toggle = (id) => {
@@ -31,7 +40,11 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
             )}
             {faculty.map((f) => {
                 const sched = schedules[f.id] ?? [];
-                const totalHours = sched.reduce((sum, s) => sum + weeklyHours(s), 0);
+                // Hours for the current semester only; the list spans the school year.
+                const currentSem = semesters[f.id];
+                const totalHours = sched.filter((s) => !currentSem || s.semester === currentSem).reduce((sum, s) => sum + weeklyHours(s), 0);
+                const clashCount = sched.filter((s) => (s.conflicts_with ?? []).length > 0).length;
+                const byId = Object.fromEntries(sched.map((s) => [s.id, s]));
                 const isOpen = openId === f.id;
                 return (
                     <div key={f.id} className="bg-white dark:bg-panelDark rounded-2xl shadow-sm overflow-hidden">
@@ -49,6 +62,11 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
                                 <span className="px-2.5 py-1 rounded-full bg-lightBg dark:bg-slate-800 text-xs font-semibold text-brandNavy dark:text-slate-300">
                                     {f.sections_count} section{f.sections_count === 1 ? '' : 's'}
                                 </span>
+                                {isOpen && clashCount > 0 && (
+                                    <span className="px-2.5 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-semibold">
+                                        <i className="fa-solid fa-triangle-exclamation mr-1" />{clashCount} clash{clashCount === 1 ? '' : 'es'}
+                                    </span>
+                                )}
                                 {isOpen && sched.length > 0 && (
                                     <span className="px-2.5 py-1 rounded-full bg-brandGold/15 text-brandGold text-xs font-semibold">
                                         {totalHours.toFixed(1)} hrs/week
@@ -62,15 +80,25 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
                                 <table className="w-full text-xs">
                                     <thead>
                                         <tr className="text-left text-slate-400 bg-lightBg dark:bg-slate-800/50">
-                                            <th className="py-2 px-4 font-semibold">Subject</th><th className="font-semibold">Block</th>
+                                            <th className="py-2 px-4 font-semibold">Subject</th><th className="font-semibold">Sem</th><th className="font-semibold">Block</th>
                                             <th className="font-semibold">Days</th><th className="font-semibold">Time</th>
                                             <th className="font-semibold">Where</th><th className="font-semibold text-right pr-4">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {sched.map((s) => (
-                                            <tr key={s.id} className="border-t border-slate-50 dark:border-slate-800">
-                                                <td className="py-2 px-4">{s.subject_code} — {s.subject_title}</td>
+                                        {sched.map((s) => {
+                                            const clashes = (s.conflicts_with ?? []).map((id) => byId[id]).filter(Boolean);
+                                            return (
+                                            <tr key={s.id} className={`border-t border-slate-50 dark:border-slate-800 ${clashes.length ? 'bg-red-50 dark:bg-red-950/30' : ''}`}>
+                                                <td className="py-2 px-4">
+                                                    {s.subject_code} — {s.subject_title}
+                                                    {clashes.length > 0 && (
+                                                        <span className="block text-red-600 dark:text-red-400 font-semibold mt-0.5">
+                                                            <i className="fa-solid fa-triangle-exclamation mr-1" />Clashes with {clashes.map((c) => `${c.subject_code} ${c.block_label}`).join(', ')}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td>{s.semester}</td>
                                                 <td>{s.block_label}</td>
                                                 <td>{s.days.join('/')}</td>
                                                 <td>{s.start_time}–{s.end_time}</td>
@@ -85,9 +113,15 @@ export default function FacultyLoading({ faculty, rooms, onListsChanged }) {
                                                     <button onClick={() => setDraft({ ...s })} className="text-brandNavy dark:text-slate-300 hover:underline font-medium">Edit</button>
                                                 </td>
                                             </tr>
-                                        ))}
-                                        {sched.length === 0 && (
-                                            <tr><td colSpan={6} className="py-3 px-4 text-slate-400">No sections loaded this school year.</td></tr>
+                                            );
+                                        })}
+                                        {loadError[f.id] && (
+                                            <tr><td colSpan={7} className="py-3 px-4 text-red-600">
+                                                {loadError[f.id]} <button onClick={() => loadSchedule(f.id)} className="underline font-semibold">Retry</button>
+                                            </td></tr>
+                                        )}
+                                        {!loadError[f.id] && sched.length === 0 && (
+                                            <tr><td colSpan={7} className="py-3 px-4 text-slate-400">No sections loaded this school year.</td></tr>
                                         )}
                                     </tbody>
                                 </table>

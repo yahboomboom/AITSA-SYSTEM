@@ -41,10 +41,15 @@ export default function AddAnnouncementForm({ csrfToken, actionUrl }) {
                     type="text" name="title" required maxLength={150} placeholder="Title, e.g. Enrollment period open"
                     className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 outline-none focus:border-brandGreen/40 transition-colors"
                 />
-                <textarea
-                    name="body" required rows={3} placeholder="Announcement details…"
-                    className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 outline-none focus:border-brandGreen/40 transition-colors resize-none"
-                />
+                <div>
+                    <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">
+                        Link (optional) — YouTube, Google Drive/Docs and PDF links show right on the dashboard
+                    </label>
+                    <input
+                        type="url" name="link_url" maxLength={2048} placeholder="https://…"
+                        className="w-full bg-lightBg dark:bg-slate-900 text-sm text-brandNavy dark:text-slate-200 placeholder-brandNavy/30 dark:placeholder-slate-600 border border-brandNavy/10 dark:border-slate-700 rounded px-3 py-2 outline-none focus:border-brandGreen/40 transition-colors"
+                    />
+                </div>
                 <div>
                     <label className="block text-xs font-medium text-brandNavy/60 dark:text-slate-400 mb-1">
                         Attach an image or PDF (optional)

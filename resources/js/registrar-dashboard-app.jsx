@@ -4,11 +4,13 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AdmissionsPipelineCard from './registrar-dashboard/AdmissionsPipelineCard';
 import GradeSubmissionQueue from './components/GradeSubmissionQueue';
 import PasswordResetRequestsCard from './registrar-dashboard/PasswordResetRequestsCard';
+import TempPasswordModal from './registrar-dashboard/TempPasswordModal';
 import NoShowsCard from './registrar-dashboard/NoShowsCard';
 import WithdrawnStudentsCard from './registrar-dashboard/WithdrawnStudentsCard';
 
 const EMPTY_CONTEXT = {
     applicants: [],
+    tempPasswords: [],
     clearances: [],
     documentsPageUrl: '',
     gradeSubmissions: [],
@@ -30,6 +32,7 @@ function parseContext(raw) {
             documentsPageUrl: parsed.documentsPageUrl ?? '',
             gradeSubmissions: Array.isArray(parsed.gradeSubmissions) ? parsed.gradeSubmissions : [],
             passwordResetRequests: Array.isArray(parsed.passwordResetRequests) ? parsed.passwordResetRequests : [],
+            tempPasswords: Array.isArray(parsed.tempPasswords) ? parsed.tempPasswords : [],
             canManageWithdrawals: parsed.canManageWithdrawals === true,
             noShows: Array.isArray(parsed.noShows) ? parsed.noShows : [],
             noShowThresholdDays: Number(parsed.noShowThresholdDays) || 14,
@@ -53,6 +56,7 @@ function RegistrarDashboardApp({ context, csrfToken }) {
             />
             <GradeSubmissionQueue rows={context.gradeSubmissions} csrfToken={csrfToken} title="Grades Awaiting Registrar Approval" approveLabel="Finalize" />
             <PasswordResetRequestsCard rows={context.passwordResetRequests} csrfToken={csrfToken} />
+            {context.tempPasswords.length > 0 && <TempPasswordModal items={context.tempPasswords} csrfToken={csrfToken} />}
             {context.canManageWithdrawals && (
                 <>
                     <NoShowsCard

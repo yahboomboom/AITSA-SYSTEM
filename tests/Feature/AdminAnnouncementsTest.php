@@ -40,12 +40,11 @@ class AdminAnnouncementsTest extends TestCase
     public function test_admin_can_create_an_announcement(): void
     {
         $this->actingAs($this->admin)
-            ->post('/admin/announcements', ['title' => 'Enrollment period open', 'body' => 'Enroll now for A.Y. 2026-2027.'])
+            ->post('/admin/announcements', ['title' => 'Enrollment period open'])
             ->assertRedirect(route('admin.announcements'));
 
         $this->assertDatabaseHas('announcements', [
             'title' => 'Enrollment period open',
-            'body' => 'Enroll now for A.Y. 2026-2027.',
             'posted_by' => $this->admin->id,
             'is_active' => 1,
         ]);

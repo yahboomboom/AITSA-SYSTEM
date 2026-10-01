@@ -93,6 +93,23 @@
                             'approveUrl' => route('approver.matriculation.approve', $change),
                             'rejectUrl' => route('approver.matriculation.reject', $change),
                         ])->values(),
+                        'creditRequests' => $pendingCredits->map(fn ($credit) => [
+                            'id' => $credit->id,
+                            'studentName' => $credit->user->name ?? 'Unknown (deleted account)',
+                            'loginId' => $credit->user->login_id ?? 'N/A',
+                            'program' => $credit->user->major ?? '—',
+                            'type' => $credit->user->applicant_type ?? '—',
+                            'note' => $credit->note,
+                            'requestedBy' => $credit->requester->name ?? 'Registrar',
+                            'requestedAgo' => $credit->created_at?->diffForHumans(),
+                            'items' => $credit->items->map(fn ($item) => [
+                                'code' => $item->subject_code,
+                                'title' => $item->subject_title,
+                                'grade' => $item->final_grade,
+                            ])->values(),
+                            'approveUrl' => route('approver.credits.approve', $credit),
+                            'rejectUrl' => route('approver.credits.reject', $credit),
+                        ])->values(),
                         'gradeSubmissions' => $pendingGradeSubmissions->map(function ($submission) {
                             $enrolledIds = $submission->section->enrolledStudentIds();
                             $gradedIds = $submission->items->pluck('user_id');

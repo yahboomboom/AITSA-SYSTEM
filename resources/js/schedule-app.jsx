@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import CorHeader from './schedule/CorHeader';
 import WeeklyTimetable from './schedule/WeeklyTimetable';
-import ScheduleQRCode from './schedule/ScheduleQRCode';
 
 function parseSubjects(raw) {
     try {
@@ -17,16 +16,8 @@ function parseSubjects(raw) {
 function ScheduleApp({ subjects, studentName, studentId, studentProgram, schoolYear, semester }) {
     return (
         <div className="space-y-6">
-            <CorHeader studentId={studentId} studentProgram={studentProgram} schoolYear={schoolYear} semester={semester} />
+            <CorHeader subjects={subjects} studentName={studentName} studentId={studentId} studentProgram={studentProgram} schoolYear={schoolYear} semester={semester} />
             <WeeklyTimetable subjects={subjects} />
-            <ScheduleQRCode
-                subjects={subjects}
-                studentName={studentName}
-                studentId={studentId}
-                studentProgram={studentProgram}
-                schoolYear={schoolYear}
-                semester={semester}
-            />
         </div>
     );
 }

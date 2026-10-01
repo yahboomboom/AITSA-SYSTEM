@@ -49,7 +49,7 @@
                         'announcements' => $announcements->map(fn ($announcement) => [
                             'id' => $announcement->id,
                             'title' => $announcement->title,
-                            'body' => $announcement->body,
+                            'linkUrl' => $announcement->link_url,
                             'postedBy' => $announcement->poster->name ?? 'Unknown',
                             'postedAt' => $announcement->created_at->format('M d, Y'),
                             'deleteUrl' => route('admin.announcements.delete', $announcement),

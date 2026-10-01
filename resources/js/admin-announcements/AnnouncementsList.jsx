@@ -25,7 +25,12 @@ export default function AnnouncementsList({ announcements, csrfToken }) {
                 <div key={announcement.id} className="p-5 flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <p className="font-medium text-brandNavy dark:text-white">{announcement.title}</p>
-                        <p className="text-sm text-brandNavy/60 dark:text-slate-400 mt-1 whitespace-pre-wrap">{announcement.body}</p>
+                        {announcement.linkUrl && (
+                            <a href={announcement.linkUrl} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-brandNavy dark:text-[#8EC3DE] hover:underline break-all">
+                                <i className="fa-solid fa-link" />{announcement.linkUrl}
+                            </a>
+                        )}
                         {announcement.attachmentUrl && (
                             announcement.attachmentIsImage ? (
                                 <a href={announcement.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block mt-3">

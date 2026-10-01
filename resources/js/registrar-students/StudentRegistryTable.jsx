@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import EditYearLevelModal from './EditYearLevelModal';
+import CreditSubjectsModal from './CreditSubjectsModal';
 
 const STATUS_STYLES = {
     Cleared: 'border-brandGreen text-brandGreen',
@@ -115,6 +116,7 @@ export default function StudentRegistryTable({ searchUrl, csrfToken }) {
                                     setRows((current) => current.map((row) => (row.id === student.id ? { ...row, yearLevel } : row)));
                                     setNotice(message);
                                 }}
+                                onNotice={setNotice}
                             />
                         ))}
                     </tbody>
@@ -124,9 +126,10 @@ export default function StudentRegistryTable({ searchUrl, csrfToken }) {
     );
 }
 
-function StudentRow({ student, csrfToken, onYearSaved }) {
+function StudentRow({ student, csrfToken, onYearSaved, onNotice }) {
     const [showDocuments, setShowDocuments] = useState(false);
     const [editingYear, setEditingYear] = useState(false);
+    const [crediting, setCrediting] = useState(false);
     const status = student.adminStatus ?? 'Pending';
 
     return (
@@ -176,7 +179,29 @@ function StudentRow({ student, csrfToken, onYearSaved }) {
                                 <i className="fa-solid fa-pen" />Year
                             </button>
                         )}
+                        {student.creditsUrl && (
+                            <button
+                                type="button"
+                                title="Credit subjects already passed"
+                                onClick={() => setCrediting(true)}
+                                className="ui-btn-primary bg-transparent border border-brandNavy/20 dark:border-slate-600 text-brandNavy/60 dark:text-slate-400 hover:bg-brandNavy/5 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                <i className="fa-solid fa-list-check" />Subjects
+                            </button>
+                        )}
                     </div>
+                    {crediting && (
+                        <CreditSubjectsModal
+                            student={student}
+                            csrfToken={csrfToken}
+                            onClose={() => setCrediting(false)}
+                            onSent={(message) => {
+                                setCrediting(false);
+                                onNotice(message);
+                            }}
+                            onYearSet={(yearLevel, message) => onYearSaved(yearLevel, message)}
+                        />
+                    )}
                     {editingYear && (
                         <EditYearLevelModal
                             student={student}

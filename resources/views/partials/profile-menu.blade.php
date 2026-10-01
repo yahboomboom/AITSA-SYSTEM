@@ -65,6 +65,7 @@
 {{-- Reset-password confirmation card: hidden by default, opened from the dropdown above.
      Positioned over just the page's <main> content area (not the sidebar) via JS,
      matching the step-up re-auth modal's treatment. --}}
+@php($resetViaRegistrar = auth()->user()?->role === 'student')
 <div id="resetPasswordModal" class="hidden fixed bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[300]">
     <div class="bg-white dark:bg-panelDark rounded-2xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 animate-fade-in">
         <div id="resetPasswordModalBody">
@@ -73,7 +74,11 @@
             </div>
             <h2 class="text-lg font-extrabold text-brandNavy dark:text-white mb-1 text-center">Reset Your Password</h2>
             <p class="text-sm text-brandNavy/60 dark:text-slate-400 mb-6 text-center">
-                We'll email a password reset link to your registered email address.
+                @if ($resetViaRegistrar)
+                    We'll send your request to the Registrar. You'll get a temporary password at their office.
+                @else
+                    We'll email a password reset link to your registered email address.
+                @endif
             </p>
             <p id="resetPasswordModalError" class="hidden mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 text-xs font-semibold text-center">
                 Something went wrong. Please try again.
@@ -85,7 +90,7 @@
                 </button>
                 <button type="button" id="resetPasswordModalSendBtn" onclick="submitResetPasswordRequest()"
                     class="flex-1 py-3 rounded-xl bg-brandNavy dark:bg-brandGreen text-white font-bold text-sm hover:opacity-90 transition-opacity">
-                    Send Reset Link
+                    {{ $resetViaRegistrar ? 'Send Request' : 'Send Reset Link' }}
                 </button>
             </div>
         </div>
@@ -145,17 +150,23 @@
             headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
         }).then(function (res) {
             if (!res.ok) throw new Error('request failed');
-            document.getElementById('resetPasswordModalBody').innerHTML =
+            return res.json();
+        }).then(function (data) {
+            var title = data.viaRegistrar ? 'Request Sent' : 'Check Your Email';
+            var body = document.getElementById('resetPasswordModalBody');
+            body.innerHTML =
                 '<div class="w-14 h-14 rounded-full bg-brandGreen/10 text-brandGreen flex items-center justify-center mx-auto mb-5 text-xl">' +
                 '<i class="fa-solid fa-circle-check"></i></div>' +
-                '<h2 class="text-lg font-extrabold text-brandNavy dark:text-white mb-1 text-center">Check Your Email</h2>' +
-                '<p class="text-sm text-brandNavy/60 dark:text-slate-400 mb-6 text-center">A password reset link has been sent to your registered email address.</p>' +
+                '<h2 class="text-lg font-extrabold text-brandNavy dark:text-white mb-1 text-center"></h2>' +
+                '<p class="text-sm text-brandNavy/60 dark:text-slate-400 mb-6 text-center"></p>' +
                 '<button type="button" onclick="closeResetPasswordModal()" ' +
                 'class="w-full py-3 rounded-xl bg-brandNavy dark:bg-brandGreen text-white font-bold text-sm hover:opacity-90 transition-opacity">Done</button>';
+            body.querySelector('h2').textContent = title;
+            body.querySelector('p').textContent = data.message;
         }).catch(function () {
             errorEl.classList.remove('hidden');
             btn.disabled = false;
-            btn.textContent = 'Send Reset Link';
+            btn.textContent = {{ Js::from($resetViaRegistrar ? 'Send Request' : 'Send Reset Link') }};
         });
     };
 }());

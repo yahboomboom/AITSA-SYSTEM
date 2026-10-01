@@ -65,10 +65,27 @@ class ProfileController extends Controller
         return back()->with('success', 'Your password has been changed.');
     }
 
-    public function sendPasswordResetLink()
+    public function sendPasswordResetLink(Request $request)
     {
-        Password::sendResetLink(['email' => Auth::user()->email]);
+        $user = Auth::user();
 
-        return back()->with('success', 'A password reset link has been sent to your email address.');
+        // Students reset through the Registrar (identity checked in person),
+        // never by email — same rule as the login page's Forgot password.
+        if ($user->role === 'student') {
+            $user->forceFill(['password_reset_requested_at' => now()])->save();
+            AuditLog::record('Password Reset Requested', $user->name . ' (' . $user->login_id . ') asked the Registrar for a password reset.', 'User', $user->id);
+            $message = 'Request sent to the Registrar. Visit the Registrar\'s office with your ID to get a temporary password.';
+
+            return $request->expectsJson()
+                ? response()->json(['viaRegistrar' => true, 'message' => $message])
+                : back()->with('success', $message);
+        }
+
+        Password::sendResetLink(['email' => $user->email]);
+        $message = 'A password reset link has been sent to your email address.';
+
+        return $request->expectsJson()
+            ? response()->json(['viaRegistrar' => false, 'message' => $message])
+            : back()->with('success', $message);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Exceptions\EnrollmentException;
+use App\Exceptions\ScheduleConflictException;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Section;
@@ -23,8 +23,8 @@ class SectionController extends Controller
 
         try {
             $this->scheduler->assertNoConflicts($data);
-        } catch (EnrollmentException $e) {
-            return response()->json(['message' => $e->getMessage()], $e->status);
+        } catch (ScheduleConflictException $e) {
+            return response()->json(['message' => $e->getMessage(), 'conflict' => $e->conflict], 409);
         }
 
         $section = Section::create($data);
@@ -38,14 +38,14 @@ class SectionController extends Controller
     {
         $data = $this->validated($request, $section);
         $merged = array_merge(
-            $section->only(['days', 'start_time', 'end_time', 'school_year', 'faculty_id', 'room_id']),
+            $section->only(['subject_id', 'block_label', 'days', 'start_time', 'end_time', 'school_year', 'faculty_id', 'room_id']),
             $data
         );
 
         try {
             $this->scheduler->assertNoConflicts($merged, $section);
-        } catch (EnrollmentException $e) {
-            return response()->json(['message' => $e->getMessage()], $e->status);
+        } catch (ScheduleConflictException $e) {
+            return response()->json(['message' => $e->getMessage(), 'conflict' => $e->conflict], 409);
         }
 
         $section->update($data);

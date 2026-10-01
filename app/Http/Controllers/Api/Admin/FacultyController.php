@@ -66,7 +66,7 @@ class FacultyController extends Controller
         return response()->json(['message' => 'Deleted.']);
     }
 
-    public function schedule(User $user, EnrollmentService $enrollments): JsonResponse
+    public function schedule(User $user, EnrollmentService $enrollments, \App\Services\SectionScheduleService $scheduler): JsonResponse
     {
         if ($user->role !== 'faculty') {
             return response()->json(['message' => 'That user is not a faculty member.'], 422);
@@ -74,14 +74,20 @@ class FacultyController extends Controller
 
         $year = $enrollments->currentTerm()['school_year'];
 
+        $sections = $user->taughtSections()->where('school_year', $year)
+            ->with(['subject', 'roomEntity'])->orderBy('start_time')->get();
+        $clashes = $scheduler->clashes($sections);
+
         return response()->json([
-            'schedule' => $user->taughtSections()->where('school_year', $year)
-                ->with(['subject', 'roomEntity'])->orderBy('start_time')->get()
+            'semester' => $enrollments->currentTerm()['semester'],
+            'schedule' => $sections
                 ->map(fn (Section $s) => array_merge($s->toArray(), [
                     'subject_code' => $s->subject->code,
                     'subject_title' => $s->subject->title,
+                    'semester' => $s->subject->semester,
                     'room_label' => $s->roomLabel(),
                     'online' => $s->isOnline(),
+                    'conflicts_with' => $clashes[$s->id] ?? [],
                 ]))->values(),
         ]);
     }

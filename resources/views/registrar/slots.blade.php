@@ -40,17 +40,10 @@
 
                 @include('partials.snackbar')
 
-                <div class="space-y-1">
-                    <h1 class="font-heading text-lg font-semibold text-brandNavy dark:text-white">Admission slots</h1>
-                    <p class="text-sm text-brandNavy/50 dark:text-slate-400">
-                        Set how many total slots each curriculum has for <span class="font-medium text-brandNavy dark:text-slate-300">{{ $schoolYear }}</span>, split evenly across sections.
-                        Slots are consumed as applicants get marked "Reserved" from the Applicants list.
-                    </p>
-                </div>
-
                 @php
                     $context = [
                         'curricula' => $curricula->values(),
+                        'term' => $term,
                         'errors' => array_map(fn ($m) => $m[0], $errors->getMessages()),
                         'old' => [
                             'school_year' => old('school_year', $schoolYear),

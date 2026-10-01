@@ -13,8 +13,15 @@ const labelClass = 'block text-[10px] font-bold text-brandNavy/60 dark:text-slat
 // per-subject list sets those when it opens "Add Section", and every
 // section returned by the backend (list or faculty schedule) already has
 // them as raw model fields.
+const CONFLICT_TITLES = {
+    faculty: ['fa-chalkboard-user', 'Professor already busy'],
+    room: ['fa-door-closed', 'Room already booked'],
+    block: ['fa-users', 'Block already has a class'],
+};
+
 export default function SectionEditModal({ draft, setDraft, rooms, faculty, onClose, onSaved, onListsChanged }) {
     const [error, setError] = useState(null);
+    const [conflict, setConflict] = useState(null);
     const [saving, setSaving] = useState(false);
     const [newFaculty, setNewFaculty] = useState(null);
     const [newRoom, setNewRoom] = useState(null);
@@ -25,6 +32,7 @@ export default function SectionEditModal({ draft, setDraft, rooms, faculty, onCl
 
     const save = () => {
         setError(null);
+        setConflict(null);
         setSaving(true);
         const payload = {
             ...draft, capacity: Number(draft.capacity),
@@ -33,7 +41,15 @@ export default function SectionEditModal({ draft, setDraft, rooms, faculty, onCl
         };
         const req = draft.id ? api.put(`/admin/sections/${draft.id}`, payload) : api.post('/admin/sections', payload);
         req.then(() => { onClose(); onSaved(); })
-            .catch((err) => setError(err.response?.data?.message ?? 'Check the section fields and try again.'))
+            .catch((err) => {
+                const data = err.response?.data ?? {};
+                if (err.response?.status === 409 && data.conflict) {
+                    setConflict({ ...data.conflict, message: data.message });
+                    return;
+                }
+                const firstField = data.errors ? Object.values(data.errors)[0]?.[0] : null;
+                setError(firstField ?? data.message ?? 'Could not save. Check your connection and try again.');
+            })
             .finally(() => setSaving(false));
     };
 
@@ -249,6 +265,16 @@ export default function SectionEditModal({ draft, setDraft, rooms, faculty, onCl
                             ))}
                         </div>
                     </div>
+                    {conflict && (
+                        <div role="alert" className="rounded-md border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-950/40 px-3 py-2.5 text-xs">
+                            <p className="font-semibold text-red-700 dark:text-red-300">
+                                <i className={`fa-solid ${(CONFLICT_TITLES[conflict.type] ?? CONFLICT_TITLES.faculty)[0]} mr-1.5`} />
+                                Schedule conflict: {(CONFLICT_TITLES[conflict.type] ?? CONFLICT_TITLES.faculty)[1]}
+                            </p>
+                            <p className="text-red-700/90 dark:text-red-300/90 mt-1">{conflict.message}</p>
+                            <p className="text-red-700/70 dark:text-red-300/70 mt-1">Change the day, time{conflict.type === 'faculty' ? ', or professor' : conflict.type === 'room' ? ', or room' : ''}, then save again.</p>
+                        </div>
+                    )}
                     {error && <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/40 rounded px-2.5 py-1.5">{error}</p>}
                 </div>
                 <div className="p-5 border-t border-brandNavy/10 dark:border-slate-800 flex gap-2 sticky bottom-0 bg-white dark:bg-panelDark">

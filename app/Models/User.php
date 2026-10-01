@@ -129,7 +129,40 @@ class User extends Authenticatable
 
     public function isIrregularStudent(): bool
     {
-        return $this->grades()->where('status', 'Failed')->exists();
+        return $this->grades()->where('status', 'Failed')->exists()
+            || $this->backSubjectCodes() !== [];
+    }
+
+    /**
+     * Transferees/returnees only: curriculum subjects from before their
+     * current place (lower years, plus this year's 1st sem when the term is
+     * 2nd sem) that they haven't passed or been credited. Any of these makes
+     * them irregular, so the picker can schedule the missing subjects.
+     * Continuing students return [] — their older records may predate the
+     * system, and missing rows mustn't turn them irregular.
+     *
+     * @return string[]
+     */
+    public function backSubjectCodes(): array
+    {
+        if (! in_array($this->applicant_type, ['TRANSFEREE', 'RETURNEE'], true)) {
+            return [];
+        }
+        $program = $this->program();
+        if (! $program) {
+            return [];
+        }
+
+        $year = $this->yearNumber();
+        $semester = (int) Setting::get('semester', '1');
+
+        return Subject::where('program_id', $program->id)
+            ->where(fn ($q) => $q->where('year_level', '<', $year)
+                ->when($semester >= 2, fn ($q) => $q->orWhere(fn ($q) => $q->where('year_level', $year)->where('semester', '<', $semester))))
+            ->whereNotIn('code', $this->passedSubjectCodes())
+            ->orderBy('year_level')->orderBy('semester')->orderBy('code')
+            ->pluck('code')
+            ->all();
     }
 
     public function yearNumber(): int

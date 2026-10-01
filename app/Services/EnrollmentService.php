@@ -6,6 +6,7 @@ use App\Exceptions\EnrollmentException;
 use App\Models\AuditLog;
 use App\Models\Clearance;
 use App\Models\Enrollment;
+use App\Models\Program;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Models\Subject;
@@ -99,6 +100,34 @@ class EnrollmentService
         }
 
         return null;
+    }
+
+    /**
+     * The Chair's 1st-year blocks for a program in the current term: how many
+     * blocks and how many new students they can seat. A block seats as many as
+     * its smallest class, since blockFor() needs a seat in every class.
+     *
+     * @return array{count:int, seats:int}
+     */
+    public function firstYearBlockSeats(?Program $program): array
+    {
+        if (! $program) {
+            return ['count' => 0, 'seats' => 0];
+        }
+        $term = $this->currentTerm();
+
+        $blocks = Section::where('school_year', $term['school_year'])
+            ->whereHas('subject', fn ($q) => $q
+                ->where('program_id', $program->id)
+                ->where('year_level', 1)
+                ->where('semester', $term['semester']))
+            ->get(['block_label', 'capacity'])
+            ->groupBy('block_label');
+
+        return [
+            'count' => $blocks->count(),
+            'seats' => (int) $blocks->sum(fn ($sections) => $sections->min('capacity')),
+        ];
     }
 
     public function enrollRegular(User $user): Enrollment

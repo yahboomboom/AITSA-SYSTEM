@@ -182,18 +182,22 @@ Route::middleware('auth')->group(function () {
         }
 
         $announcements = Announcement::where('is_active', true)->latest()->take(5)
-            ->get(['id', 'title', 'body', 'created_at', 'attachment_path', 'attachment_name']);
+            ->get(['id', 'title', 'created_at', 'attachment_path', 'attachment_name', 'link_url', 'link_image_path']);
 
         $context = [
             'clearancePercent' => $clearance->completionPercent(),
             'announcements' => $announcements->map(fn ($a) => [
                 'title' => $a->title,
-                'body' => $a->body,
                 'postedAt' => $a->created_at->format('M d, Y'),
                 'isNew' => $a->created_at->gt(now()->subDays(3)),
                 'attachmentUrl' => $a->attachment_path ? route('announcements.attachment', $a) : null,
                 'attachmentIsImage' => $a->isImageAttachment(),
                 'attachmentName' => $a->attachment_name,
+                'linkUrl' => $a->link_url,
+                'linkType' => $a->linkPreview()['type'] ?? null,
+                'linkSrc' => $a->linkPreview()['src'] ?? null,
+                'linkHost' => $a->linkPreview()['host'] ?? null,
+                'linkImageUrl' => $a->link_image_path ? route('announcements.link-image', $a) : null,
             ])->values(),
         ];
 
@@ -477,6 +481,15 @@ Route::middleware('auth')->group(function () {
             ->latest('chair_at')
             ->get();
 
+        // Temporary passwords this Registrar generated in the last 15 minutes and hasn't dismissed.
+        $tempPasswords = collect(session('tempPasswords', []))
+            ->filter(fn ($t) => $t['createdAt'] > now()->subMinutes(15)->timestamp)->values();
+        session(['tempPasswords' => $tempPasswords->all()]);
+        $tempPasswords = $tempPasswords->map(fn ($t) => $t + [
+            'dismissUrl' => route('registrar.password-resets.dismiss', $t['studentId']),
+            'createdAtFormatted' => \Illuminate\Support\Carbon::createFromTimestamp($t['createdAt'])->format('g:i A'),
+        ]);
+
         $passwordResetRequests = User::where('role', 'student')
             ->whereNotNull('password_reset_requested_at')
             ->orderBy('password_reset_requested_at')
@@ -488,7 +501,7 @@ Route::middleware('auth')->group(function () {
         $noShowThresholdDays = $withdrawals->thresholdDays();
 
         return view('registrar.dashboard', compact(
-            'clearances', 'applicants', 'pendingGradeApprovals', 'passwordResetRequests',
+            'clearances', 'applicants', 'pendingGradeApprovals', 'passwordResetRequests', 'tempPasswords',
             'canManageWithdrawals', 'noShows', 'withdrawnStudents', 'noShowThresholdDays'
         ));
     })->name('registrar.dashboard');
@@ -496,7 +509,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/registrar/password-resets/{student}', function (Request $request, User $student) {
         abort_unless($student->role === 'student', 404);
 
-        $tempPassword = Str::password(12, symbols: false);
+        // Handed over in person, so skip look-alikes (I/l/1, O/o/0).
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        $tempPassword = '';
+        for ($i = 0; $i < 12; $i++) {
+            $tempPassword .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
 
         $student->forceFill([
             'password' => Hash::make($tempPassword),
@@ -511,8 +529,44 @@ Route::middleware('auth')->group(function () {
             $student->id
         );
 
-        return back()->with('success', "Temporary password for {$student->name} ({$student->login_id}): {$tempPassword} — relay this to the student in person. They'll be required to set a new password on next login.");
+        // Kept in this Registrar's session (not the database) so it survives a
+        // reload or a stray click, until they press Done or 15 minutes pass.
+        // The student must change it at first login anyway.
+        $pending = collect(session('tempPasswords', []))->reject(fn ($t) => $t['studentId'] === $student->id);
+        $pending->push([
+            'studentId' => $student->id,
+            'name' => $student->name,
+            'loginId' => $student->login_id,
+            'password' => $tempPassword,
+            'createdAt' => now()->timestamp,
+        ]);
+        session(['tempPasswords' => $pending->values()->all()]);
+
+        return back()->with('success', "Password reset for {$student->name}.");
     })->name('registrar.password-resets.reset')->middleware('password.confirm:,900');
+
+    Route::post('/registrar/password-resets/{student}/dismiss', function (User $student) {
+        session(['tempPasswords' => collect(session('tempPasswords', []))
+            ->reject(fn ($t) => $t['studentId'] === $student->id)->values()->all()]);
+
+        return back();
+    })->name('registrar.password-resets.dismiss');
+
+    // Anyone can type a student ID on Forgot password, so the Registrar can
+    // turn down a request they couldn't verify in person. Password unchanged.
+    Route::post('/registrar/password-resets/{student}/decline', function (User $student) {
+        abort_unless($student->role === 'student', 404);
+        $student->forceFill(['password_reset_requested_at' => null])->save();
+
+        AuditLog::record(
+            'Student Password Reset Declined',
+            'Registrar declined the password reset request for ' . $student->name . ' (' . $student->login_id . ').',
+            'User',
+            $student->id
+        );
+
+        return back()->with('success', "Password reset request for {$student->name} declined.");
+    })->name('registrar.password-resets.decline')->middleware('password.confirm:,900');
 
     // Document submissions get their own page (moved off the Dashboard, which
     // was getting crowded) — opens straight to the pending queue by default,
@@ -586,15 +640,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/registrar/applicants/{id}/agreement', [\App\Http\Controllers\AgreementController::class, 'downloadForUser'])
         ->name('registrar.applicant-agreement');
 
-    // Admission Slots: lets the Registrar set how many total slots each curriculum
-    // has for the current registration/reservation period, split evenly across a
-    // number of sections (e.g. 200 slots / 4 sections = 50 seats per section).
+    // Admission Slots: lets the Registrar set how many applicants each curriculum
+    // can take for the current school year. Splitting students into blocks is the
+    // Chair's job (Section capacities), so there's no "sections" setting here.
     Route::get('/registrar/slots', function () {
         $schoolYear = \App\Models\Setting::get('school_year', '2026-2027');
 
         // Build one row per curriculum, creating its slot-limit record on the fly
-        // (with 200 slots / 4 sections as defaults) the first time it's viewed.
-        $curricula = collect(config('curricula'))->map(function ($prog) use ($schoolYear) {
+        // (200 slots by default) the first time it's viewed.
+        $enrollment = app(\App\Services\EnrollmentService::class);
+        $curricula = collect(config('curricula'))->map(function ($prog) use ($schoolYear, $enrollment) {
             $limit = \App\Models\AdmissionSlotLimit::forProgram($prog['id'], $prog['name'], $schoolYear);
 
             return [
@@ -603,22 +658,35 @@ Route::middleware('auth')->group(function () {
                 'programName'  => $prog['name'],
                 'level'        => $prog['level'],
                 'totalSlots'   => $limit->total_slots,
-                'sections'     => $limit->sections,
-                'perSection'   => $limit->slotsPerSection(),
                 'taken'        => $limit->takenCount(),
                 'slotsLeft'    => $limit->slotsLeft(),
+                // The Chair's 1st-year blocks this term, so the Registrar can
+                // keep accepted applicants in line with the seats that exist.
+                'blocks'       => $enrollment->firstYearBlockSeats(
+                    \App\Models\Program::where('code', $prog['program_code'] ?? null)->first()
+                ),
                 'updateUrl'    => route('registrar.slots.update', $limit->id),
             ];
         });
 
-        return view('registrar.slots', compact('curricula', 'schoolYear'));
+        // Current term + the one "Start next semester" should suggest:
+        // Sem 1 -> Sem 2 of the same year; Sem 2 -> Sem 1 of the next year.
+        $semester = (int) \App\Models\Setting::get('semester', '1');
+        $startYear = (int) substr($schoolYear, 0, 4);
+        $term = [
+            'current' => ['schoolYear' => $schoolYear, 'semester' => $semester],
+            'next' => $semester === 1
+                ? ['schoolYear' => $schoolYear, 'semester' => 2]
+                : ['schoolYear' => ($startYear + 1) . '-' . ($startYear + 2), 'semester' => 1],
+        ];
+
+        return view('registrar.slots', compact('curricula', 'schoolYear', 'term'));
     })->name('registrar.slots');
 
-    // Update the total slot limit + number of sections for one curriculum.
+    // Update the total slot limit for one curriculum.
     Route::post('/registrar/slots/{admissionSlotLimit}', function (Request $request, \App\Models\AdmissionSlotLimit $admissionSlotLimit) {
         $data = $request->validate([
             'total_slots' => ['required', 'integer', 'min:1', 'max:100000'],
-            'sections'    => ['required', 'integer', 'min:1', 'max:50'],
         ]);
 
         $admissionSlotLimit->update($data);
@@ -626,7 +694,7 @@ Route::middleware('auth')->group(function () {
         AuditLog::record(
             'Admission Slot Limit Updated',
             'Registrar set ' . $admissionSlotLimit->program_name . ' (' . $admissionSlotLimit->school_year . ') to ' .
-                $data['total_slots'] . ' total slots across ' . $data['sections'] . ' section(s).',
+                $data['total_slots'] . ' total slots.',
             'AdmissionSlotLimit',
             $admissionSlotLimit->id
         );
@@ -744,12 +812,13 @@ Route::middleware('auth')->group(function () {
                     'subject_code' => $submission->section->subject->code,
                     'status' => $item->status,
                     'final_grade' => $item->final_grade,
+                    'source' => null, // an in-system grade replaces any earlier credit
                 ])
                 ->values()
                 ->all();
 
             if (! empty($rows)) {
-                StudentGrade::upsert($rows, ['user_id', 'subject_code'], ['status', 'final_grade']);
+                StudentGrade::upsert($rows, ['user_id', 'subject_code'], ['status', 'final_grade', 'source']);
             }
         });
 
@@ -805,7 +874,11 @@ Route::middleware('auth')->group(function () {
             ->where('status', 'pending_chair')
             ->latest('submitted_at')
             ->get();
-        return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges', 'pendingGradeSubmissions'));
+        $pendingCredits = \App\Models\SubjectCreditRequest::with(['user', 'requester', 'items'])
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+        return view('approver.dashboard', compact('clearances', 'pendingEnrollments', 'pendingChanges', 'pendingGradeSubmissions', 'pendingCredits'));
     })->name('approver.dashboard');
 
     // Scheduling — sections (day/time/faculty/room) plus faculty/room
@@ -958,6 +1031,20 @@ Route::middleware('auth')->group(function () {
 
         return back()->with('success', 'Grades returned to faculty with remarks.');
     })->name('approver.grades.reject');
+
+    // Subject credits submitted by the Registrar for transferees/returnees.
+    Route::post('/approver/credits/{creditRequest}/approve', function (\App\Models\SubjectCreditRequest $creditRequest, \App\Services\SubjectCreditService $credits) {
+        $credits->approve($creditRequest, Auth::user());
+
+        return back()->with('success', 'Subject credits approved.');
+    })->name('approver.credits.approve');
+
+    Route::post('/approver/credits/{creditRequest}/reject', function (Request $request, \App\Models\SubjectCreditRequest $creditRequest, \App\Services\SubjectCreditService $credits) {
+        $data = $request->validate(['remarks' => ['required', 'string', 'max:500']]);
+        $credits->reject($creditRequest, Auth::user(), $data['remarks']);
+
+        return back()->with('success', 'Subject credits returned to the Registrar.');
+    })->name('approver.credits.reject');
     }); // end role:chair
 
     Route::middleware('role:faculty')->group(function () {
@@ -1180,6 +1267,14 @@ Route::middleware('auth')->group(function () {
 
         return Storage::disk('local')->response($announcement->attachment_path, $announcement->attachment_name);
     })->middleware('auth')->name('announcements.attachment');
+
+    // Saved preview picture of an announcement's link (see LinkPreviewImageFetcher).
+    Route::get('/announcements/{announcement}/link-image', function (Announcement $announcement) {
+        abort_unless($announcement->link_image_path, 404);
+        abort_unless(Storage::disk('local')->exists($announcement->link_image_path), 404);
+
+        return Storage::disk('local')->response($announcement->link_image_path);
+    })->middleware('auth')->name('announcements.link-image');
 
 
     // --- CASHIER HUB ENDPOINTS ---
@@ -1463,10 +1558,10 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('admin.announcements');
 
-    Route::post('/admin/announcements', function (Request $request) {
+    Route::post('/admin/announcements', function (Request $request, \App\Services\LinkPreviewImageFetcher $linkImages) {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:150'],
-            'body' => ['required', 'string'],
+            'link_url' => ['nullable', 'url:http,https', 'max:2048'],
             'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif,webp,pdf', 'max:15360'],
         ]);
 
@@ -1478,9 +1573,17 @@ Route::middleware('auth')->group(function () {
             $attachmentName = $file->getClientOriginalName();
         }
 
+        // Links the dashboard can't embed (e.g. Facebook posts) show their
+        // preview picture instead, saved once now since those URLs expire.
+        $linkImagePath = null;
+        if (! empty($data['link_url']) && ((new Announcement(['link_url' => $data['link_url']]))->linkPreview()['type'] ?? null) === 'card') {
+            $linkImagePath = $linkImages->fetch($data['link_url']);
+        }
+
         $announcement = Announcement::create([
             'title' => $data['title'],
-            'body' => $data['body'],
+            'link_url' => $data['link_url'] ?? null,
+            'link_image_path' => $linkImagePath,
             'posted_by' => Auth::id(),
             'is_active' => true,
             'attachment_path' => $attachmentPath,
@@ -1495,6 +1598,9 @@ Route::middleware('auth')->group(function () {
         $title = $announcement->title;
         if ($announcement->attachment_path) {
             Storage::disk('local')->delete($announcement->attachment_path);
+        }
+        if ($announcement->link_image_path) {
+            Storage::disk('local')->delete($announcement->link_image_path);
         }
         $announcement->delete();
         AuditLog::record('Announcement Deleted', 'Admin deleted announcement "' . $title . '".', 'Announcement', null);
@@ -1597,7 +1703,12 @@ Route::middleware('auth')->group(function () {
                     'url' => route('registrar.students.year-level', $s->id),
                     'options' => array_slice($yearLabels, 0, (int) ($collegeYears[$s->major] ?: 4)),
                 ] : null,
-                'isIrregular' => $failedStudentIds->contains($s->id),
+                'isIrregular' => $failedStudentIds->contains($s->id) || $s->backSubjectCodes() !== [],
+                // Subject crediting: Registrar only, transferees/returnees only.
+                'creditsUrl' => Auth::user()->role === 'registrar'
+                    && in_array($s->applicant_type, \App\Services\SubjectCreditService::ELIGIBLE_TYPES, true)
+                    ? route('registrar.students.credits', $s->id) : null,
+                'applicantType' => $s->applicant_type,
                 'adminStatus' => $isCleared ? 'Cleared' : 'Pending',
                 'needsAttention' => $needsAttention,
                 'documents' => $documents->get($s->id, collect())->map(fn ($document) => [
@@ -2000,6 +2111,29 @@ Route::middleware('auth')->group(function () {
                 'message' => $user->name . ' is now ' . $user->year_level . '.',
             ]);
         })->name('registrar.students.year-level')->middleware('password.confirm:,900');
+
+        // Subject crediting (transferees/returnees only): the Registrar lists the
+        // student's curriculum and submits subjects already passed elsewhere;
+        // nothing counts until the Chair approves (approver.credits.*).
+        Route::get('/registrar/students/{user}/credits', function (User $user, \App\Services\SubjectCreditService $credits) {
+            return response()->json($credits->overview($user));
+        })->name('registrar.students.credits');
+
+        Route::post('/registrar/students/{user}/credits', function (Request $request, User $user, \App\Services\SubjectCreditService $credits) {
+            $data = $request->validate([
+                'subjects' => ['required', 'array', 'min:1', 'max:80'],
+                'subjects.*.code' => ['required', 'string', 'max:20'],
+                'subjects.*.grade' => ['nullable', 'string', 'max:10'],
+                'note' => ['nullable', 'string', 'max:255'],
+            ]);
+            $request_ = $credits->submit($user, Auth::user(), $data['subjects'], $data['note'] ?? null);
+
+            return response()->json([
+                'message' => count($data['subjects']) . ' subject(s) sent to the Chair for approval.',
+                'overview' => $credits->overview($user),
+                'requestId' => $request_->id,
+            ]);
+        })->name('registrar.students.credits.submit');
         // Most units an irregular student (or any change of matriculation) may
         // carry in one term. Regular block loads are set by the curriculum.
         Route::post('/registrar/max-units', function (Request $request) {

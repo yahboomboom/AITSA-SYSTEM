@@ -67,7 +67,7 @@ class AuthController extends Controller
         // Deliberately identical response whether or not the account exists, and
         // regardless of which branch above fired, so this form can't be used to
         // enumerate valid student IDs/emails or infer account roles.
-        return back()->with('status', 'If an account matches, we\'ve started the password reset process — check your email, or follow up with the Registrar\'s office if you don\'t receive one.');
+        return back()->with('status', 'If an account matches, your request was sent. Students: visit the Registrar\'s office with your ID for a temporary password. Staff: check your email for a reset link.');
     }
 
     public function showResetPasswordForm(Request $request, string $token)
@@ -85,6 +85,13 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
+
+        // Students reset only through the Registrar; an emailed token (e.g. one
+        // sent before this rule) must not work for them. Same generic error as
+        // a bad token so the role isn't revealed.
+        if (User::where('email', $request->input('email'))->where('role', 'student')->exists()) {
+            return back()->withErrors(['email' => __(Password::INVALID_TOKEN)])->withInput($request->only('email'));
+        }
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
@@ -153,7 +160,7 @@ class AuthController extends Controller
         // instead of hardcoding ₱500 in the form's checkbox label.
         $reservationFee = (int) \App\Models\Setting::get('reservation_fee', '500');
 
-        // Slot limits per curriculum (total, divided into sections) — set by the
+        // Slot limits per curriculum — set by the
         // Registrar under Admission Slots. Shown to applicants so they know how
         // many slots are left before they pick a program.
         $schoolYear = Setting::get('school_year', '2026-2027');
@@ -161,8 +168,6 @@ class AuthController extends Controller
             $limit = AdmissionSlotLimit::forProgram($prog['id'], $prog['name'], $schoolYear);
             return [$prog['id'] => [
                 'totalSlots'      => $limit->total_slots,
-                'sections'        => $limit->sections,
-                'perSection'      => $limit->slotsPerSection(),
                 'slotsLeft'       => $limit->slotsLeft(),
                 'isFull'          => $limit->isFull(),
             ]];

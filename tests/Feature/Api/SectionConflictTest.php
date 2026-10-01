@@ -75,6 +75,61 @@ class SectionConflictTest extends TestCase
             ->assertStatus(201);
     }
 
+    public function test_same_faculty_in_a_different_semester_does_not_conflict(): void
+    {
+        $sem1 = Subject::factory()->create(['semester' => 1]);
+        $sem2 = Subject::factory()->create(['semester' => 2]);
+        Section::factory()->for($sem1)->create(['faculty_id' => $this->prof->id, 'room_id' => $this->room->id]);
+
+        $this->actingAs($this->chair)
+            ->postJson('/api/admin/sections', $this->payload(['subject_id' => $sem2->id, 'faculty_id' => $this->prof->id, 'room_id' => $this->room->id]))
+            ->assertStatus(201);
+    }
+
+    public function test_two_classes_of_the_same_block_cannot_overlap(): void
+    {
+        $program = \App\Models\Program::factory()->create();
+        $math = Subject::factory()->for($program)->create(['code' => 'MATH1']);
+        $eng = Subject::factory()->for($program)->create(['code' => 'ENG1']);
+        Section::factory()->for($math)->create(['block_label' => 'A', 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);
+
+        $response = $this->actingAs($this->chair)
+            ->postJson('/api/admin/sections', $this->payload(['subject_id' => $eng->id, 'block_label' => 'A', 'start_time' => '09:00', 'end_time' => '10:00']));
+
+        $response->assertStatus(409);
+        $this->assertStringContainsString('Block A', $response->json('message'));
+        $this->assertStringContainsString('MATH1', $response->json('message'));
+
+        // Block B at the same time is a different group of students.
+        $this->actingAs($this->chair)
+            ->postJson('/api/admin/sections', $this->payload(['subject_id' => $eng->id, 'block_label' => 'B', 'start_time' => '09:00', 'end_time' => '10:00']))
+            ->assertStatus(201);
+    }
+
+    public function test_conflict_response_names_the_kind_and_the_other_class(): void
+    {
+        Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M'], 'start_time' => '08:00', 'end_time' => '09:30']);
+
+        $this->actingAs($this->chair)
+            ->postJson('/api/admin/sections', $this->payload(['faculty_id' => $this->prof->id, 'days' => ['M']]))
+            ->assertStatus(409)
+            ->assertJsonPath('conflict.type', 'faculty')
+            ->assertJsonStructure(['message', 'conflict' => ['type', 'subject', 'block', 'slot']]);
+    }
+
+    public function test_faculty_loading_flags_classes_that_already_clash(): void
+    {
+        $a = Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M'], 'start_time' => '08:00', 'end_time' => '09:30']);
+        $b = Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M'], 'start_time' => '09:00', 'end_time' => '10:00']);
+        $c = Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['F'], 'start_time' => '08:00', 'end_time' => '09:30']);
+
+        $rows = collect($this->actingAs($this->chair)->getJson("/api/admin/faculty/{$this->prof->id}/schedule")->assertOk()->json('schedule'))->keyBy('id');
+
+        $this->assertSame([$b->id], $rows[$a->id]['conflicts_with']);
+        $this->assertSame([$a->id], $rows[$b->id]['conflicts_with']);
+        $this->assertSame([], $rows[$c->id]['conflicts_with']);
+    }
+
     public function test_disjoint_days_do_not_conflict(): void
     {
         Section::factory()->create(['faculty_id' => $this->prof->id, 'days' => ['M', 'W'], 'start_time' => '08:00', 'end_time' => '09:30']);

@@ -100,12 +100,14 @@
                             ])->values(),
                             ];
                         })->values(),
+                        'tempPasswords' => $tempPasswords,
                         'passwordResetRequests' => $passwordResetRequests->map(fn ($student) => [
                             'id' => $student->id,
                             'name' => $student->name,
                             'loginId' => $student->login_id,
                             'requestedAtFormatted' => $student->password_reset_requested_at->format('M d, Y g:i A'),
                             'resetUrl' => route('registrar.password-resets.reset', $student),
+                            'declineUrl' => route('registrar.password-resets.decline', $student),
                         ])->values(),
                         'canManageWithdrawals' => $canManageWithdrawals,
                         'noShowThresholdDays' => $noShowThresholdDays,

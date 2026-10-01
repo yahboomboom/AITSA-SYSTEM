@@ -64,6 +64,7 @@ class PasswordResetTest extends TestCase
     public function test_submitting_a_valid_token_resets_the_password_and_allows_login(): void
     {
         $user = User::factory()->create([
+            'role' => 'cashier',
             'login_id' => '2026-00003',
             'email' => 'reset@example.com',
             'password' => Hash::make('old-password'),
