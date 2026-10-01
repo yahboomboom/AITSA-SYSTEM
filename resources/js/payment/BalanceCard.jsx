@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { peso } from '../utils/format';
+import ConfirmPaymentModal from './ConfirmPaymentModal';
 
 // Disables the submit button on click so a slow gateway round-trip can't be
 // double-clicked into a second checkout session / pending ledger row.
@@ -11,6 +13,8 @@ function disableSubmit(e, busyLabel) {
 }
 
 export default function BalanceCard({ settled, breakdown, hasPendingGateway, checkoutUrl, verifyUrl, csrfToken }) {
+    // Which payment the student is being asked to confirm (null = pop-up closed).
+    const [pendingPayment, setPendingPayment] = useState(null);
     const b = breakdown ?? {};
     const hasDiscount = (b.discount_amount ?? 0) > 0;
     const remainingDownPayment = Math.max((b.down_payment_required ?? 0) - (b.paid ?? 0), 0);
@@ -70,21 +74,24 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                         !hasPendingGateway && (
                             <>
                                 {showDownPaymentOption && (
-                                    <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
-                                        <input type="hidden" name="_token" value={csrfToken} />
-                                        <input type="hidden" name="type" value="down_payment" />
-                                        <button type="submit" className="ui-btn-primary w-full justify-center bg-transparent border border-brandNavy/25 dark:border-slate-600 hover:bg-brandNavy/5 dark:hover:bg-slate-800 text-brandNavy dark:text-slate-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPendingPayment({ type: 'down_payment', amount: remainingDownPayment })}
+                                            className="ui-btn-primary w-full justify-center bg-transparent border border-brandNavy/25 dark:border-slate-600 hover:bg-brandNavy/5 dark:hover:bg-slate-800 text-brandNavy dark:text-slate-200 transition-colors"
+                                        >
                                             <i className="fa-solid fa-unlock" />Pay down payment {peso(remainingDownPayment)}
                                         </button>
                                         <p className="text-xs text-brandNavy/50 dark:text-slate-500 text-center mt-1.5">Unlocks self-enrollment now; the rest can be settled later.</p>
-                                    </form>
+                                    </div>
                                 )}
-                                <form action={checkoutUrl} method="POST" onSubmit={(e) => disableSubmit(e, 'Redirecting to PayMongo…')}>
-                                    <input type="hidden" name="_token" value={csrfToken} />
-                                    <button type="submit" className="ui-btn-primary w-full justify-center bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                                        <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
-                                    </button>
-                                </form>
+                                <button
+                                    type="button"
+                                    onClick={() => setPendingPayment({ type: 'full', amount: b.balance })}
+                                    className="ui-btn-primary w-full justify-center bg-brandGreen hover:bg-brandGreen/90 text-white transition-colors"
+                                >
+                                    <i className="fa-solid fa-credit-card" />Pay {peso(b.balance)} via PayMongo
+                                </button>
                             </>
                         )
                     )}
@@ -101,6 +108,13 @@ export default function BalanceCard({ settled, breakdown, hasPendingGateway, che
                     )}
                 </div>
             </div>
+
+            <ConfirmPaymentModal
+                payment={pendingPayment}
+                checkoutUrl={checkoutUrl}
+                csrfToken={csrfToken}
+                onClose={() => setPendingPayment(null)}
+            />
         </div>
     );
 }
