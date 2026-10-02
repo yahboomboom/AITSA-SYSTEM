@@ -222,14 +222,18 @@ class AdmissionWithdrawalServiceTest extends TestCase
         $this->assertSame('student', $continuing->fresh()->role);
     }
 
-    public function test_slot_count_only_includes_this_school_years_admission_cohort(): void
+    public function test_slot_count_includes_every_active_student_in_the_program(): void
     {
         $this->reservedStudent(20);                                  // this year's admit
-        $older = User::factory()->create(['role' => 'student', 'is_reserved' => true, 'program_key' => 'bsoa']);
+        $older = User::factory()->create(['role' => 'student', 'is_reserved' => true, 'program_key' => 'bsoa', 'year_level' => '2nd Year']);
         Clearance::create(['user_id' => $older->id, 'school_year' => '2025-2026', 'semester' => 1, 'admission_status' => 'Approved']);
-        Clearance::create(['user_id' => $older->id, 'school_year' => '2026-2027', 'semester' => 1, 'admission_status' => 'Approved']);
+        User::factory()->create(['role' => 'student', 'is_reserved' => false, 'program_key' => 'bsoa', 'year_level' => '3rd Year']); // imported, never reserved
+        User::factory()->create(['role' => 'applicant', 'is_reserved' => true, 'program_key' => 'bsoa']);
+        User::factory()->create(['role' => 'applicant', 'is_reserved' => false, 'program_key' => 'bsoa']); // not reserved yet
+        User::factory()->create(['role' => 'withdrawn', 'is_reserved' => false, 'program_key' => 'bsoa']);
+        User::factory()->create(['role' => 'student', 'program_key' => 'bom']);                         // other program
 
-        $this->assertSame(1, AdmissionSlotLimit::forProgram('bsoa', 'BSOA', '2026-2027')->takenCount());
+        $this->assertSame(4, AdmissionSlotLimit::forProgram('bsoa', 'BSOA', '2026-2027')->takenCount());
     }
 
     public function test_backfill_migration_sets_program_key_from_major(): void
