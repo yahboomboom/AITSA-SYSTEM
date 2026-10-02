@@ -10,7 +10,6 @@ use App\Services\PaymentService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -44,7 +43,7 @@ class AgreementController extends Controller
         $agreementHtml = view('agreements.enrollment', ['student' => $user])->render();
 
         $path = 'agreement-signatures/' . $user->id . '-' . Str::random(20) . '.png';
-        Storage::disk('public')->put($path, $binary);
+        \App\Support\Uploads::signatures()->put($path, $binary);
 
         EnrollmentAgreement::create([
             'user_id' => $user->id,
@@ -91,14 +90,14 @@ class AgreementController extends Controller
     {
         $agreement = $user->agreements()->latest()->first();
 
-        if (! $agreement) {
-            return back()->with('error', 'No signed enrollment agreement was found for this account.');
-        }
+        // These links open in a new tab with rel="noreferrer", so back() would
+        // just redirect to this same URL forever — answer with a plain 404.
+        abort_unless($agreement, 404, 'No signed enrollment agreement was found for this account.');
 
         $pdf = Pdf::loadView('agreements.signed', [
             'student' => $user,
             'agreement' => $agreement,
-            'signaturePath' => Storage::disk('public')->path($agreement->signature_path),
+            'signaturePath' => \App\Support\Uploads::signatureDataUri($agreement->signature_path),
         ]);
 
         return $pdf->stream('enrollment-agreement.pdf');

@@ -82,14 +82,14 @@ class EnrollmentAgreementVisibilityTest extends TestCase
         $response->assertHeader('Content-Type', 'application/pdf');
     }
 
-    public function test_downloading_with_no_signed_agreement_redirects_with_an_error(): void
+    public function test_downloading_with_no_signed_agreement_is_not_found_instead_of_looping(): void
     {
         $student = User::factory()->create(['role' => 'student']);
 
+        // Opened in a new tab without a referrer, back() used to redirect here forever.
         $response = $this->actingAs($student)->get('/my-agreement');
 
-        $response->assertRedirect();
-        $response->assertSessionHas('error');
+        $response->assertNotFound();
     }
 
     public function test_registrar_can_download_an_applicants_signed_agreement(): void

@@ -113,7 +113,7 @@
 
     <div class="sig-block">
         @if ($clearance?->registrarSignedBy?->signature_path)
-            <img class="sig-img" src="{{ public_path('storage/' . $clearance->registrarSignedBy->signature_path) }}">
+            <img class="sig-img" src="{{ \App\Support\Uploads::signatureDataUri($clearance->registrarSignedBy->signature_path) }}">
         @endif
         <div class="sig-name">{{ $clearance?->registrarSignedBy?->name ?? '' }}</div>
         <div class="sig-line">University Registrar</div>

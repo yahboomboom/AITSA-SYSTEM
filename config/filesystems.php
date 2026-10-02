@@ -28,6 +28,15 @@ return [
     |
     */
 
+    /*
+    | Disks for user uploads (see App\Support\Uploads). Production on Railway
+    | sets UPLOADS_DISK=s3 because the container disk is wiped on redeploy.
+    */
+
+    'uploads_disk' => env('UPLOADS_DISK', 'local'),
+
+    'signatures_disk' => env('UPLOADS_DISK', 'public'),
+
     'disks' => [
 
         'local' => [
@@ -56,7 +65,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => true,
             'report' => false,
         ],
 

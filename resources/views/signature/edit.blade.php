@@ -33,7 +33,7 @@
         @include('partials.snackbar')
 
         <div id="signature-root" data-context="{{ json_encode([
-            'signaturePath' => $user->signature_path ? Storage::url($user->signature_path) : null,
+            'signaturePath' => \App\Support\Uploads::signatureDataUri($user->signature_path),
             'hasSignature' => (bool) $user->signature_path,
             'updateUrl' => route('signature.update'),
             'csrfToken' => csrf_token(),

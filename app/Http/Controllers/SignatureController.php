@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class SignatureController extends Controller
@@ -43,11 +42,11 @@ class SignatureController extends Controller
         $user = Auth::user();
 
         if ($user->signature_path) {
-            Storage::disk('public')->delete($user->signature_path);
+            \App\Support\Uploads::signatures()->delete($user->signature_path);
         }
 
         $path = 'signatures/' . $user->id . '-' . Str::random(20) . '.png';
-        Storage::disk('public')->put($path, $binary);
+        \App\Support\Uploads::signatures()->put($path, $binary);
         $user->update(['signature_path' => $path]);
 
         return back()->with('success', 'Your signature has been saved.');

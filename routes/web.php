@@ -30,7 +30,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -259,7 +258,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 'local'),
+            'file_path' => $file->store('documents', \App\Support\Uploads::filesDisk()),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -332,7 +331,7 @@ Route::middleware('auth')->group(function () {
             'user_id' => $user->id,
             'document_type' => $request->input('document_type'),
             'notes' => $request->input('notes'),
-            'file_path' => $file->store('documents', 'local'),
+            'file_path' => $file->store('documents', \App\Support\Uploads::filesDisk()),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
@@ -1254,26 +1253,26 @@ Route::middleware('auth')->group(function () {
         $user = Auth::user();
         $allowed = $user->id === $submission->user_id || in_array($user->role, ['registrar', 'admission']);
         abort_unless($allowed, 403);
-        abort_unless(Storage::disk('local')->exists($submission->file_path), 404);
+        abort_unless(\App\Support\Uploads::files()->exists($submission->file_path), 404);
 
-        return Storage::disk('local')->response($submission->file_path, $submission->original_name);
+        return \App\Support\Uploads::files()->response($submission->file_path, $submission->original_name);
     })->middleware('auth')->name('documents.show');
 
     // Announcement attachment: any signed-in user may view it — announcements
     // themselves aren't role-scoped, they're shown app-wide.
     Route::get('/announcements/{announcement}/attachment', function (Announcement $announcement) {
         abort_unless($announcement->attachment_path, 404);
-        abort_unless(Storage::disk('local')->exists($announcement->attachment_path), 404);
+        abort_unless(\App\Support\Uploads::files()->exists($announcement->attachment_path), 404);
 
-        return Storage::disk('local')->response($announcement->attachment_path, $announcement->attachment_name);
+        return \App\Support\Uploads::files()->response($announcement->attachment_path, $announcement->attachment_name);
     })->middleware('auth')->name('announcements.attachment');
 
     // Saved preview picture of an announcement's link (see LinkPreviewImageFetcher).
     Route::get('/announcements/{announcement}/link-image', function (Announcement $announcement) {
         abort_unless($announcement->link_image_path, 404);
-        abort_unless(Storage::disk('local')->exists($announcement->link_image_path), 404);
+        abort_unless(\App\Support\Uploads::files()->exists($announcement->link_image_path), 404);
 
-        return Storage::disk('local')->response($announcement->link_image_path);
+        return \App\Support\Uploads::files()->response($announcement->link_image_path);
     })->middleware('auth')->name('announcements.link-image');
 
 
@@ -1569,7 +1568,7 @@ Route::middleware('auth')->group(function () {
         $attachmentName = null;
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
-            $attachmentPath = $file->store('announcements', 'local');
+            $attachmentPath = $file->store('announcements', \App\Support\Uploads::filesDisk());
             $attachmentName = $file->getClientOriginalName();
         }
 
@@ -1597,10 +1596,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/announcements/{announcement}/delete', function (Announcement $announcement) {
         $title = $announcement->title;
         if ($announcement->attachment_path) {
-            Storage::disk('local')->delete($announcement->attachment_path);
+            \App\Support\Uploads::files()->delete($announcement->attachment_path);
         }
         if ($announcement->link_image_path) {
-            Storage::disk('local')->delete($announcement->link_image_path);
+            \App\Support\Uploads::files()->delete($announcement->link_image_path);
         }
         $announcement->delete();
         AuditLog::record('Announcement Deleted', 'Admin deleted announcement "' . $title . '".', 'Announcement', null);

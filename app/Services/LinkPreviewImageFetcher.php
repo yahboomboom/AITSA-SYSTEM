@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -57,7 +56,7 @@ class LinkPreviewImageFetcher
             }
 
             $path = 'announcements/link-' . Str::random(32) . '.' . self::IMAGE_TYPES[$type];
-            Storage::disk('local')->put($path, $image->body());
+            \App\Support\Uploads::files()->put($path, $image->body());
 
             return $path;
         } catch (\Throwable $e) {

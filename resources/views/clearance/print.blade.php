@@ -34,7 +34,7 @@
         {{-- Display the signatures of the cashier, registrar, and department chair if they have signed the clearance: name, then e-signature image, then a line, with the department below the line --}}
         <div class="sig-block">
             @if ($clearance->cashierSignedBy?->signature_path)
-                <img class="sig-img" src="{{ Storage::url($clearance->cashierSignedBy->signature_path) }}">
+                <img class="sig-img" src="{{ \App\Support\Uploads::signatureDataUri($clearance->cashierSignedBy->signature_path) }}">
             @endif
             <div class="sig-name">{{ $clearance->cashierSignedBy->name ?? '' }}</div>
             <div class="sig-line">
@@ -43,7 +43,7 @@
         </div>
         <div class="sig-block">
             @if ($clearance->registrarSignedBy?->signature_path)
-                <img class="sig-img" src="{{ Storage::url($clearance->registrarSignedBy->signature_path) }}">
+                <img class="sig-img" src="{{ \App\Support\Uploads::signatureDataUri($clearance->registrarSignedBy->signature_path) }}">
             @endif
             <div class="sig-name">{{ $clearance->registrarSignedBy->name ?? '' }}</div>
             <div class="sig-line">
@@ -52,7 +52,7 @@
         </div>
         <div class="sig-block">
             @if ($clearance->chairSignedBy?->signature_path)
-                <img class="sig-img" src="{{ Storage::url($clearance->chairSignedBy->signature_path) }}">
+                <img class="sig-img" src="{{ \App\Support\Uploads::signatureDataUri($clearance->chairSignedBy->signature_path) }}">
             @endif
             <div class="sig-name">{{ $clearance->chairSignedBy->name ?? '' }}</div>
             <div class="sig-line">
